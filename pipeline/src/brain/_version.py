@@ -2,19 +2,18 @@ from __future__ import annotations
 
 
 
-__version__ = "0.14.0"
+__version__ = "0.14.2"
 
 __release__ = (
 
-    "Brain-Driven Quest Engine. The User is the Body of the Brain — type a "
-    "real-world situation in plain language, the Brain parses intent into a "
-    "Mission under the seed quest *Optimize Supply Chains*, runs the relevant "
-    "analyzers, synthesizes the target-entity schema, and emits two living "
-    "PPTX artifacts (Executive 1-Pager + Implementation Plan) that overwrite "
-    "in place as new data shows progress. Missions ride alongside the existing "
-    "Brain↔Body bridge: every refresh feeds findings back into the corpus and "
-    "surfaces new directives. Living artifacts are streamed to the laptop body "
-    "via the agent uplink under MISSION/<id>/ headers."
+    "Test + Benchmark Infrastructure, Hardening, Docs. "
+    "88-test pytest suite (tests/conftest.py + 5 test modules) covering "
+    "Quest taxonomy, intent_parser keyword fallback, mission_store CRUD, "
+    "orchestrator, viz_composer, schema_synthesizer, deck builders with "
+    "kaleido-absent fallback. bench_quest_engine.py benchmarks intent_parser / "
+    "mission_store / schema_synthesizer / viz_composer. Hardened: orchestrator "
+    "_CURRENT_MISSION in finally block; intent_parser 2 000-char truncation; "
+    "mission_runner launch() rejects empty query. README Quest Engine section added."
 
 )
 
@@ -59,6 +58,10 @@ PHASES = {
     "0.13.0": "Brain → Body Bridge. Efferent nervous system: brain_body_signals distills every effective signal into prioritized, role-targeted Directives. Five generators ship out of the box. Loop closure via body_feedback → corpus → next round.",
 
     "0.14.0": "Brain-Driven Quest Engine. NL → ParsedIntent → Mission → analyzers + schema synthesis + viz composer → 2 living PPTX artifacts (Executive 1-Pager portrait + Implementation Plan landscape) overwriting in place. Wired into autonomous_agent Step 3g; agent_uplink streams MISSION/<id>/ to laptop body.",
+
+    "0.14.1": "UI Stability & Full-Suite Playwright Benchmarks. Fixed duplicate URL collision, missing import, out-of-order import. Playwright smoke-test: 20/20 pages PASS.",
+
+    "0.14.2": "Test + Benchmark Infrastructure, Hardening, Docs. 88-test pytest suite, bench_quest_engine.py, orchestrator hardening, intent_parser 2k truncation, mission_runner empty-query guard, README Quest Engine section.",
 
 }
 

@@ -4,6 +4,85 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.14.2 — Test + Benchmark Infrastructure, Hardening, Docs (2026-04-22)
+
+### Added
+- **`pytest.ini`** — pytest configuration: testpaths, strict markers, `unit /
+  integration / slow / quest / bench` marker taxonomy, filterwarnings.
+- **`tests/conftest.py`** — Shared fixtures:
+  - `stub_llm` (autouse) — stubs `dispatch_parallel` so intent_parser always
+    uses its deterministic keyword fallback; no network calls in any test.
+  - `mission_factory` — creates a Mission in the real DB and auto-cleans on
+    teardown.
+  - `synth_result` — pre-built `MissionResult` (25 findings, 3 outcomes) for
+    viz/deck tests.
+- **`tests/test_quests.py`** — 16 unit tests: `SCOPE_TAGS` closed vocab, Quest
+  registry existence, `list_quests`, `quests_for_scope_tags`, `new_mission_id`
+  uniqueness + format.
+- **`tests/test_intent_parser.py`** — 22 unit tests: 8-paraphrase parametrize,
+  closed-vocab enforcement on scope_tags + entity_kind, site propagation,
+  `as_dict` JSON-serialisability.
+- **`tests/test_mission_store.py`** — 19 integration tests: CRUD round-trip,
+  progress clamping ±, event log kinds, artifact attach, delete, `mark_refreshed`.
+- **`tests/test_quest_engine.py`** — 29 tests: schema_synthesizer (6 entity
+  kinds), viz_composer (6 figure keys, caption_for, empty-result guard),
+  orchestrator (MissionResult shape, JSON-serialisability), mission_runner
+  (launch/refresh/refresh_open_missions, empty-query ValueError).
+- **`tests/test_deck.py`** — 8 tests: one_pager + implementation_plan file
+  creation, valid PPTX, kaleido-absent fallback, empty-findings guard.
+- **`bench/bench_quest_engine.py`** — Quest Engine benchmark suite:
+  `intent_parser.parse` (single / 8-paraphrase / bulk), `mission_store`
+  CRUD + list_open + update_progress, `schema_synthesizer` (6 kinds),
+  `viz_composer.compose` (100 / 1 000 / 5 000 findings). CSV to
+  `bench/results/bench_quest_engine-*.csv` + `latest_quest.csv`.
+
+### Changed (hardening)
+- **`src/brain/orchestrator.py`** — `_CURRENT_MISSION` is now reset in a
+  `finally` block so any exception in an analyzer adapter cannot leave the
+  global set for the next call.
+- **`src/brain/intent_parser.py`** — `parse()` now truncates `user_query` at
+  2 000 characters before processing (prevents runaway payloads).
+- **`src/brain/mission_runner.py`** — `launch()` now raises `ValueError` on
+  empty `user_query` and coerces a blank `site` to `"ALL"`.
+
+### Documentation
+- **`README.md`** — Added *Brain Quest Engine* section (architecture diagram,
+  scope-tag table, artifact paths); expanded *Testing & benchmarking* section
+  with pytest and bench_quest_engine usage; updated layout tree.
+- **`CHANGELOG.md`** — This entry.
+
+---
+
+## 0.14.1 — UI Stability & Full-Suite Playwright Benchmarks (2026-04-22)
+
+### Fixed
+- **`pages/15_Cycle_Count_Accuracy.py` URL collision** — Renamed to
+  `_old_Cycle_Count_Accuracy.py` (underscore prefix is ignored by
+  Streamlit). Both `15_` and `16_Cycle_Count_Accuracy.py` resolved to the
+  same URL path, causing `StreamlitAPIException: Multiple Pages specified
+  with URL pathname` on **every page** in the app.
+- **`pages/0_Query_Console.py` missing import** — Added
+  `from src.brain.dynamic_insight import render_dynamic_brain_insight`.
+  Without it the page threw `NameError` at line 248 on load.
+- **`pages/1b_Supply_Chain_Pipeline.py` out-of-order import** — The call
+  to `render_dynamic_brain_insight` at line 25 preceded the import at
+  line 142. Moved the import to the top of the file alongside other
+  `src.brain` imports and removed the duplicate.
+- **`src/brain/_version.py` UTF-16 encoding** — File was saved in UTF-16
+  LE (with BOM), causing `UnicodeDecodeError` whenever Python tried to
+  read it. Converted to UTF-8.
+
+### Added
+- **`test_ui.py`** — Complete Playwright smoke-test and screenshot
+  benchmark suite. Visits all 19 registered pages, waits for
+  `[data-testid="stApp"]` to be visible and spinners to clear, checks
+  for `[data-testid="stException"]` error banners, performs a soft DBI
+  container check, saves full-page screenshots to `snapshots/bench_*.png`,
+  and writes `snapshots/latest_report.json`. Exit code 0 iff all pages
+  pass. **Result: 20/20 PASS on first clean run.**
+
+---
+
 ## 0.14.0 — Brain-Driven Quest Engine (Living-Document Missions)
 
 > Mantra: **the User is the Body of the Brain.** The User describes a

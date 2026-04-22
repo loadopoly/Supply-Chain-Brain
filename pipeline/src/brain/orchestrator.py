@@ -473,34 +473,36 @@ class BrainOrchestrator:
         _CURRENT_MISSION = mission
         mission_store.update_status(mission.id, "running")
         t0 = _now_ms()
-        outcomes: list[AnalyzerOutcome] = []
-        for tag in mission.scope_tags:
-            for name, fn in self.registry.get(tag, []):
-                outcomes.append(_safe_run(tag, name, fn))
-        elapsed = _now_ms() - t0
+        try:
+            outcomes: list[AnalyzerOutcome] = []
+            for tag in mission.scope_tags:
+                for name, fn in self.registry.get(tag, []):
+                    outcomes.append(_safe_run(tag, name, fn))
+            elapsed = _now_ms() - t0
 
-        snapshot = _kpi_snapshot_from_outcomes(outcomes)
-        baseline = _baseline_for_mission(mission.id) if refresh else {}
-        progress = _progress_pct(snapshot, baseline) if refresh else 0.0
+            snapshot = _kpi_snapshot_from_outcomes(outcomes)
+            baseline = _baseline_for_mission(mission.id) if refresh else {}
+            progress = _progress_pct(snapshot, baseline) if refresh else 0.0
 
-        # Persist the kpi snapshot so the next refresh can compute progress.
-        mission_store.record_event(mission.id, "kpi_snapshot",
-                                   {"snapshot": snapshot, "refresh": refresh})
+            # Persist the kpi snapshot so the next refresh can compute progress.
+            mission_store.record_event(mission.id, "kpi_snapshot",
+                                       {"snapshot": snapshot, "refresh": refresh})
 
-        mission_store.update_progress(mission.id, progress, note=("refresh" if refresh else "initial"))
-        if refresh:
-            mission_store.mark_refreshed(mission.id)
+            mission_store.update_progress(mission.id, progress, note=("refresh" if refresh else "initial"))
+            if refresh:
+                mission_store.mark_refreshed(mission.id)
 
-        # Pull the findings we just wrote so the deck builders have them.
-        kinds = {"eoq_deviation", "otd_cluster", "supplier_volume",
-                 "data_gap", "network_node", "abc_class"}
-        findings: list[dict] = []
-        for kind in kinds:
-            for f in lookup_findings(kind, limit=200):
-                if (f.get("payload") or {}).get("mission_id") == mission.id:
-                    findings.append(f)
+            # Pull the findings we just wrote so the deck builders have them.
+            kinds = {"eoq_deviation", "otd_cluster", "supplier_volume",
+                     "data_gap", "network_node", "abc_class"}
+            findings: list[dict] = []
+            for kind in kinds:
+                for f in lookup_findings(kind, limit=200):
+                    if (f.get("payload") or {}).get("mission_id") == mission.id:
+                        findings.append(f)
+        finally:
+            _CURRENT_MISSION = None
 
-        _CURRENT_MISSION = None
         return MissionResult(
             mission_id=mission.id,
             site=mission.site,

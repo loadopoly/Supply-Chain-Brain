@@ -77,6 +77,10 @@ def _owner_for_tags(scope_tags) -> str:
 def launch(user_query: str, site: str, *, horizon_days: int = 90,
            executed_by: str | None = None) -> dict:
     """Parse intent → create mission → run first refresh → return mission dict."""
+    user_query = (user_query or "").strip()
+    if not user_query:
+        raise ValueError("user_query must be a non-empty string")
+    site = (site or "").strip() or "ALL"
     parsed = intent_parser.parse(user_query, site_default=site)
     parsed_dict = {
         "scope_tags": list(parsed.scope_tags),

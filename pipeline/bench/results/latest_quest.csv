@@ -1,0 +1,11 @@
+benchmark,scenario,elapsed_s,items_per_s,n,repeats,python,platform,ts
+intent_parser.parse,single_query,0.0001,12539.2,1,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+intent_parser.parse,8_paraphrases,0.0004,20235.2,8,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+intent_parser.parse,bulk_50,0.002,24971.3,50,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+mission_store.create_mission,create_50,0.8542,58.5,50,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+mission_store.list_open,limit_50,0.0029,348.8,1,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+mission_store.update_progress,update_50,0.7994,62.5,50,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+schema_synthesizer.synthesize,6_entity_kinds,3.3956,1.8,6,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+viz_composer.compose,100_findings,0.0806,1240.1,100,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+viz_composer.compose,1000_findings,0.0834,11994.8,1000,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00
+viz_composer.compose,5000_findings,0.0999,50030.7,5000,2,3.14.4,Windows-11-10.0.26200-SP0,2026-04-22T21:29:17+00:00

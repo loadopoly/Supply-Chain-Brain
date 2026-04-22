@@ -236,7 +236,7 @@ def parse(user_query: str, site_default: str = "ALL", *,
     UI tell the user whether the LLM ensemble or the keyword fallback
     produced the answer.
     """
-    user_query = (user_query or "").strip()
+    user_query = (user_query or "").strip()[:2000]
     if not user_query:
         return _fallback_parse("", site_default)
 

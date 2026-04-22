@@ -88,9 +88,60 @@ python -m bench.bench_brain --rows 20000
 | 12| 🧪 What-If              — snapshot · mutate · replay · diff                   | SC Design + CAVE |
 | 13| 📒 Decision Log         — provenance for every recommendation                  | Digital SC       |
 | 14| ⚡ Benchmarks           — performance dashboard for the analytics core         | —                |
+| 15| 🗺️ Quest Console        — Brain-Driven mission launcher (NL query → living PPTX) | SC Design      |
 
 Every research-derived view carries an in-page citation footer back to its
 originating MIT CTL lab.
+
+---
+
+## Brain Quest Engine (v0.14)
+
+The **Quest Console** (page 15) turns a free-form supply-chain question into a
+*living mission* — a persistent record that the autonomous agent refreshes on
+every cycle.
+
+```
+User NL query
+    ↓  intent_parser.parse()          keyword fallback when LLM is offline
+ParsedIntent (site, scope_tags, …)
+    ↓  mission_store.create_mission() SQLite row in findings_index.db
+Mission (id, status=open, …)
+    ↓  orchestrator.BrainOrchestrator.run()
+MissionResult (findings, kpi_snapshot, progress_pct, …)
+    ├─ viz_composer.compose()         → 6 Plotly figures
+    ├─ schema_synthesizer.synthesize() → EntitySchema + Mermaid ER
+    ├─ one_pager.render_one_pager()   → snapshots/missions/<id>/one_pager.pptx
+    └─ implementation_plan.render_implementation_plan() → snapshots/missions/<id>/implementation_plan.pptx
+```
+
+### Quest taxonomy
+
+Eight closed-vocabulary **scope tags** route every query to the right analyzer:
+
+| Scope tag          | Owner    | Analyzer              |
+|--------------------|----------|-----------------------|
+| `fulfillment`      | Planner  | OTD recursive cluster |
+| `inventory_sizing` | Planner  | EOQ deviation         |
+| `sourcing`         | Buyer    | Procurement 360       |
+| `lead_time`        | Buyer    | PO receipts survival  |
+| `data_quality`     | Quality  | VOI / imputation      |
+| `demand_distortion`| Planner  | Bullwhip ratio        |
+| `network_position` | Ops      | Multi-echelon SSS     |
+| `cycle_count`      | Ops      | ABC / cycle count     |
+
+### Artifacts
+
+Both PPTX artifacts are regenerated on every refresh and stored at:
+
+```
+pipeline/snapshots/missions/<mission_id>/
+    one_pager.pptx          8.5×11 portrait  — executive 1-pager
+    implementation_plan.pptx  16:9 landscape — 9-slide implementation deck
+```
+
+The autonomous agent (Step 3g) automatically refreshes all open missions on
+every heartbeat cycle.
 
 ---
 
@@ -126,8 +177,17 @@ pipeline/
 │     ├─ analytics_fact.py    # nightly fact-table builder
 │     └─ auth.py              # session identity (opt-in)
 ├─ bench/
-│  ├─ bench_brain.py          # synthetic-data benchmark suite
-│  └─ results/                # CSV history + latest.csv
+│  ├─ bench_brain.py          # synthetic-data benchmark suite (analytics core)
+│  ├─ bench_quest_engine.py   # Quest Engine benchmark suite
+│  └─ results/                # CSV history + latest*.csv
+├─ tests/
+│  ├─ conftest.py             # shared fixtures (stub_llm, mission_factory, synth_result)
+│  ├─ test_quests.py          # Quest taxonomy unit tests
+│  ├─ test_intent_parser.py   # Intent parser unit tests (keyword fallback)
+│  ├─ test_mission_store.py   # Mission store integration tests
+│  ├─ test_quest_engine.py    # Orchestrator + viz + mission_runner tests
+│  └─ test_deck.py            # Deck builder unit tests (PPTX + kaleido fallback)
+├─ pytest.ini                 # pytest configuration
 ├─ config/brain.yaml          # single source of truth for tables/columns/defaults
 ├─ docs/
 │  ├─ ARCHITECTURE.md
@@ -173,25 +233,47 @@ Outbound payloads are HMAC-SHA256-signed; inbound use `cross_app.verify()`.
 
 ## Testing & benchmarking
 
-```bash
-python -m bench.bench_brain --rows 20000 --repeats 3
-```
-
-Deck smoke test:
+### pytest suite
 
 ```bash
-python pipeline.py deck --demo
+# All non-slow tests (~12 s):
+.venv\Scripts\python.exe -m pytest tests\ -m "not slow" -v
+
+# Full suite including mission_runner end-to-end (~45 s):
+.venv\Scripts\python.exe -m pytest tests\ -v
+
+# Single module:
+.venv\Scripts\python.exe -m pytest tests\test_quests.py -v
 ```
 
-Live deck render:
+**Test structure:**
 
+| File | Marks | Tests |
+|---|---|---|
+| `tests/test_quests.py` | `unit quest` | Quest taxonomy, scope tags, IDs |
+| `tests/test_intent_parser.py` | `unit quest` | Keyword fallback, closed-vocab enforcement |
+| `tests/test_mission_store.py` | `integration quest` | CRUD, progress clamping, events, cleanup |
+| `tests/test_quest_engine.py` | `unit/integration quest` | Schema synthesizer, viz composer, orchestrator, mission_runner |
+| `tests/test_deck.py` | `unit quest` | One-pager + impl-plan creation, kaleido fallback |
+
+### Benchmarks
+
+**Analytics core** (EOQ, OTD, bullwhip, graph, …):
 ```bash
-python pipeline.py deck
+.venv\Scripts\python.exe -m bench.bench_brain --rows 20000 --repeats 3
 ```
 
-Then open the **⚡ Benchmarks** page in the app to see the latest run.
-On the dev box (Windows · Python 3.14 · pandas 3.0 · sklearn 1.8) the full
-18-benchmark suite runs in **≈ 5 seconds** end-to-end at 20k rows.
+**Quest Engine** (intent_parser, mission_store CRUD, schema_synthesizer, viz_composer):
+```bash
+.venv\Scripts\python.exe -m bench.bench_quest_engine --rows 100 --repeats 3
+```
+
+Both write CSV results to `bench/results/` (timestamped + `latest*.csv`).
+Open the **⚡ Benchmarks** page in the app to visualise the latest run.
+
+On the dev box (Windows · Python 3.14 · pandas 3.0 · sklearn 1.8):
+- Core bench 18 benchmarks ≈ **5 s** at 20k rows
+- Quest Engine bench ≈ **3 s** at 100 rows
 
 ---
 
