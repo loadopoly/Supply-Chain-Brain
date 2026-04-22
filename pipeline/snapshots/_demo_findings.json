@@ -1,0 +1,634 @@
+{
+  "scope": {
+    "site": "ALL",
+    "erp": "mixed",
+    "datasets": [
+      "OTD",
+      "IFR",
+      "ITR",
+      "PFEP"
+    ],
+    "anchor_policy": "AST-INV-PRO-0001",
+    "seed": 9,
+    "windows": {
+      "T": "2026-04-20",
+      "prior_14d": [
+        "2026-03-23",
+        "2026-04-05"
+      ],
+      "past_14d": [
+        "2026-04-06",
+        "2026-04-19"
+      ],
+      "future_14d": [
+        "2026-04-20",
+        "2026-05-04"
+      ],
+      "baseline_90d": [
+        "2026-01-20",
+        "2026-04-19"
+      ]
+    }
+  },
+  "kpis": {
+    "otd": {
+      "value": 87.6,
+      "prior": 86.73,
+      "delta_pp": 0.87,
+      "baseline_90d": 87.71,
+      "goal": 95.0,
+      "n": 1250
+    },
+    "ifr": {
+      "value": 82.1,
+      "prior": 81.7,
+      "delta_pp": 0.4,
+      "baseline_90d": 81.15,
+      "goal": 95.0,
+      "n": 1933
+    },
+    "cc": {
+      "value": 0.0,
+      "prior": 0.0,
+      "delta_pp": 0.0,
+      "baseline_90d": 0.0,
+      "goal": 95.0,
+      "n": 143
+    }
+  },
+  "by_site": {
+    "Burlington": {
+      "otd": {
+        "value": 89.8,
+        "prior": 89.8,
+        "delta_pp": 0.0,
+        "baseline_90d": 89.16,
+        "goal": 95.0,
+        "n": 255
+      },
+      "ifr": {
+        "value": 84.18,
+        "prior": 83.64,
+        "delta_pp": 0.54,
+        "baseline_90d": 82.55,
+        "goal": 95.0,
+        "n": 354
+      },
+      "cc": {
+        "value": 0.0,
+        "prior": 0.0,
+        "delta_pp": 0.0,
+        "baseline_90d": 0.0,
+        "goal": 95.0,
+        "n": 143
+      }
+    },
+    "Chattanooga - Manufacturers Road": {
+      "otd": {
+        "value": 89.41,
+        "prior": 87.73,
+        "delta_pp": 1.68,
+        "baseline_90d": 89.33,
+        "goal": 95.0,
+        "n": 255
+      },
+      "ifr": {
+        "value": 81.82,
+        "prior": 82.78,
+        "delta_pp": -0.97,
+        "baseline_90d": 81.92,
+        "goal": 95.0,
+        "n": 429
+      },
+      "cc": {
+        "value": 0.0,
+        "prior": 0.0,
+        "delta_pp": 0.0,
+        "baseline_90d": 0.0,
+        "goal": 95.0,
+        "n": 143
+      }
+    },
+    "Chattanooga - Wilson Road": {
+      "otd": {
+        "value": 86.92,
+        "prior": 85.28,
+        "delta_pp": 1.64,
+        "baseline_90d": 87.3,
+        "goal": 95.0,
+        "n": 237
+      },
+      "ifr": {
+        "value": 82.68,
+        "prior": 80.77,
+        "delta_pp": 1.91,
+        "baseline_90d": 80.57,
+        "goal": 95.0,
+        "n": 410
+      },
+      "cc": {
+        "value": 0.0,
+        "prior": 0.0,
+        "delta_pp": 0.0,
+        "baseline_90d": 0.0,
+        "goal": 95.0,
+        "n": 143
+      }
+    },
+    "Eugene - Airport Road": {
+      "otd": {
+        "value": 86.33,
+        "prior": 82.58,
+        "delta_pp": 3.75,
+        "baseline_90d": 85.78,
+        "goal": 95.0,
+        "n": 256
+      },
+      "ifr": {
+        "value": 81.35,
+        "prior": 79.73,
+        "delta_pp": 1.62,
+        "baseline_90d": 79.82,
+        "goal": 95.0,
+        "n": 370
+      },
+      "cc": {
+        "value": 0.0,
+        "prior": 0.0,
+        "delta_pp": 0.0,
+        "baseline_90d": 0.0,
+        "goal": 95.0,
+        "n": 143
+      }
+    },
+    "Parsons": {
+      "otd": {
+        "value": 85.43,
+        "prior": 88.45,
+        "delta_pp": -3.02,
+        "baseline_90d": 87.01,
+        "goal": 95.0,
+        "n": 247
+      },
+      "ifr": {
+        "value": 80.54,
+        "prior": 81.53,
+        "delta_pp": -0.99,
+        "baseline_90d": 80.87,
+        "goal": 95.0,
+        "n": 370
+      },
+      "cc": {
+        "value": 0.0,
+        "prior": 0.0,
+        "delta_pp": 0.0,
+        "baseline_90d": 0.0,
+        "goal": 95.0,
+        "n": 143
+      }
+    }
+  },
+  "failure_signatures": {
+    "otd": {
+      "total_late_lines": 155,
+      "top_reasons": [
+        {
+          "reason": "WH failed to ship",
+          "count": 34,
+          "pct": 21.9,
+          "class": "EXECUTION"
+        },
+        {
+          "reason": "Missing other item on same SO",
+          "count": 34,
+          "pct": 21.9,
+          "class": "KITTING"
+        },
+        {
+          "reason": "Customer reschedule",
+          "count": 31,
+          "pct": 20.0,
+          "class": "OTHER"
+        },
+        {
+          "reason": "Manufactured not ready, behind schedule",
+          "count": 30,
+          "pct": 19.4,
+          "class": "SCHEDULING"
+        },
+        {
+          "reason": "No purchased part, supplier late",
+          "count": 26,
+          "pct": 16.8,
+          "class": "SUPPLY"
+        }
+      ]
+    },
+    "ifr": {
+      "total_miss": 346,
+      "allocation_gap": 72,
+      "allocation_gap_pct": 20.8,
+      "hard_stockout": 0,
+      "hard_stockout_pct": 0.0,
+      "covered_miss": 274,
+      "covered_miss_pct": 79.2
+    },
+    "cc": {
+      "active_days": 12,
+      "business_days": 10,
+      "cadence_compliance_pct": 120.0,
+      "absolute_variance_$": 58607.81,
+      "net_variance_$": -6869.55,
+      "repeat_offender_pct": 34.3,
+      "reason_code_populated_pct": 13.3
+    },
+    "days_late": {
+      "n": 155,
+      "median": 23.0,
+      "p75": 32.0,
+      "p90": 39.0,
+      "p99": 44.0,
+      "max": 44.0,
+      "fat_tail": true
+    }
+  },
+  "intersections": {
+    "pfep_match": {
+      "miss_n": 1079,
+      "matched": 962,
+      "match_rate": 0.892,
+      "ss_missing_pct": 52.9,
+      "abc_missing_pct": 8.6,
+      "lt_zero_pct": 33.6
+    },
+    "recoverable": {
+      "blocked_by_match_rate": true,
+      "match_rate": 0.892,
+      "purchased_stockouts": null,
+      "recoverable": null,
+      "recoverable_pct": null
+    },
+    "triple": {
+      "cc_only": 3,
+      "ifr_only": 1,
+      "otd_only": 0,
+      "cc_and_ifr": 60,
+      "cc_and_otd": 4,
+      "otd_and_ifr": 16,
+      "triple": [
+        "AST-10506-0025",
+        "AST-10509-0216",
+        "AST-10660-0117",
+        "AST-11156-0146",
+        "AST-11175-0016",
+        "AST-11319-0135",
+        "AST-11351-0205",
+        "AST-12508-0246",
+        "AST-13151-0271",
+        "AST-13372-0186",
+        "AST-13750-0108",
+        "AST-14057-0156",
+        "AST-14841-0114",
+        "AST-14919-0139",
+        "AST-15370-0088",
+        "AST-15478-0277",
+        "AST-16070-0168",
+        "AST-16450-0152",
+        "AST-16714-0115",
+        "AST-17078-0087",
+        "AST-17131-0056",
+        "AST-17518-0222",
+        "AST-18075-0059",
+        "AST-18489-0136",
+        "AST-19582-0220"
+      ],
+      "triple_count": 216
+    }
+  },
+  "centrality": {
+    "customers": [
+      {
+        "customer": "Waystar",
+        "late_lines": 27,
+        "pct": 17.4,
+        "concentrated": true
+      },
+      {
+        "customer": "Acme",
+        "late_lines": 26,
+        "pct": 16.8,
+        "concentrated": true
+      },
+      {
+        "customer": "Soylent",
+        "late_lines": 22,
+        "pct": 14.2,
+        "concentrated": true
+      },
+      {
+        "customer": "Globex",
+        "late_lines": 21,
+        "pct": 13.5,
+        "concentrated": true
+      },
+      {
+        "customer": "Wayne",
+        "late_lines": 18,
+        "pct": 11.6,
+        "concentrated": true
+      },
+      {
+        "customer": "Umbrella",
+        "late_lines": 18,
+        "pct": 11.6,
+        "concentrated": true
+      },
+      {
+        "customer": "Stark",
+        "late_lines": 12,
+        "pct": 7.7,
+        "concentrated": true
+      },
+      {
+        "customer": "Initech",
+        "late_lines": 11,
+        "pct": 7.1,
+        "concentrated": true
+      }
+    ],
+    "vendors": [
+      {
+        "supplier": "Supplier-A",
+        "combined": 92,
+        "otd_late": 19,
+        "ifr_miss": 73
+      },
+      {
+        "supplier": "Supplier-E",
+        "combined": 91,
+        "otd_late": 18,
+        "ifr_miss": 73
+      },
+      {
+        "supplier": "Supplier-D",
+        "combined": 89,
+        "otd_late": 15,
+        "ifr_miss": 74
+      },
+      {
+        "supplier": "Supplier-C",
+        "combined": 85,
+        "otd_late": 16,
+        "ifr_miss": 69
+      },
+      {
+        "supplier": "Supplier-B",
+        "combined": 64,
+        "otd_late": 7,
+        "ifr_miss": 57
+      }
+    ],
+    "parts": [
+      {
+        "Item Name": "AST-14919-0139",
+        "adj_count": 2,
+        "abs_var": 1712.51,
+        "weighted": 3425.02
+      },
+      {
+        "Item Name": "AST-30171-0098",
+        "adj_count": 2,
+        "abs_var": 1545.85,
+        "weighted": 3091.7
+      },
+      {
+        "Item Name": "AST-81787-0018",
+        "adj_count": 2,
+        "abs_var": 1499.6,
+        "weighted": 2999.2
+      },
+      {
+        "Item Name": "AST-41367-0030",
+        "adj_count": 3,
+        "abs_var": 981.03,
+        "weighted": 2943.09
+      },
+      {
+        "Item Name": "AST-88478-0050",
+        "adj_count": 2,
+        "abs_var": 1195.55,
+        "weighted": 2391.1
+      },
+      {
+        "Item Name": "AST-56559-0280",
+        "adj_count": 2,
+        "abs_var": 1191.45,
+        "weighted": 2382.9
+      },
+      {
+        "Item Name": "AST-79565-0210",
+        "adj_count": 2,
+        "abs_var": 1119.85,
+        "weighted": 2239.7
+      },
+      {
+        "Item Name": "AST-23326-0026",
+        "adj_count": 2,
+        "abs_var": 968.94,
+        "weighted": 1937.88
+      },
+      {
+        "Item Name": "AST-93090-0057",
+        "adj_count": 2,
+        "abs_var": 877.93,
+        "weighted": 1755.86
+      },
+      {
+        "Item Name": "AST-98496-0029",
+        "adj_count": 2,
+        "abs_var": 820.72,
+        "weighted": 1641.44
+      },
+      {
+        "Item Name": "AST-77393-0231",
+        "adj_count": 2,
+        "abs_var": 800.94,
+        "weighted": 1601.88
+      },
+      {
+        "Item Name": "AST-90484-0204",
+        "adj_count": 1,
+        "abs_var": 1398.46,
+        "weighted": 1398.46
+      },
+      {
+        "Item Name": "AST-15370-0088",
+        "adj_count": 1,
+        "abs_var": 1317.36,
+        "weighted": 1317.36
+      },
+      {
+        "Item Name": "AST-45314-0219",
+        "adj_count": 1,
+        "abs_var": 1233.93,
+        "weighted": 1233.93
+      },
+      {
+        "Item Name": "AST-59904-0055",
+        "adj_count": 2,
+        "abs_var": 546.87,
+        "weighted": 1093.74
+      }
+    ]
+  },
+  "realizations": [
+    {
+      "rule_id": "R5",
+      "realization": "86.7% of variance is un-attributable (Reason Code populated on 13.3% of adjustments). Root-cause targeting is impossible until the field is enforced.",
+      "evidence": {
+        "reason_code_populated_pct": 13.3
+      }
+    },
+    {
+      "rule_id": "R8",
+      "realization": "Pre-stage the top-20 fat-tail parts (p99 Days Late = 44.0). Cheaper than chasing median cycle-time.",
+      "evidence": {
+        "n": 155,
+        "median": 23.0,
+        "p75": 32.0,
+        "p90": 39.0,
+        "p99": 44.0,
+        "max": 44.0,
+        "fat_tail": true
+      }
+    },
+    {
+      "rule_id": "R10",
+      "realization": "Supplier scorecard program with focused vendor cohort, not full base (top-5 suppliers = 100.0% of combined misses+lates).",
+      "evidence": {
+        "top5_share_pct": 100.0,
+        "top5": [
+          {
+            "supplier": "Supplier-A",
+            "combined": 92,
+            "otd_late": 19,
+            "ifr_miss": 73
+          },
+          {
+            "supplier": "Supplier-E",
+            "combined": 91,
+            "otd_late": 18,
+            "ifr_miss": 73
+          },
+          {
+            "supplier": "Supplier-D",
+            "combined": 89,
+            "otd_late": 15,
+            "ifr_miss": 74
+          },
+          {
+            "supplier": "Supplier-C",
+            "combined": 85,
+            "otd_late": 16,
+            "ifr_miss": 69
+          },
+          {
+            "supplier": "Supplier-B",
+            "combined": 64,
+            "otd_late": 7,
+            "ifr_miss": 57
+          }
+        ]
+      }
+    }
+  ],
+  "pathways_systemic": [
+    {
+      "name": "Transaction Reason Code enforcement",
+      "mechanism": "Required-field validation on cycle-count adjustment transactions.",
+      "downstream_lift": "Variance becomes attributable; root-cause targeting becomes possible.",
+      "owner": "IT Governance",
+      "sequence": 3,
+      "rule_id": "R5"
+    },
+    {
+      "name": "Assign Buyer / Planner codes",
+      "mechanism": "Backfill Buyer Name / Planner on unattributed active items.",
+      "downstream_lift": "Ownership routing \u2014 vendor scorecard program can run deterministically.",
+      "owner": "IT Governance + Procurement",
+      "sequence": 5,
+      "rule_id": "R10"
+    }
+  ],
+  "pathways_operational": [
+    {
+      "name": "Pre-stage top-20 fat-tail parts",
+      "mechanism": "Standing safety-stock on parts with p99 Days Late > 30.",
+      "downstream_lift": "Collapses the fat tail; cheaper than chasing median cycle-time.",
+      "owner": "Planner + Site Lead",
+      "rule_id": "R8"
+    },
+    {
+      "name": "Supplier scorecard + expedite protocol",
+      "mechanism": "Monthly scorecard on top-5 combined miss+late suppliers; expedite playbook for outliers.",
+      "downstream_lift": "Converts vendor-driven misses into on-time fills.",
+      "owner": "Procurement + Planner",
+      "rule_id": "R10"
+    },
+    {
+      "name": "Pick-wave rebalance + same-SO completion gate",
+      "mechanism": "WMS configuration: reshape pick waves by SO-completion, not by zone.",
+      "downstream_lift": "Direct OTD lift on EXECUTION-class misses.",
+      "owner": "Site Lead + WMS Lead",
+      "rule_id": null,
+      "trigger_reason": "WH failed to ship"
+    },
+    {
+      "name": "Kit-complete check at pick release",
+      "mechanism": "Block pick release until all lines on an SO are allocable.",
+      "downstream_lift": "Eliminates KITTING-class lateness.",
+      "owner": "Site Lead + WMS Lead",
+      "rule_id": null,
+      "trigger_reason": "Missing other item on same SO"
+    },
+    {
+      "name": "Fab-schedule sync + early-warning flag",
+      "mechanism": "Fab-to-ship daily sync meeting; raise flag at T-2 if fab slipping.",
+      "downstream_lift": "SCHEDULING-class misses caught before ship-day.",
+      "owner": "Site Lead + Fab Lead",
+      "rule_id": null,
+      "trigger_reason": "Manufactured not ready"
+    }
+  ],
+  "roadmap": {
+    "T+30": [
+      "Close PFEP data gaps on active Buy items (Safety Stock + ABC + LT)",
+      "Enforce Transaction Reason Code on cycle-count adjustments",
+      "Stand up weekly OTD / IFR / CC scorecard with \u00a74 window convention"
+    ],
+    "T+60": [
+      "Allocation reconciliation batch in Oracle (systemic #4)",
+      "Pick-wave rebalance pilot at highest-lateness site",
+      "Vendor scorecard for top-5 combined OTD+IFR suppliers"
+    ],
+    "T+90": [
+      "PFEP health review #2 \u2014 measure match-rate lift on miss parts",
+      "Extend cycle-count cadence audit to every site",
+      "Pre-stage top-20 fat-tail parts if R8 fired"
+    ],
+    "T+180": [
+      "Kit-complete check at pick release across all sites",
+      "Quarterly customer-relationship review with concentrated accounts",
+      "Re-baseline KPI goals using 90d rolling performance"
+    ]
+  },
+  "governance": {
+    "cadence": "Weekly KPI review; bi-weekly realization review; monthly pathway progress.",
+    "targets": {
+      "OTD": 95.0,
+      "IFR": 95.0,
+      "CC": 95.0
+    },
+    "review_runbook": "PlantReview \u00a76 (60-minute conversation flow)."
+  }
+}

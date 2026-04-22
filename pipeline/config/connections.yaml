@@ -1,0 +1,27 @@
+azure_sql:
+  server: edap-replica-cms-sqlserver.database.windows.net
+  database: edap-replica-cms-sqldb
+  user: agard@astecindustries.com
+  # ActiveDirectoryInteractive triggers Entra MFA browser popup on first connect
+  authentication: ActiveDirectoryInteractive
+  driver: "ODBC Driver 18 for SQL Server"
+  encrypt: "yes"
+  trust_server_certificate: "no"
+  connection_timeout: 30
+
+oracle_fusion:
+  host: https://fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com
+  # BIP REST API endpoint for SQL execution
+  bip_endpoint: /xmlpserver/rest/v1
+  # Token relay endpoint (SSO flow used by SQLConnect)
+  token_relay_endpoint: /fscmRestApi/tokenrelay
+  # CSRF endpoint
+  anticsrf_endpoint: /fscmRestApi/anticsrf
+  connection_name: DEV13
+  # auth_mode: sso | basic | oauth
+  # For automated pipeline: use 'basic' with a service account, or 'oauth' with IDCS client credentials
+  # SSO is interactive (browser) and cannot be used in automated pipelines
+  auth_mode: sso
+  # For basic auth: set ORACLE_FUSION_USER and ORACLE_FUSION_PASS env vars
+  # For oauth: set ORACLE_IDCS_CLIENT_ID and ORACLE_IDCS_CLIENT_SECRET env vars
+  request_timeout: 120

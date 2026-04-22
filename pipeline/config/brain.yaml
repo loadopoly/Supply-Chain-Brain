@@ -1,0 +1,442 @@
+# Supply Chain Brain — declarative configuration
+# Every page reads from this. Override / extend by editing here, not in code.
+
+# ---------------------------------------------------------------------------
+# Schema hints — patterns used by brain.schema_introspect to find columns
+# ---------------------------------------------------------------------------
+column_patterns:
+  part_id:        ['part_key', 'part_number', 'item_number', 'item_id']
+  part_desc:      ['part_description', 'description', 'item_desc']
+  supplier_id:    ['supplier_key', 'supplier_number', 'vendor_id', 'vendor_number']
+  supplier_name:  ['supplier_name', 'vendor_name', 'pre_standardization_supplier_name']
+  site:           ['site', 'plant', 'facility', 'org_id', 'inv_org', 'business_unit_key']
+  on_hand_qty:    ['quantity_on_hand', 'on_hand_qty', 'on_hand', 'qoh']
+  open_order_qty: ['quantity_not_received', 'demand_order_part_quantity', 'open_qty',
+                   'open_order_qty', 'on_order_qty']
+  demand_qty:     ['shipped_quantity', 'sales_order_quantity', 'demand_order_part_quantity',
+                   'demand_qty', 'usage_qty', 'consumption', 'shipped_qty', 'sales_qty']
+  lead_time_days: ['lead_time', 'lead_time_days', 'planning_lead_time', 'po_lead_time',
+                   'order_lead_time']
+  unit_cost:      ['unit_cost', 'standard_cost', 'avg_cost', 'item_cost', 'unit_cost_local',
+                   'unit_cost_usd', 'unit_price']
+  promise_date:   ['due_date_key', 'need_by_date', 'promise_date', 'requested_date']
+  receipt_date:   ['receipt_date_key', 'receipt_date', 'received_date', 'actual_receipt_date']
+  order_date:     ['order_date_key', 'order_date', 'po_date', 'creation_date']
+
+# ---------------------------------------------------------------------------
+# Tables of record — first match wins; pages will fall back to introspection
+# ---------------------------------------------------------------------------
+tables:
+  parts:               'edap_dw_replica.dim_part'
+  suppliers:           'edap_dw_replica.dim_supplier'
+  on_hand:             'edap_dw_replica.fact_inventory_on_hand'
+  open_purchase:       'edap_dw_replica.fact_inventory_open_orders'
+  open_mfg:            'edap_dw_replica.fact_inventory_open_mfg_orders'
+  po_receipts:         'edap_dw_replica.fact_po_receipt'
+  po_contract_part:    'edap_dw_replica.fact_po_contract_part'
+  sales_order_lines:   'edap_dw_replica.fact_sales_order_line'
+  ap_invoice_lines:    'edap_dw_replica.fact_ap_invoice_lines'
+  part_cost:           'stg_replica.fact_part_cost'
+
+# ---------------------------------------------------------------------------
+# EOQ defaults (per-part overrides land in findings_index over time)
+# ---------------------------------------------------------------------------
+eoq:
+  ordering_cost_default: 75.0      # $ per PO line (override per supplier later)
+  holding_rate_default:  0.22      # fraction of unit cost / year
+  bayes_prior_alpha:     2.0       # Gamma(alpha, beta) prior on Poisson rate
+  bayes_prior_beta:      1.0       # high beta = strong shrinkage toward prior mean
+  deviation_top_n:       250       # rows shown by default in EOQ Deviation page
+
+# ---------------------------------------------------------------------------
+# OTD recursive clustering defaults (Phase-1 port of attached script)
+# ---------------------------------------------------------------------------
+otd:
+  source_table:          'edap_dw_replica.fact_po_receipt'
+  description_col_hint:  'description'
+  site_col_hint:         'site'
+  numeric_col_hints:     ['days_late', 'days_early', 'received_qty', 'unit_price']
+  categorical_col_hints: ['supplier_name', 'buyer', 'commodity']
+  max_depth:             4
+  max_k:                 8
+  random_state:          42
+
+# ---------------------------------------------------------------------------
+# External applications — modular pluggable apps (req 5)
+# ---------------------------------------------------------------------------
+external_apps:
+  ips_freight:
+    enabled:   true
+    base_url:  'https://ips-freight-api.onrender.com'
+    dashboard: 'https://ips-freight-api.onrender.com/dashboard'
+    auth_env:  'IPS_FREIGHT_TOKEN'        # bearer token from env var
+    timeout_s: 20
+
+# ---------------------------------------------------------------------------
+# Graph backend (Phase 2). Default networkx; switch to neo4j or cosmos for prod
+# ---------------------------------------------------------------------------
+graph:
+  backend: networkx
+  neo4j:
+    uri:           bolt://localhost:7687
+    user:          neo4j
+    password_env:  NEO4J_PASSWORD
+    database:      neo4j
+  cosmos_gremlin:
+    endpoint: 'wss://YOUR-ACCOUNT.gremlin.cosmos.azure.com:443/'
+    database: scbrain
+    graph:    scbrain
+    key_env:  COSMOS_GREMLIN_KEY
+
+# ---------------------------------------------------------------------------
+# Emissions (Phase 3.6) — GLEC g CO2e per tonne-km. Override per local data.
+# ---------------------------------------------------------------------------
+emissions:
+  factors:
+    truck_ftl: 62.0
+    truck_ltl: 103.0
+    rail:      22.0
+    ocean:     8.0
+    air:       602.0
+    intermodal: 35.0
+    barge:     30.0
+
+# ---------------------------------------------------------------------------
+# Cross-app event bus (Phase 4) — outbound HMAC-signed webhooks
+# ---------------------------------------------------------------------------
+cross_app:
+  subscribers:
+    - name:       ips_freight
+      url:        'https://ips-freight-api.onrender.com/webhooks/scbrain'
+      secret_env: SCBRAIN_WEBHOOK_SECRET
+      events:     ['ghost_lane_flagged', 'eoq_deviation_resolved']
+
+# ---------------------------------------------------------------------------
+# Multi-echelon defaults
+# ---------------------------------------------------------------------------
+multi_echelon:
+  default_service_level: 0.95
+  holding_rate:          0.22
+
+# ---------------------------------------------------------------------------
+# LLM Router — open-weight model registry the Brain selects from per task.
+# Scores are 0..1 normalized capability ratings used by brain.llm_router.
+# `endpoint_env` names the env var holding the inference endpoint URL/key.
+# brain.llm_scout periodically refreshes / extends this registry from the
+# internet (HuggingFace, OpenRouter, lmarena) and persists newcomers to the
+# `llm_registry` table in local_brain.sqlite — overrides are merged at load.
+# ---------------------------------------------------------------------------
+llms:
+  # All entries below are FREE-tier (cost_per_mtok_* = 0). The Brain only
+  # admits zero-cost endpoints; paid tiers are blocked at scout time.
+  registry:
+    - id: gemma-4
+      vendor: google
+      tier: free
+      params_b: 27
+      active_b: 27
+      moe: false
+      ctx_window: 1048576
+      license: gemma
+      released: 2026-02-15
+      endpoint_env: GEMMA_ENDPOINT
+      capabilities: { reasoning: 0.78, coding: 0.74, long_ctx: 0.95, math: 0.72, multilingual: 0.86, structured: 0.82, vision: 0.70 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 420
+    - id: glm-5.1
+      vendor: zhipu
+      tier: free
+      params_b: 355
+      active_b: 32
+      moe: true
+      ctx_window: 200000
+      license: glm-community
+      released: 2026-01-20
+      endpoint_env: GLM_ENDPOINT
+      capabilities: { reasoning: 0.88, coding: 0.85, long_ctx: 0.84, math: 0.86, multilingual: 0.92, structured: 0.88, vision: 0.66 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 680
+    - id: qwen3.5-397b-a17b
+      vendor: alibaba
+      tier: free
+      params_b: 397
+      active_b: 17
+      moe: true
+      ctx_window: 256000
+      license: tongyi-qianwen
+      released: 2026-03-04
+      endpoint_env: QWEN_ENDPOINT
+      capabilities: { reasoning: 0.91, coding: 0.90, long_ctx: 0.88, math: 0.92, multilingual: 0.94, structured: 0.91, vision: 0.78 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 540
+    - id: deepseek-v3.2
+      vendor: deepseek
+      tier: free
+      params_b: 685
+      active_b: 37
+      moe: true
+      ctx_window: 128000
+      license: deepseek
+      released: 2026-02-28
+      endpoint_env: DEEPSEEK_ENDPOINT
+      capabilities: { reasoning: 0.93, coding: 0.94, long_ctx: 0.78, math: 0.95, multilingual: 0.84, structured: 0.92, vision: 0.40 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 720
+    - id: kimi-k2.5
+      vendor: moonshot
+      tier: free
+      params_b: 1000
+      active_b: 32
+      moe: true
+      ctx_window: 2000000
+      license: modified-mit
+      released: 2026-03-18
+      endpoint_env: KIMI_ENDPOINT
+      capabilities: { reasoning: 0.89, coding: 0.83, long_ctx: 0.99, math: 0.84, multilingual: 0.90, structured: 0.86, vision: 0.62 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 900
+    - id: minimax-m2.7
+      vendor: minimax
+      tier: free
+      params_b: 456
+      active_b: 46
+      moe: true
+      ctx_window: 4000000
+      license: minimax-community
+      released: 2026-03-29
+      endpoint_env: MINIMAX_ENDPOINT
+      capabilities: { reasoning: 0.86, coding: 0.80, long_ctx: 0.97, math: 0.82, multilingual: 0.88, structured: 0.85, vision: 0.74 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 820
+    - id: mimo-v2-flash
+      vendor: xiaomi
+      tier: free
+      params_b: 7
+      active_b: 7
+      moe: false
+      ctx_window: 128000
+      license: apache-2.0
+      released: 2026-04-02
+      endpoint_env: MIMO_ENDPOINT
+      capabilities: { reasoning: 0.74, coding: 0.72, long_ctx: 0.70, math: 0.78, multilingual: 0.68, structured: 0.80, vision: 0.30 }
+      cost_per_mtok_in:  0.0
+      cost_per_mtok_out: 0.0
+      median_latency_ms: 110
+
+  # Task profiles map each Brain stage / job to capability weights + budget.
+  # brain.llm_router.select_llm(task) computes score = Σ wᵢ · capᵢ
+  #   − λ_cost · norm_cost − λ_latency · norm_latency
+  # with hard filters (min_ctx, must_be_open, max_latency_ms) applied first.
+  task_profiles:
+    vendor_consolidation:           # PRC: LLM-driven supplier/product matching
+      weights: { reasoning: 0.25, structured: 0.30, multilingual: 0.20, long_ctx: 0.15, coding: 0.10 }
+      min_ctx: 64000
+      lambda_cost: 0.15
+      lambda_latency: 0.05
+    nlp_categorize:                 # taxonomy expansion for parts
+      weights: { structured: 0.40, multilingual: 0.25, reasoning: 0.20, long_ctx: 0.15 }
+      min_ctx: 16000
+      lambda_cost: 0.30
+      lambda_latency: 0.20
+    cross_dataset_review:           # CrossDataset_Agent_Process_Spec workflow
+      weights: { reasoning: 0.30, long_ctx: 0.30, structured: 0.25, coding: 0.15 }
+      min_ctx: 200000
+      lambda_cost: 0.10
+      lambda_latency: 0.05
+    otd_root_cause:                 # recursive OTD cascade narrative + RCA
+      weights: { reasoning: 0.40, structured: 0.25, math: 0.20, long_ctx: 0.15 }
+      min_ctx: 32000
+      lambda_cost: 0.20
+      lambda_latency: 0.10
+    eoq_explain:                    # EOQ deviation explanations
+      weights: { math: 0.40, reasoning: 0.30, structured: 0.30 }
+      min_ctx: 16000
+      lambda_cost: 0.30
+      lambda_latency: 0.15
+    forecast_distortion:            # bullwhip narrative
+      weights: { math: 0.35, reasoning: 0.35, structured: 0.30 }
+      min_ctx: 16000
+      lambda_cost: 0.25
+      lambda_latency: 0.10
+    code_generation:                # internal codegen / SQL / KQL / DAX
+      weights: { coding: 0.55, reasoning: 0.25, structured: 0.20 }
+      min_ctx: 32000
+      lambda_cost: 0.15
+      lambda_latency: 0.10
+    fast_classify:                  # cheap high-volume row tagging
+      weights: { structured: 0.50, multilingual: 0.30, reasoning: 0.20 }
+      min_ctx: 8000
+      lambda_cost: 0.60
+      lambda_latency: 0.50
+    deck_narration:                 # report_creator / deck builder
+      weights: { reasoning: 0.30, structured: 0.30, multilingual: 0.20, long_ctx: 0.20 }
+      min_ctx: 64000
+      lambda_cost: 0.20
+      lambda_latency: 0.10
+    default:
+      weights: { reasoning: 0.30, structured: 0.25, coding: 0.15, math: 0.15, long_ctx: 0.15 }
+      min_ctx: 16000
+      lambda_cost: 0.20
+      lambda_latency: 0.10
+
+  # Periodic internet scout — brain.llm_scout
+  scout:
+    enabled: true
+    interval_hours: 168            # weekly sweep
+    sources:
+      - kind: huggingface
+        url:  https://huggingface.co/api/models
+        query: { filter: 'text-generation', sort: 'likes7d', direction: -1, limit: 50 }
+      - kind: openrouter
+        url:  https://openrouter.ai/api/v1/models
+      - kind: lmarena
+        url:  https://lmarena.ai/api/leaderboard
+      - kind: artificial_analysis
+        url:  https://artificialanalysis.ai/api/v2/data/llms/models
+    accept_rules:
+      open_weights_only:    true
+      free_tier_only:       true        # cost_per_mtok_* must be 0
+      require_free_suffix:  true        # OpenRouter ids must end in ':free'
+      min_likes_7d:         250
+      min_arena_elo:        1180
+      min_release_date:     2025-10-01
+      exclude_licenses:     ['proprietary', 'noncommercial', 'research-only']
+      vendor_blocklist:     ['openai', 'anthropic', 'amazon', 'inflection',
+                             'cohere', 'perplexity', 'inception', 'switchpoint']
+    audit_log: 'pipeline/docs/LLM_SCOUT_AUDIT.md'
+
+  # -------------------------------------------------------------------------
+  # Multi-LLM Ensemble (parallel dispatch + learnable weights & biases).
+  # The Brain treats every task answer as a weighted combination of K free
+  # models running concurrently. Per-(model,task) weights & biases are stored
+  # in local_brain.sqlite.llm_weights and updated online by the dispatcher
+  # using validator-signal SGD (see brain.llm_ensemble.update_weights).
+  # -------------------------------------------------------------------------
+  ensemble:
+    enabled:           true
+    parallel_workers:  7              # one slot per seed model; scales with K
+    fanout_k:          5              # how many top-ranked models run in parallel
+    request_timeout_s: 45
+    aggregator_default: weighted_softmax_vote
+    learning:
+      lr_weight:       0.05           # gradient step on per-model weight
+      lr_bias:         0.02           # gradient step on per-model bias
+      l2_reg:          0.001          # weight decay to prevent runaway dominance
+      success_target:  1.0            # validator score the ensemble aims for
+      ema_alpha:       0.2            # exponential moving avg for latency/success
+      min_weight:      0.05           # floor so no model is permanently silenced
+      max_weight:      3.00
+    initial_weights:                  # priors per (task, model_id); router score
+                                      # is used as the bootstrap when missing.
+      default: 1.0
+  # -------------------------------------------------------------------------
+  # Shared Compute Grid — domain-attached workstations contribute CPU/GPU
+  # using the EXISTING piggyback infrastructure:
+  #   * Peer activation:   drops `compute_*.trigger` into `pipeline/bridge_triggers/`
+  #                        which the OneDrive-synced bridge_watcher.ps1 picks up
+  #                        on every peer (same mechanism as the RDP/SQL bridge).
+  #   * Peer rendezvous:   each peer publishes capacity to
+  #                        `pipeline/bridge_state/compute_peers/<host>.json`
+  #                        (OneDrive sync = zero new transport).
+  #   * Job channel:       raw TCP on port 8000 (already reserved as "LLM/API"
+  #                        in bridge_watcher.ps1) — same wire format as
+  #                        agent_uplink.py (header line + 8-byte size + bytes).
+  # If no peer is reachable / available, the dispatcher falls back to the
+  # device running the Brain.
+  # -------------------------------------------------------------------------
+  compute_grid:
+    enabled:           true
+    listen_port:       8000              # already mapped by bridge_watcher.ps1
+    connect_timeout_s: 1.0               # fast TCP probe before submitting
+    request_timeout_s: 8.0               # full job round-trip cap
+    down_cooldown_s:   30.0              # negative-cache for unreachable peers
+    rendezvous:
+      trigger_dir:     'pipeline/bridge_triggers'   # piggyback trigger drop
+      state_dir:       'pipeline/bridge_state/compute_peers'  # peer heartbeats
+      heartbeat_secs:  30
+      stale_after_s:   120                # ignore peers that stop heartbeating
+    discovery:
+      methods:         [piggyback, ad, seed]
+      ad_filter:       'OperatingSystem -like "Windows*"'
+      ad_max_hosts:    64
+      seeds:           []                 # e.g. ['172.16.4.76']
+      probe_timeout_s: 1.5
+      cache_ttl_s:     300
+    selection:
+      prefer_gpu:      true
+      max_cpu_load:    0.80
+      min_free_ram_gb: 4
+      min_free_vram_gb: 2
+    fallback:
+      always_include_local:  true
+      local_only_if_no_peers: false
+    auth:
+      shared_secret_env: SCBRAIN_GRID_SECRET     # HMAC on every request
+    worker_max_per_peer: 2
+
+  # -------------------------------------------------------------------------
+  # Bounded self-training: feed the data pipeline back into the ensemble
+  # weights, but with explicit guard rails so the Brain doesn't lose
+  # fluidity for multi-echeloned reasoning or dynamic interpretations.
+  #
+  #   * Only WHITELISTED tasks receive pipeline-grounded updates.
+  #     Generative / reasoning / what-if tasks keep router-prior dynamics.
+  #   * `lr_scale`        scales the live learning rate down (0.5 = half).
+  #   * `drift_cap`       caps how far a single round can move a weight.
+  #   * `min_weight_floor` ensures no model is ever fully suppressed.
+  #   * `max_share_per_task` keeps any single model from monopolizing a task.
+  #   * `exploration_reserve` % of dispatches that bypass learned weights
+  #     entirely and use the pure router prior — this preserves fluidity
+  #     and keeps newcomers / underdogs reachable.
+  # -------------------------------------------------------------------------
+  self_train:
+    enabled:               true
+    interval_s:            1800       # 30 min when run from background scheduler
+    limit_per_task:        200        # max dispatches replayed per round
+    lr_scale:              0.5        # half the live learning rate
+    drift_cap:             0.5        # max |Δweight| per round
+    min_weight_floor:      0.10       # nothing ever decays below this
+    max_share_per_task:    0.50       # cap any single model's share of weight mass
+    dampen_factor:         0.85       # how hard to dampen monopolists
+    exploration_reserve:   0.15       # 15% of dispatches use pure router prior
+    tasks:
+      # Whitelist with explicit ground-truth source. Only tasks listed here
+      # ever receive pipeline-driven weight updates.
+      vendor_consolidation:
+        table:        part_category
+        key_column:   part_id
+        value_column: category
+      otd_classify:
+        table:        otd_ownership
+        key_column:   po_number
+        value_column: owner
+
+  # -------------------------------------------------------------------------
+  # Network expansion learner: the Brain learns from every connection it
+  # already touches across all protocols (DB, SMB, SMTP/MX, HTTPS, peer
+  # compute grid, OneDrive bridge_state, declared external apps and webhook
+  # subscribers, operator seeds). Probes are PASSIVE — a TCP connect (or DNS
+  # resolve when no port is known). No credentials are sent. Observations
+  # adjust *routing telemetry* and the compute-grid seed pool only — they
+  # never touch llm_weights, router scores, or ensemble dispatch math, so
+  # multi-echeloned reasoning fluidity is preserved.
+  # -------------------------------------------------------------------------
+  network_learn:
+    enabled:                       true
+    interval_s:                    600        # 10 min when run from background scheduler
+    probe_timeout_s:               1.5
+    min_seconds_between_rounds:    30.0
+    max_probes_per_round:          64
+    ema_alpha:                     0.30       # smoothing for success-rate / latency
+    mx_lookup:                     true
+    corporate_domain:              astecindustries.com
+    auto_promote_compute:          true       # add verified peers to grid seed list
+    compute_promotion_min_success: 0.70       # EMA success threshold for promotion
+    active_probe:                  false      # opt-in for active CIDR scanning
+    seeds: []                                  # operator-supplied seeds (host or {host,protocol,port})

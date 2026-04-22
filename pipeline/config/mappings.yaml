@@ -1,0 +1,292 @@
+# Table/column mappings between Oracle Fusion Cloud and Azure SQL
+# Populated after running: python pipeline.py discover
+# Format:
+#   mappings:
+#     - oracle_schema: FUSION
+#       oracle_table: <oracle_table_name>
+#       azure_schema: dbo
+#       azure_table: <staging_table_name>
+#       key_columns: [<column>, ...]   # used for upsert/reconciliation
+#       columns:
+#         ORACLE_COL_NAME: azure_col_name
+#
+# Oracle Fusion Cloud table names (FUSION schema):
+#   Procurement   : PO_HEADERS_ALL, PO_LINES_ALL, PO_LINE_LOCATIONS_ALL
+#   Receiving     : RCV_TRANSACTIONS
+#   Inventory     : EGP_SYSTEM_ITEMS_B, INV_ONHAND_QUANTITIES_DETAIL
+#   Mfg           : WIP_DISCRETE_JOBS
+#   AP            : AP_INVOICES_ALL, AP_INVOICE_LINES_ALL
+#   Order Mgmt    : DOO_LINES_ALL (Fusion), OE_ORDER_LINES_ALL (EBS compat)
+#   Suppliers     : POZ_SUPPLIERS, POZ_SUPPLIER_SITES_ALL_M
+#   Cost          : CST_COST_DETAILS (or CST_ITEM_COSTS)
+# All queries run via BIP REST (src/connections/oracle_fusion.py :: execute_sql)
+
+mappings:
+
+  # ── Supplier master ──────────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: POZ_SUPPLIERS
+    azure_schema: edap_dw_replica
+    azure_table: dim_supplier
+    key_columns: [VENDOR_ID]
+    columns:
+      VENDOR_ID:     supplier_key
+      VENDOR_NAME:   supplier_name
+      CREATION_DATE: aud_create_datetime
+      LAST_UPDATE_DATE: aud_update_datetime
+
+  - oracle_schema: FUSION
+    oracle_table: POZ_SUPPLIER_SITES_ALL_M
+    azure_schema: edap_dw_replica
+    azure_table: dim_supplier
+    key_columns: [VENDOR_SITE_ID]
+    columns:
+      VENDOR_ID:     supplier_key
+      ADDRESS_LINE1: supplier_address
+      CITY:          supplier_city
+      STATE:         supplier_state
+      COUNTRY:       supplier_country
+      ZIP_CODE:      supplier_zip_code
+
+  # ── Part / Item master ───────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: EGP_SYSTEM_ITEMS_B
+    azure_schema: edap_dw_replica
+    azure_table: dim_part
+    key_columns: [INVENTORY_ITEM_ID, ORGANIZATION_ID]
+    columns:
+      INVENTORY_ITEM_ID:    part_key
+      SEGMENT1:             part_number
+      DESCRIPTION:          part_description
+      LONG_DESCRIPTION:     part_description_2
+      ITEM_TYPE:            part_type
+      PRIMARY_UOM_CODE:     uom
+      PURCHASING_ITEM_FLAG: fabricated_purchased
+      ORGANIZATION_ID:      business_unit_id
+      CREATION_DATE:        aud_create_datetime
+      LAST_UPDATE_DATE:     aud_update_datetime
+      SUBINVENTORY_CODE:             oem_name
+      LAST_UPDATE_DATE:              aud_update_datetime
+
+  # ── Open purchase orders ─────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: PO_LINE_LOCATIONS_ALL
+    azure_schema: edap_dw_replica
+    azure_table: fact_inventory_open_orders
+    key_columns: [LINE_LOCATION_ID]
+    columns:
+      PO_HEADER_ID:          po_number
+      PO_LINE_ID:            po_line_number
+      RELEASE_NUM:           po_release
+      INVENTORY_ITEM_ID:     part_key
+      VENDOR_ID:             supplier_key
+      NEED_BY_DATE:          due_date_key
+      QUANTITY:              quantity_not_received
+      AMOUNT:                amount_not_received_local
+      CURRENCY_CODE:         currency_code
+      ORG_ID:                business_unit_key
+      CREATION_DATE:         order_date_key
+      LAST_UPDATE_DATE:      aud_update_datetime
+
+  # ── Open manufacturing orders ────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: WIP_DISCRETE_JOBS
+    azure_schema: edap_dw_replica
+    azure_table: fact_inventory_open_mfg_orders
+    key_columns: [WIP_ENTITY_ID]
+    columns:
+      WIP_ENTITY_ID:              mfg_order_key
+      INVENTORY_ITEM_ID:          part_key
+      ORGANIZATION_ID:            business_unit_key
+      STATUS_TYPE:                order_status
+      START_QUANTITY:             order_qty
+      QUANTITY_COMPLETED:         qty_completed
+      SCHEDULED_COMPLETION_DATE:  due_date_key
+      DATE_RELEASED:              order_date_key
+      CLASS_CODE:                 order_type
+      LAST_UPDATE_DATE:           aud_update_datetime
+
+  # ── PO Receipts ──────────────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: RCV_TRANSACTIONS
+    azure_schema: edap_dw_replica
+    azure_table: fact_po_receipt
+    key_columns: [TRANSACTION_ID]
+    columns:
+      PO_HEADER_ID:          po_number
+      PO_LINE_ID:            po_line_number
+      PO_RELEASE_ID:         po_release
+      VENDOR_ID:             supplier_key
+      INVENTORY_ITEM_ID:     part_key
+      ITEM_DESCRIPTION:      part_description
+      UNIT_OF_MEASURE:       po_uom
+      PRIMARY_UNIT_OF_MEAS:  inventory_uom
+      QUANTITY:              received_qty
+      TRANSACTION_DATE:      receipt_date_key
+      EXPECTED_RECEIPT_DATE: due_date_key
+      CREATION_DATE:         order_date_key
+      ACTUAL_COST:           unit_cost_local
+      CURRENCY_CODE:         currency_code
+      VENDOR_ITEM_NUM:       vendor_part_number
+      DOCUMENT_NUM:          receipt_document_number
+      SHIPMENT_LINE_ID:      receipt_document_line_number
+      ORGANIZATION_ID:       business_unit_key
+      AGENT_ID:              buyer_id
+
+  # ── PO contract / blanket (headers + lines) ──────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: PO_HEADERS_ALL
+    azure_schema: edap_dw_replica
+    azure_table: fact_po_contract_part
+    key_columns: [PO_HEADER_ID]
+    columns:
+      PO_HEADER_ID:       po_header_key
+      SEGMENT1:           po_number
+      VENDOR_ID:          supplier_key
+      CURRENCY_CODE:      currency_code
+      TYPE_LOOKUP_CODE:   po_type          # BLANKET | CONTRACT | STANDARD
+      APPROVED_DATE:      approved_date
+      AMOUNT_LIMIT:       blanket_amount_limit
+      ORG_ID:             business_unit_key
+      CREATION_DATE:      aud_create_datetime
+      LAST_UPDATE_DATE:   aud_update_datetime
+
+  - oracle_schema: FUSION
+    oracle_table: PO_LINES_ALL
+    azure_schema: edap_dw_replica
+    azure_table: fact_po_contract_part
+    key_columns: [PO_LINE_ID]
+    columns:
+      PO_HEADER_ID:             po_header_key
+      PO_LINE_ID:               po_line_key
+      LINE_NUM:                 po_line_number
+      INVENTORY_ITEM_ID:        part_key
+      VENDOR_PRODUCT_NUM:       supplier_part_number
+      ITEM_DESCRIPTION:         part_description
+      UNIT_PRICE:               unit_cost_local
+      QUANTITY:                 order_qty
+      UNIT_MEAS_LOOKUP_CODE:    uom
+      EXPIRATION_DATE:          expiry_date
+      CREATION_DATE:            aud_create_datetime
+
+  # ── Sales order lines ────────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: DOO_LINES_ALL
+    azure_schema: edap_dw_replica
+    azure_table: fact_sales_order_line
+    key_columns: [FULFILLMENT_LINE_ID]
+    columns:
+      SOURCE_ORDER_ID:          sales_order_number
+      SOURCE_LINE_ID:           sales_order_line
+      INVENTORY_ITEM_ID:        part_key
+      ORDERED_QUANTITY:         sales_order_quantity
+      SHIPPED_QUANTITY:         shipped_quantity
+      UNIT_SELLING_PRICE:       unit_price_local
+      EXTENDED_SELLING_PRICE:   extended_price_local
+      ORDERED_DATE:             order_date_key
+      SHIP_DATE:                ship_day_key
+      REQUEST_SHIP_DATE:        requested_ship_date_key
+      PROMISE_SHIP_DATE:        promised_ship_day_key
+      SOLD_TO_ORG_ID:           customer_key
+      SHIP_FROM_ORG_ID:         business_unit_key
+      CURRENCY_CODE:            currency_code
+      FREIGHT_TERMS_CODE:       freight_terms
+      UNIT_COST:                unit_cost_local
+      CREATION_DATE:            aud_create_datetime
+      LAST_UPDATE_DATE:         aud_update_datetime
+
+  # ── AP Invoice lines ─────────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: AP_INVOICES_ALL
+    azure_schema: edap_dw_replica
+    azure_table: fact_ap_invoice_lines
+    key_columns: [INVOICE_ID]
+    columns:
+      INVOICE_ID:               invoice_key
+      INVOICE_NUM:              invoice_number
+      VENDOR_ID:                supplier_key
+      INVOICE_DATE:             invoice_date_key
+      GL_DATE:                  accounting_date_key
+      INVOICE_AMOUNT:           invoice_amount_local
+      INVOICE_CURRENCY_CODE:    currency_code
+      ORG_ID:                   business_unit_key
+      CREATION_DATE:            aud_create_datetime
+      LAST_UPDATE_DATE:         aud_update_datetime
+
+  - oracle_schema: FUSION
+    oracle_table: AP_INVOICE_LINES_ALL
+    azure_schema: edap_dw_replica
+    azure_table: fact_ap_invoice_lines
+    key_columns: [INVOICE_ID, LINE_NUMBER]
+    columns:
+      INVOICE_ID:               invoice_key
+      LINE_NUMBER:              line_number
+      LINE_TYPE_LOOKUP_CODE:    line_type
+      INVENTORY_ITEM_ID:        part_key
+      QUANTITY_INVOICED:        shipped_quantity
+      UNIT_PRICE:               unit_cost_local
+      AMOUNT:                   extended_cost_local
+      DESCRIPTION:              part_description
+      PO_HEADER_ID:             po_number
+      PO_LINE_ID:               po_line_number
+      CREATION_DATE:            aud_create_datetime
+
+  # ── Standard / item cost ─────────────────────────────────────────────────────
+  - oracle_schema: FUSION
+    oracle_table: CST_COST_DETAILS
+    azure_schema: stg_replica
+    azure_table: fact_part_cost
+    key_columns: [COST_ELEMENT_ID, INVENTORY_ITEM_ID, COST_TYPE_ID]
+    columns:
+      INVENTORY_ITEM_ID:   part_key
+      ORGANIZATION_ID:     business_unit_key
+      COST_TYPE_ID:        cost_type
+      ITEM_COST:           cost_amount_local
+      MATERIAL_COST:       mtl_cost_local
+      RESOURCE_COST:       labor_cost_local
+      OVERHEAD_COST:       burden_cost_local
+      OUTSIDE_PROC_COST:   sub_cont_cost_local
+      CURRENCY_CODE:       currency_code
+      EFFECTIVE_DATE:      effective_date
+      DISABLE_DATE:        expiry_date
+      CURRENT_COST_FLAG:   current_record_ind
+
+  # ── Cycle counts (Inferred from Cycle Counting Metrics Reports) ──────────────
+  - oracle_schema: FUSION
+    oracle_table: INV_CYCLE_COUNT_ENTRIES
+    azure_schema: edap_dw_replica
+    azure_table: fact_cycle_count
+    key_columns: [CYCLE_COUNT_ENTRY_ID]
+    columns:
+      CYCLE_COUNT_ENTRY_ID:  cycle_count_entry_key
+      CYCLE_COUNT_HEADER_ID: cycle_count_header_key
+      INVENTORY_ITEM_ID:     part_key
+      ORGANIZATION_ID:       business_unit_key
+      SUBINVENTORY:          subinventory_code
+      SYSTEM_QUANTITY:       system_qty
+      COUNT_QUANTITY:        count_qty
+      ADJUSTMENT_QUANTITY:   adjustment_qty
+      ADJUSTMENT_VALUE:      variance_value_local
+      CREATION_DATE:         count_date_key
+      LAST_UPDATE_DATE:      aud_update_datetime
+  - oracle_schema: FUSION
+    oracle_table: EGP_ITEM_CAT_ASSIGNMENTS
+    oracle_query: |
+      SELECT 
+          ica.INVENTORY_ITEM_ID,
+          ica.ORGANIZATION_ID,
+          cat.CATEGORY_NAME AS inventory_part_code
+      FROM FUSION.EGP_ITEM_CAT_ASSIGNMENTS ica
+      INNER JOIN FUSION.EGP_CATEGORY_SETS_B csb ON ica.CATEGORY_SET_ID = csb.CATEGORY_SET_ID
+      INNER JOIN FUSION.EGP_CATEGORY_SETS_TL cs ON csb.CATEGORY_SET_ID = cs.CATEGORY_SET_ID
+      INNER JOIN FUSION.EGP_CATEGORIES_TL cat ON ica.CATEGORY_ID = cat.CATEGORY_ID
+      WHERE cs.CATEGORY_SET_NAME = 'ABC Inventory Catalog'
+        AND cs.LANGUAGE = 'US'
+        AND cat.LANGUAGE = 'US'
+    azure_schema: edap_dw_replica
+    azure_table: dim_part
+    key_columns: [INVENTORY_ITEM_ID, ORGANIZATION_ID]
+    columns:
+      INVENTORY_ITEM_ID:    part_key
+      ORGANIZATION_ID:      business_unit_id
+      inventory_part_code:  inventory_part_code

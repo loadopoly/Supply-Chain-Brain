@@ -1,0 +1,70 @@
+# AstecBridge target registry  v0.7.4
+# ---------------------------------------------------------------------------
+# Every entry here becomes a netsh portproxy rule on the laptop.
+# The Gaming PC dials:  <laptop_wifi_ip>:<laptop_port>
+# The laptop forwards:  <target_host>:<target_port>
+#
+# Protocols:  rdp | sql | http | https | smb
+# To add a new host: append an entry, save the file.  The watchdog on the
+# laptop picks up the change within 60 s and applies new rules automatically.
+# ---------------------------------------------------------------------------
+targets:
+
+  # --- Brain Desktop (primary) -------------------------------------------
+  - name:        desktop
+    label:       "ROADD-5WD1NH3 — Brain Desktop (RDP)"
+    laptop_port: 33890
+    target_host: "172.16.4.76"
+    target_port: 3389
+    protocol:    rdp
+    notes:       "Primary Brain host; autonomous_agent.py runs here"
+
+  # --- File Server (crp-fs03) --------------------------------------------
+  - name:        crp-fs03
+    label:       "crp-fs03 — Corporate File Server (RDP)"
+    laptop_port: 33891
+    target_host: "172.17.99.185"
+    target_port: 3389
+    protocol:    rdp
+    notes:       "Hosts sophos_vpn_automator.py and Executive_Reports share"
+
+  # --- SQL Server on Desktop ---------------------------------------------
+  - name:        desktop-sql
+    label:       "ROADD-5WD1NH3 — SQL Server 1433"
+    laptop_port: 14330
+    target_host: "172.16.4.76"
+    target_port: 1433
+    protocol:    sql
+    notes:       "Direct SQL connection for SSMS / DBeaver from Gaming PC"
+
+  # --- Brain LLM API on Desktop ------------------------------------------
+  - name:        brain-api
+    label:       "Brain LLM API — port 8000"
+    laptop_port: 8000
+    target_host: "172.16.4.76"
+    target_port: 8000
+    protocol:    http
+    notes:       "compute_grid.serve_compute_node() endpoint"
+
+  # --- Work Laptop (relay host — direct access both ways) ----------------
+  - name:        laptop
+    label:       "ROADL-4GVKFW3 — Work Laptop (RDP)"
+    laptop_port: ~                           # no portproxy — this IS the relay
+    bridge_endpoint: "192.168.250.200:3389"  # direct VPN-IP when remote
+    target_host: "172.16.4.75"
+    target_port: 3389
+    protocol:    rdp
+    notes:       "Road laptop; LAN 172.16.4.75 direct; VPN 192.168.250.200 direct"
+
+# ---------------------------------------------------------------------------
+# Global settings
+# ---------------------------------------------------------------------------
+firewall_rule_name: "AstecBridge"
+
+# Default RDP client used by bridge_rdp.py connect when --client is not given.
+# Options: mstsc | freerdp | file
+#   mstsc   — Windows built-in (always available on Windows)
+#   freerdp — open-source; install: winget install FreeRDP.FreeRDP
+#   file    — exports a .rdp file and opens it with the OS default handler;
+#             use this to hand off to mRemoteNG, Royal TS, Devolutions RDM, etc.
+rdp_client: "mstsc"

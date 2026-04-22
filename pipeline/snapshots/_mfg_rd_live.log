@@ -1,0 +1,16 @@
+[Azure SQL] Connecting to edap-replica-cms-sqlserver.database.windows.net / edap-replica-cms-sqldb ...
+[Azure SQL] Using stored credentials for agard@astecindustries.com (ActiveDirectoryPassword).
+[Azure SQL] Connected.
+c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\src\deck\live.py:411: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql(sql, conn, params=[start_90, end_90])
+c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\src\deck\live.py:476: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql(sql, conn, params=[start_90, end_90])
+c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\src\deck\live.py:560: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql(sql, conn, params=[start_365, end_90])
+[deck] warning: Site 'Chattanooga - Manufacturers Road' resolved to business_unit_id values: ['ROADTEC']
+[deck] warning: Live OTD source is missing failure_reason; deck uses 'Unknown / not captured' for late lines.
+[deck] warning: Live IFR source is missing failure_reason; IFR miss theming will be sparse.
+[deck] warning: Live PFEP source is missing inventory ABC columns; PFEP health findings will flag this as a data gap.
+[deck] warning: No cycle-count transaction table was discovered in the attached Azure SQL schemas; cycle-count slides will render with no live transactions.
+wrote snapshots\manufacturers_road_live.pptx
+wrote snapshots\manufacturers_road_live.json

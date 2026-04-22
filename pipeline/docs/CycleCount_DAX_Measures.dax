@@ -1,0 +1,352 @@
+// =============================================================================
+// CYCLE COUNT ANALYTICS — POWER BI DAX
+// IPS Supply Chain · Astec Industries
+// Author: Adam Faircloth  |  Translated for Power BI by: [BI Team]
+//
+// HOW TO USE
+// ----------
+// 1. Create calculated columns (section 1) on the FactCounts table
+//    Home → New Column → paste formula → rename to match the heading
+// 2. Create measures (section 2) in the Measures table
+//    (create a dedicated measures table: Enter Data → blank → name "Measures")
+// 3. Create the DimPeriod helper table (section 3) via Enter Data
+// 4. Wire slicers to DimPeriod[Period] — DO NOT connect to FactCounts
+//
+// DEPENDENCIES
+// ------------
+// FactCounts table columns expected:
+//   Part, Desc, ABC, WH, Year, Source,
+//   Q1_Count, Q2_Count, Q3_Count, Q4_Count,
+//   Total_Counts, Frozen_Dollar, Abs_Dollar_Var,
+//   ForcedFail (Y/N), Overcount_Flag (YES/NO)
+// =============================================================================
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 1 — CALCULATED COLUMNS  (add directly to FactCounts table)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Required counts per year by ABC class ─────────────────────────────────────
+Required_Counts =
+SWITCH(
+    FactCounts[ABC],
+    "A", 4,
+    "B", 2,
+    1           // C, D, and all others
+)
+
+// ── Q1 Pass ───────────────────────────────────────────────────────────────────
+// A: individual quarter  |  B: H1 pooled  |  C/D: YTD pooled
+Q1_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF( FactCounts[Q1_Count] >= 1, 1, 0 ),
+        "B", IF( FactCounts[Q1_Count] + FactCounts[Q2_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── Q2 Pass ───────────────────────────────────────────────────────────────────
+Q2_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF( FactCounts[Q2_Count] >= 1, 1, 0 ),
+        "B", IF( FactCounts[Q1_Count] + FactCounts[Q2_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── Q3 Pass ───────────────────────────────────────────────────────────────────
+Q3_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF( FactCounts[Q3_Count] >= 1, 1, 0 ),
+        "B", IF( FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── Q4 Pass ───────────────────────────────────────────────────────────────────
+Q4_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF( FactCounts[Q4_Count] >= 1, 1, 0 ),
+        "B", IF( FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── H1 Pass (Q1+Q2 combined window) ──────────────────────────────────────────
+H1_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF( FactCounts[Q1_Count] >= 1 && FactCounts[Q2_Count] >= 1, 1, 0 ),
+        "B", IF( FactCounts[Q1_Count] + FactCounts[Q2_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── H2 Pass (Q3+Q4 combined window) ──────────────────────────────────────────
+H2_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF( FactCounts[Q3_Count] >= 1 && FactCounts[Q4_Count] >= 1, 1, 0 ),
+        "B", IF( FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── YTD Pass ──────────────────────────────────────────────────────────────────
+// A: all 4 quarters  |  B: both halves  |  C/D: any count in year
+YTD_Pass =
+IF(
+    FactCounts[ForcedFail] = "Y", 0,
+    SWITCH(
+        FactCounts[ABC],
+        "A", IF(
+                FactCounts[Q1_Count] >= 1
+             && FactCounts[Q2_Count] >= 1
+             && FactCounts[Q3_Count] >= 1
+             && FactCounts[Q4_Count] >= 1, 1, 0 ),
+        "B", IF(
+                FactCounts[Q1_Count] + FactCounts[Q2_Count] >= 1
+             && FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 ),
+             IF( FactCounts[Q1_Count] + FactCounts[Q2_Count]
+                 + FactCounts[Q3_Count] + FactCounts[Q4_Count] >= 1, 1, 0 )
+    )
+)
+
+// ── Has Variance flag ─────────────────────────────────────────────────────────
+Has_Variance =
+IF( FactCounts[Abs_Dollar_Var] > 0, "Y", "N" )
+
+// ── Frequency label (for display in visuals) ──────────────────────────────────
+Frequency_Label =
+SWITCH(
+    FactCounts[ABC],
+    "A", "Quarterly (4×)",
+    "B", "Semi-Annual (2×)",
+    "C", "Annual (1×)",
+    "D", "Annual (1×)",
+    "—"
+)
+
+// ── ABC sort order (for correct A→B→C→D ordering in visuals) ─────────────────
+ABC_Sort =
+SWITCH( FactCounts[ABC], "A", 1, "B", 2, "C", 3, "D", 4, 5 )
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 2 — MEASURES  (create in a dedicated "Measures" table)
+// ══════════════════════════════════════════════════════════════════════════════
+// After creating each measure, set the table to "Measures" in the Properties pane.
+
+// ── Helper: selected period ───────────────────────────────────────────────────
+// DimPeriod slicer drives all period-aware measures.
+_Selected Period =
+SELECTEDVALUE( DimPeriod[Period], "YTD" )
+
+// ── Total Parts ───────────────────────────────────────────────────────────────
+Total Parts =
+COUNTROWS( FactCounts )
+
+// ── Obligations in selected period ───────────────────────────────────────────
+// For A: 1 obligation per quarter selected; B: 1 per half; C: 1 per year
+Period Obligations =
+VAR _p = [_Selected Period]
+VAR _a_parts = CALCULATE( [Total Parts], FactCounts[ABC] = "A" )
+VAR _b_parts = CALCULATE( [Total Parts], FactCounts[ABC] = "B" )
+VAR _c_parts = CALCULATE( [Total Parts], FactCounts[ABC] IN { "C", "D" } )
+VAR _a_req   = SWITCH( _p, "Q1",1,"Q2",1,"Q3",1,"Q4",1,"H1",2,"H2",2,"YTD",4, 4 )
+VAR _b_req   = SWITCH( _p, "Q1",1,"Q2",1,"Q3",1,"Q4",1,"H1",1,"H2",1,"YTD",2, 2 )
+RETURN
+    _a_parts * _a_req + _b_parts * _b_req + _c_parts * 1
+
+// ── Parts fulfilled in selected period ───────────────────────────────────────
+Period Fulfilled =
+VAR _p = [_Selected Period]
+RETURN
+SWITCH(
+    _p,
+    "Q1",  CALCULATE( SUM( FactCounts[Q1_Pass]  ) ),
+    "Q2",  CALCULATE( SUM( FactCounts[Q2_Pass]  ) ),
+    "Q3",  CALCULATE( SUM( FactCounts[Q3_Pass]  ) ),
+    "Q4",  CALCULATE( SUM( FactCounts[Q4_Pass]  ) ),
+    "H1",  CALCULATE( SUM( FactCounts[H1_Pass]  ) ),
+    "H2",  CALCULATE( SUM( FactCounts[H2_Pass]  ) ),
+           CALCULATE( SUM( FactCounts[YTD_Pass] ) )   // YTD default
+)
+
+// ── Parts remaining (not yet fulfilled) ───────────────────────────────────────
+Period Remaining =
+[Total Parts] - [Period Fulfilled]
+
+// ── Completion % ──────────────────────────────────────────────────────────────
+Completion % =
+DIVIDE( [Period Fulfilled], [Total Parts], 0 )
+
+// ── Completion % (formatted label for KPI card) ───────────────────────────────
+Completion % Label =
+FORMAT( [Completion %], "0.0%" )
+
+// ── Per-quarter pass counts (for the quarterly grid matrix) ───────────────────
+Q1 Fulfilled  = CALCULATE( SUM( FactCounts[Q1_Pass]  ) )
+Q2 Fulfilled  = CALCULATE( SUM( FactCounts[Q2_Pass]  ) )
+Q3 Fulfilled  = CALCULATE( SUM( FactCounts[Q3_Pass]  ) )
+Q4 Fulfilled  = CALCULATE( SUM( FactCounts[Q4_Pass]  ) )
+H1 Fulfilled  = CALCULATE( SUM( FactCounts[H1_Pass]  ) )
+H2 Fulfilled  = CALCULATE( SUM( FactCounts[H2_Pass]  ) )
+YTD Fulfilled = CALCULATE( SUM( FactCounts[YTD_Pass] ) )
+
+// ── Per-quarter completion % (for the quarterly grid matrix) ─────────────────
+Q1 Completion %  = DIVIDE( [Q1 Fulfilled],  [Total Parts], 0 )
+Q2 Completion %  = DIVIDE( [Q2 Fulfilled],  [Total Parts], 0 )
+Q3 Completion %  = DIVIDE( [Q3 Fulfilled],  [Total Parts], 0 )
+Q4 Completion %  = DIVIDE( [Q4 Fulfilled],  [Total Parts], 0 )
+H1 Completion %  = DIVIDE( [H1 Fulfilled],  [Total Parts], 0 )
+H2 Completion %  = DIVIDE( [H2 Fulfilled],  [Total Parts], 0 )
+YTD Completion % = DIVIDE( [YTD Fulfilled], [Total Parts], 0 )
+
+// ── Variance measures ─────────────────────────────────────────────────────────
+Total Frozen $ =
+SUM( FactCounts[Frozen_Dollar] )
+
+Total Abs Var $ =
+SUM( FactCounts[Abs_Dollar_Var] )
+
+Net Var $ =
+// If Net_Dollar_Var column exists in FactCounts, use SUM(FactCounts[Net_Dollar_Var])
+// Otherwise approximate as Frozen - (Frozen - AbsVar):
+SUMX( FactCounts, FactCounts[Abs_Dollar_Var] * IF( FactCounts[Abs_Dollar_Var] > 0, -1, 0 ) )
+
+Seqs With Variance =
+CALCULATE( [Total Parts], FactCounts[Has_Variance] = "Y" )
+
+Variance Rate =
+DIVIDE( [Seqs With Variance], [Total Parts], 0 )
+
+Value Accuracy =
+1 - DIVIDE( [Total Abs Var $], [Total Frozen $], 0 )
+
+// ── Flag counts ───────────────────────────────────────────────────────────────
+ForcedFail Count =
+CALCULATE( [Total Parts], FactCounts[ForcedFail] = "Y" )
+
+Overcount Flag Count =
+CALCULATE( [Total Parts], FactCounts[Overcount_Flag] = "YES" )
+
+// ── Conditional formatting value for completion % ─────────────────────────────
+// Use this as "font color" or "background color" rule in matrix
+//   ≥ 0.95 → green (#16a34a)  |  0.70–0.94 → amber (#d97706)  |  < 0.70 → red (#dc2626)
+Completion Color Hex =
+VAR _pct = [Completion %]
+RETURN
+IF( _pct >= 0.95, "#16a34a", IF( _pct >= 0.70, "#d97706", "#dc2626" ) )
+
+// ── Last refresh timestamp (for data freshness card) ─────────────────────────
+// Set this up in Power Query → Add Column → "RefreshedAt" with = DateTime.LocalNow()
+// Then reference that column here
+Last Refresh =
+MAX( FactCounts[RefreshedAt] )
+
+// ── Row count by source (for data source summary page) ───────────────────────
+Epicor Row Count    = CALCULATE( [Total Parts], FactCounts[Source] = "EPICOR"    )
+Oracle Row Count    = CALCULATE( [Total Parts], FactCounts[Source] = "ORACLE"    )
+Syteline Row Count  = CALCULATE( [Total Parts], FactCounts[Source] = "SYTELINE"  )
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 3 — HELPER TABLES  (create via Enter Data or DAX)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── DimPeriod ─────────────────────────────────────────────────────────────────
+// Create via: Modeling → New Table
+// DO NOT connect to FactCounts (disconnected slicer pattern)
+DimPeriod =
+DATATABLE(
+    "Period",    STRING,
+    "SortOrder", INTEGER,
+    {
+        { "Q1",  1 },
+        { "Q2",  2 },
+        { "H1",  3 },
+        { "Q3",  4 },
+        { "Q4",  5 },
+        { "H2",  6 },
+        { "YTD", 7 }
+    }
+)
+// After creating: set "Sort by Column" on Period → SortOrder
+
+// ── DimABC ────────────────────────────────────────────────────────────────────
+DimABC =
+DATATABLE(
+    "ABC",       STRING,
+    "SortOrder", INTEGER,
+    "Label",     STRING,
+    "Frequency", STRING,
+    {
+        { "A", 1, "Class A", "Quarterly (4×)"   },
+        { "B", 2, "Class B", "Semi-Annual (2×)" },
+        { "C", 3, "Class C", "Annual (1×)"      },
+        { "D", 4, "Class D", "Annual (1×)"      }
+    }
+)
+// Connect: DimABC[ABC] → FactCounts[ABC]  (many-to-one from FactCounts)
+// Use DimABC[Label] for visual axis labels, DimABC[ABC] for filtering
+
+// ── DimSource ─────────────────────────────────────────────────────────────────
+DimSource =
+DATATABLE(
+    "Source",      STRING,
+    "SortOrder",   INTEGER,
+    "Description", STRING,
+    {
+        { "EPICOR",   1, "Epicor ERP — Jerome Site"         },
+        { "ORACLE",   2, "Oracle Fusion ERP — Parsons Site"  },
+        { "SYTELINE", 3, "Syteline ERP — Jerome SSRS"        },
+        { "COMBINED", 4, "All Sites Combined"                }
+    }
+)
+// DO NOT connect to FactCounts — use as a disconnected slicer
+// In measures, reference with: SELECTEDVALUE( DimSource[Source], "COMBINED" )
+// Then filter FactCounts dynamically inside the measure if needed.
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 4 — QUICK MEASURES  (right-click table → New Quick Measure)
+// These reference the measures above for common visual needs.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// For KPI card with goal line (95% target):
+Completion vs Target =
+[Completion %] - 0.95   // positive = above target (green), negative = below (red)
+
+// For conditional bar fill in bar charts (use as measure → Color = field):
+ABC Color =
+SWITCH(
+    SELECTEDVALUE( DimABC[ABC] ),
+    "A", "#3b82f6",   // blue
+    "B", "#8b5cf6",   // purple
+    "C", "#06b6d4",   // cyan
+    "D", "#6b7280",   // gray
+    "#E87722"         // Astec orange (fallback)
+)

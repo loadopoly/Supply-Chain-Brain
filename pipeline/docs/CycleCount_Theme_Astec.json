@@ -1,0 +1,187 @@
+{
+  "name": "Astec IPS Cycle Count",
+  "dataColors": [
+    "#3b82f6",
+    "#8b5cf6",
+    "#06b6d4",
+    "#E87722",
+    "#6b7280",
+    "#16a34a",
+    "#dc2626",
+    "#d97706"
+  ],
+  "good": "#16a34a",
+  "neutral": "#d97706",
+  "bad": "#dc2626",
+  "maximum": "#16a34a",
+  "center": "#d97706",
+  "minimum": "#dc2626",
+  "null": "#9ca3af",
+  "background": "#ffffff",
+  "foreground": "#111827",
+  "tableAccent": "#E87722",
+  "visualStyles": {
+    "*": {
+      "*": {
+        "fontFamily": [{ "value": "Segoe UI" }],
+        "fontSize": [{ "value": 11 }],
+        "color": [{ "solid": { "color": "#111827" } }]
+      }
+    },
+    "card": {
+      "*": {
+        "background": [{ "solid": { "color": "#f9fafb" } }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#e5e7eb" } }, "weight": 1, "radius": 8 }],
+        "calloutValue": [{
+          "fontSize": 28,
+          "fontFamily": "Segoe UI",
+          "isBold": false,
+          "color": { "solid": { "color": "#111827" } }
+        }],
+        "categoryLabel": [{
+          "show": true,
+          "fontSize": 11,
+          "color": { "solid": { "color": "#6b7280" } }
+        }],
+        "title": [{ "show": false }]
+      }
+    },
+    "clusteredBarChart": {
+      "*": {
+        "dataPoint": [{}],
+        "categoryAxis": [{
+          "labelColor": { "solid": { "color": "#6b7280" } },
+          "fontSize": 11,
+          "gridlineColor": { "solid": { "color": "#f3f4f6" } }
+        }],
+        "valueAxis": [{
+          "labelColor": { "solid": { "color": "#6b7280" } },
+          "fontSize": 11,
+          "gridlineColor": { "solid": { "color": "#f3f4f6" } }
+        }],
+        "legend": [{ "show": true, "position": "Top", "fontSize": 11 }],
+        "title": [{ "show": true, "fontSize": 12, "fontColor": { "solid": { "color": "#374151" } } }],
+        "background": [{ "show": false }]
+      }
+    },
+    "clusteredColumnChart": {
+      "*": {
+        "categoryAxis": [{
+          "labelColor": { "solid": { "color": "#6b7280" } },
+          "gridlineColor": { "solid": { "color": "#f3f4f6" } }
+        }],
+        "valueAxis": [{
+          "labelColor": { "solid": { "color": "#6b7280" } },
+          "gridlineColor": { "solid": { "color": "#f3f4f6" } },
+          "start": 0,
+          "end": 1
+        }],
+        "title": [{ "show": true, "fontSize": 12 }],
+        "background": [{ "show": false }]
+      }
+    },
+    "tableEx": {
+      "*": {
+        "header": [{
+          "fontColor": { "solid": { "color": "#374151" } },
+          "background": { "solid": { "color": "#f9fafb" } },
+          "fontSize": 11,
+          "isBold": true,
+          "outline": "BottomOnly"
+        }],
+        "rows": [{
+          "fontColor": { "solid": { "color": "#111827" } },
+          "fontSize": 12,
+          "outline": "BottomOnly",
+          "gridColor": { "solid": { "color": "#f3f4f6" } },
+          "alternatingRowsColor": { "solid": { "color": "#f9fafb" } },
+          "padding": 6
+        }],
+        "values": [{
+          "fontColor": { "solid": { "color": "#111827" } },
+          "fontSize": 12
+        }],
+        "total": [{
+          "fontColor": { "solid": { "color": "#111827" } },
+          "background": { "solid": { "color": "#f0f9ff" } },
+          "isBold": true,
+          "outline": "TopOnly"
+        }],
+        "title": [{ "show": true, "fontSize": 12 }]
+      }
+    },
+    "pivotTable": {
+      "*": {
+        "rowHeaders": [{
+          "fontColor": { "solid": { "color": "#374151" } },
+          "background": { "solid": { "color": "#f9fafb" } },
+          "fontSize": 11,
+          "isBold": true,
+          "outline": "BottomOnly"
+        }],
+        "columnHeaders": [{
+          "fontColor": { "solid": { "color": "#374151" } },
+          "background": { "solid": { "color": "#f9fafb" } },
+          "fontSize": 11,
+          "isBold": true
+        }],
+        "values": [{
+          "fontColor": { "solid": { "color": "#111827" } },
+          "fontSize": 12
+        }],
+        "total": [{
+          "fontColor": { "solid": { "color": "#111827" } },
+          "background": { "solid": { "color": "#e0f2fe" } },
+          "isBold": true
+        }],
+        "subTotals": [{
+          "rowSubtotals": true,
+          "columnSubtotals": true,
+          "fontColor": { "solid": { "color": "#374151" } },
+          "background": { "solid": { "color": "#f3f4f6" } },
+          "isBold": false
+        }]
+      }
+    },
+    "slicer": {
+      "*": {
+        "general": [{ "outlineColor": { "solid": { "color": "#e5e7eb" } } }],
+        "header": [{
+          "show": true,
+          "fontColor": { "solid": { "color": "#6b7280" } },
+          "fontSize": 11,
+          "isBold": true,
+          "background": { "solid": { "color": "#f9fafb" } }
+        }],
+        "items": [{
+          "fontColor": { "solid": { "color": "#111827" } },
+          "fontSize": 12,
+          "selectedColor": { "solid": { "color": "#E87722" } }
+        }]
+      }
+    },
+    "textbox": {
+      "*": {
+        "general": [{
+          "background": { "solid": { "color": "#ffffff" } },
+          "border": [{ "show": false }]
+        }]
+      }
+    },
+    "shape": {
+      "*": {
+        "fill": [{ "fillColor": { "solid": { "color": "#E87722" } }, "transparency": 0 }]
+      }
+    }
+  },
+  "page": {
+    "background": {
+      "color": "#f8f9fa",
+      "transparency": 0
+    },
+    "outspace": {
+      "color": "#e5e7eb",
+      "transparency": 0
+    }
+  }
+}

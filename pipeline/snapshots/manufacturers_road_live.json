@@ -1,0 +1,441 @@
+{
+  "scope": {
+    "site": "Chattanooga - Manufacturers Road",
+    "erp": "epicor9",
+    "datasets": [
+      "OTD",
+      "IFR",
+      "ITR",
+      "PFEP"
+    ],
+    "anchor_policy": "AST-INV-PRO-0001",
+    "seed": 9,
+    "windows": {
+      "T": "2026-04-20",
+      "prior_14d": [
+        "2026-03-23",
+        "2026-04-05"
+      ],
+      "past_14d": [
+        "2026-04-06",
+        "2026-04-19"
+      ],
+      "future_14d": [
+        "2026-04-20",
+        "2026-05-04"
+      ],
+      "baseline_90d": [
+        "2026-01-20",
+        "2026-04-19"
+      ]
+    }
+  },
+  "kpis": {
+    "otd": {
+      "value": 61.17,
+      "prior": 45.82,
+      "delta_pp": 15.34,
+      "baseline_90d": 54.54,
+      "goal": 95.0,
+      "n": 3044
+    },
+    "ifr": {
+      "value": 0.02,
+      "prior": 0.0,
+      "delta_pp": 0.02,
+      "baseline_90d": 0.0,
+      "goal": 95.0,
+      "n": 4791
+    },
+    "cc": {
+      "value": null,
+      "prior": null,
+      "delta_pp": null,
+      "baseline_90d": null,
+      "goal": 95.0,
+      "n": 0
+    }
+  },
+  "by_site": {},
+  "failure_signatures": {
+    "otd": {
+      "total_late_lines": 1182,
+      "top_reasons": [
+        {
+          "reason": "Unknown / not captured",
+          "count": 1182,
+          "pct": 100.0,
+          "class": "OTHER"
+        }
+      ]
+    },
+    "ifr": {
+      "total_miss": 4790,
+      "allocation_gap": 0,
+      "allocation_gap_pct": 0.0,
+      "hard_stockout": 4790,
+      "hard_stockout_pct": 100.0,
+      "covered_miss": 0,
+      "covered_miss_pct": 0.0
+    },
+    "cc": {
+      "active_days": 0,
+      "business_days": 10,
+      "cadence_compliance_pct": 0.0,
+      "absolute_variance_$": 0.0,
+      "net_variance_$": 0.0,
+      "repeat_offender_pct": 0.0,
+      "reason_code_populated_pct": 0.0
+    },
+    "days_late": {
+      "n": 1182,
+      "median": 20.0,
+      "p75": 22.0,
+      "p90": 25.0,
+      "p99": 43.0,
+      "max": 203.0,
+      "fat_tail": true
+    }
+  },
+  "intersections": {
+    "pfep_match": {
+      "miss_n": 23504,
+      "matched": 23504,
+      "match_rate": 1.0,
+      "ss_missing_pct": 100.0,
+      "abc_missing_pct": 100.0,
+      "lt_zero_pct": 100.0
+    },
+    "recoverable": {
+      "blocked_by_match_rate": false,
+      "purchased_stockouts": 23504,
+      "recoverable": 23504,
+      "recoverable_pct": 100.0
+    },
+    "triple": {
+      "cc_only": 0,
+      "ifr_only": 2345,
+      "otd_only": 293,
+      "cc_and_ifr": 0,
+      "cc_and_otd": 0,
+      "otd_and_ifr": 3233,
+      "triple": [],
+      "triple_count": 0
+    }
+  },
+  "centrality": {
+    "customers": [
+      {
+        "customer": "MILESTONE CONTRACTORS  LP",
+        "late_lines": 556,
+        "pct": 47.0,
+        "concentrated": true
+      },
+      {
+        "customer": "COWIN EQUIPMENT CO INC.",
+        "late_lines": 71,
+        "pct": 6.0,
+        "concentrated": true
+      },
+      {
+        "customer": "CLOSNER EQUIPMENT COMPANY, INC.",
+        "late_lines": 69,
+        "pct": 5.8,
+        "concentrated": true
+      },
+      {
+        "customer": "TRACEY ROAD EQUIPMENT, INC.",
+        "late_lines": 49,
+        "pct": 4.1,
+        "concentrated": false
+      },
+      {
+        "customer": "ASTEC AUSTRALIA PTY, LTD",
+        "late_lines": 40,
+        "pct": 3.4,
+        "concentrated": false
+      },
+      {
+        "customer": "THE G W VAN KEPPEL COMPANY",
+        "late_lines": 30,
+        "pct": 2.5,
+        "concentrated": false
+      },
+      {
+        "customer": "HILLS MACHINERY COMPANY LLC",
+        "late_lines": 29,
+        "pct": 2.5,
+        "concentrated": false
+      },
+      {
+        "customer": "ALTA EQUIPMENT COMPANY",
+        "late_lines": 25,
+        "pct": 2.1,
+        "concentrated": false
+      },
+      {
+        "customer": "BEST LINE LEASING, INC.",
+        "late_lines": 24,
+        "pct": 2.0,
+        "concentrated": false
+      },
+      {
+        "customer": "W W CLYDE COMPANY",
+        "late_lines": 20,
+        "pct": 1.7,
+        "concentrated": false
+      }
+    ],
+    "vendors": [
+      {
+        "supplier": "STOCKD SUPPLY",
+        "combined": 1150,
+        "otd_late": 246,
+        "ifr_miss": 904
+      },
+      {
+        "supplier": "UNITED ELECTRIC CONTROLS",
+        "combined": 566,
+        "otd_late": 0,
+        "ifr_miss": 566
+      },
+      {
+        "supplier": "HYDRAULIC SUPPLY CO",
+        "combined": 372,
+        "otd_late": 108,
+        "ifr_miss": 264
+      },
+      {
+        "supplier": "-1",
+        "combined": 344,
+        "otd_late": 77,
+        "ifr_miss": 267
+      },
+      {
+        "supplier": "PRO THERM",
+        "combined": 125,
+        "otd_late": 13,
+        "ifr_miss": 112
+      }
+    ],
+    "parts": []
+  },
+  "realizations": [
+    {
+      "rule_id": "R3",
+      "realization": "23504 of 23504 purchased stockouts are PFEP-preventable. One-time data fix = compounding ROI.",
+      "evidence": {
+        "blocked_by_match_rate": false,
+        "purchased_stockouts": 23504,
+        "recoverable": 23504,
+        "recoverable_pct": 100.0
+      }
+    },
+    {
+      "rule_id": "R4",
+      "realization": "Cycle-count program has stopped (active days 0/10 = 0.0%) \u2014 accuracy KPIs are directional only.",
+      "evidence": {
+        "active_days": 0,
+        "business_days": 10,
+        "ratio": 0.0
+      }
+    },
+    {
+      "rule_id": "R5",
+      "realization": "100.0% of variance is un-attributable (Reason Code populated on 0.0% of adjustments). Root-cause targeting is impossible until the field is enforced.",
+      "evidence": {
+        "reason_code_populated_pct": 0.0
+      }
+    },
+    {
+      "rule_id": "R7",
+      "realization": "MRP is running on an empty master \u2014 only 0.0% of active items have Safety Stock + ABC + Lead Time all populated. PFEP remediation is the prerequisite to any operational fix.",
+      "evidence": {
+        "all_three_populated_pct": 0.0,
+        "active_items": 158004
+      }
+    },
+    {
+      "rule_id": "R8",
+      "realization": "Pre-stage the top-20 fat-tail parts (p99 Days Late = 43.0). Cheaper than chasing median cycle-time.",
+      "evidence": {
+        "n": 1182,
+        "median": 20.0,
+        "p75": 22.0,
+        "p90": 25.0,
+        "p99": 43.0,
+        "max": 203.0,
+        "fat_tail": true
+      }
+    },
+    {
+      "rule_id": "R9",
+      "realization": "Relationship review with MILESTONE CONTRACTORS  LP \u2014 kit complexity / order-shape conversation (47.0% of lates).",
+      "evidence": {
+        "customer": "MILESTONE CONTRACTORS  LP",
+        "late_lines": 556,
+        "pct": 47.0,
+        "concentrated": true
+      }
+    },
+    {
+      "rule_id": "R10",
+      "realization": "Supplier scorecard program with focused vendor cohort, not full base (top-5 suppliers = 100.0% of combined misses+lates).",
+      "evidence": {
+        "top5_share_pct": 100.0,
+        "top5": [
+          {
+            "supplier": "STOCKD SUPPLY",
+            "combined": 1150,
+            "otd_late": 246,
+            "ifr_miss": 904
+          },
+          {
+            "supplier": "UNITED ELECTRIC CONTROLS",
+            "combined": 566,
+            "otd_late": 0,
+            "ifr_miss": 566
+          },
+          {
+            "supplier": "HYDRAULIC SUPPLY CO",
+            "combined": 372,
+            "otd_late": 108,
+            "ifr_miss": 264
+          },
+          {
+            "supplier": "-1",
+            "combined": 344,
+            "otd_late": 77,
+            "ifr_miss": 267
+          },
+          {
+            "supplier": "PRO THERM",
+            "combined": 125,
+            "otd_late": 13,
+            "ifr_miss": 112
+          }
+        ]
+      }
+    }
+  ],
+  "pathways_systemic": [
+    {
+      "name": "Populate ABC Inventory Catalog",
+      "mechanism": "Run ABC classification job against active items; write-back to PFEP master.",
+      "downstream_lift": "Drives CC cadence under AST-INV-PRO-0001; unlocks safety-stock math.",
+      "owner": "IT Governance + Planner",
+      "sequence": 1,
+      "rule_id": "R7"
+    },
+    {
+      "name": "Switch Safety Stock Planning Method",
+      "mechanism": "Set non-zero Safety Stock + assign Safety Stock Planning Method for recoverable parts.",
+      "downstream_lift": "Converts recoverable stockouts to on-time fills \u2014 compounding ROI per spec \u00a74.4b.",
+      "owner": "Planner + Buyer",
+      "sequence": 2,
+      "rule_id": "R3"
+    },
+    {
+      "name": "Transaction Reason Code enforcement",
+      "mechanism": "Required-field validation on cycle-count adjustment transactions.",
+      "downstream_lift": "Variance becomes attributable; root-cause targeting becomes possible.",
+      "owner": "IT Governance",
+      "sequence": 3,
+      "rule_id": "R5"
+    },
+    {
+      "name": "Assign Buyer / Planner codes",
+      "mechanism": "Backfill Buyer Name / Planner on unattributed active items.",
+      "downstream_lift": "Ownership routing \u2014 vendor scorecard program can run deterministically.",
+      "owner": "IT Governance + Procurement",
+      "sequence": 5,
+      "rule_id": "R10"
+    },
+    {
+      "name": "Item Cycle Count Enabled audit",
+      "mechanism": "Audit & toggle Item Cycle Count Enabled flag against ABC-driven cadence.",
+      "downstream_lift": "Restores the cycle-count program; CC accuracy becomes meaningful again.",
+      "owner": "Site Lead + IT Governance",
+      "sequence": 6,
+      "rule_id": "R4"
+    }
+  ],
+  "pathways_operational": [
+    {
+      "name": "Pre-stage top-20 fat-tail parts",
+      "mechanism": "Standing safety-stock on parts with p99 Days Late > 30.",
+      "downstream_lift": "Collapses the fat tail; cheaper than chasing median cycle-time.",
+      "owner": "Planner + Site Lead",
+      "rule_id": "R8"
+    },
+    {
+      "name": "Customer relationship review + order-shape conversation",
+      "mechanism": "Monthly review; reshape order cadence / kit complexity.",
+      "downstream_lift": "Reduces single-customer concentration risk.",
+      "owner": "Commercial + Site Lead",
+      "rule_id": "R9"
+    },
+    {
+      "name": "Supplier scorecard + expedite protocol",
+      "mechanism": "Monthly scorecard on top-5 combined miss+late suppliers; expedite playbook for outliers.",
+      "downstream_lift": "Converts vendor-driven misses into on-time fills.",
+      "owner": "Procurement + Planner",
+      "rule_id": "R10"
+    },
+    {
+      "name": "Pick-wave rebalance + same-SO completion gate",
+      "mechanism": "WMS configuration: reshape pick waves by SO-completion, not by zone.",
+      "downstream_lift": "Direct OTD lift on EXECUTION-class misses.",
+      "owner": "Site Lead + WMS Lead",
+      "rule_id": null,
+      "trigger_reason": "WH failed to ship"
+    },
+    {
+      "name": "Kit-complete check at pick release",
+      "mechanism": "Block pick release until all lines on an SO are allocable.",
+      "downstream_lift": "Eliminates KITTING-class lateness.",
+      "owner": "Site Lead + WMS Lead",
+      "rule_id": null,
+      "trigger_reason": "Missing other item on same SO"
+    },
+    {
+      "name": "Fab-schedule sync + early-warning flag",
+      "mechanism": "Fab-to-ship daily sync meeting; raise flag at T-2 if fab slipping.",
+      "downstream_lift": "SCHEDULING-class misses caught before ship-day.",
+      "owner": "Site Lead + Fab Lead",
+      "rule_id": null,
+      "trigger_reason": "Manufactured not ready"
+    }
+  ],
+  "roadmap": {
+    "T+30": [
+      "Close PFEP data gaps on active Buy items (Safety Stock + ABC + LT)",
+      "Enforce Transaction Reason Code on cycle-count adjustments",
+      "Stand up weekly OTD / IFR / CC scorecard with \u00a74 window convention"
+    ],
+    "T+60": [
+      "Allocation reconciliation batch in Oracle (systemic #4)",
+      "Pick-wave rebalance pilot at highest-lateness site",
+      "Vendor scorecard for top-5 combined OTD+IFR suppliers"
+    ],
+    "T+90": [
+      "PFEP health review #2 \u2014 measure match-rate lift on miss parts",
+      "Extend cycle-count cadence audit to every site",
+      "Pre-stage top-20 fat-tail parts if R8 fired"
+    ],
+    "T+180": [
+      "Kit-complete check at pick release across all sites",
+      "Quarterly customer-relationship review with concentrated accounts",
+      "Re-baseline KPI goals using 90d rolling performance"
+    ]
+  },
+  "governance": {
+    "cadence": "Weekly KPI review; bi-weekly realization review; monthly pathway progress.",
+    "targets": {
+      "OTD": 95.0,
+      "IFR": 95.0,
+      "CC": 95.0
+    },
+    "review_runbook": "PlantReview \u00a76 (60-minute conversation flow)."
+  }
+}
