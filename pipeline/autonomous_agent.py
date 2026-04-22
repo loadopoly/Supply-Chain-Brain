@@ -284,6 +284,70 @@ def autonomous_loop():
             except Exception as e:
                 logging.warning(f"Network learner round failed: {e}")
 
+            # Step 3e: Knowledge corpus refresh. Consolidates every signal
+            # produced by Steps 3b/3c/3d (LLM scout, self-train, network
+            # learner) plus the current weight snapshot, NLP part categories,
+            # and OTD ownership into a relational corpus (entities + typed
+            # edges) and an append-only learning log. Then projects the
+            # corpus into the configured graph backend so every page that
+            # speaks get_graph_backend() benefits from a dynamic architecture
+            # the Brain expands as it learns.
+            try:
+                from src.brain.knowledge_corpus import (
+                    refresh_corpus_round, materialize_into_graph,
+                )
+                kc = refresh_corpus_round()
+                if isinstance(kc, dict) and "entities_added" in kc:
+                    mg = materialize_into_graph()
+                    logging.info(
+                        f"Corpus: +{kc.get('entities_added',0)} entities "
+                        f"(touched {kc.get('entities_touched',0)}), "
+                        f"+{kc.get('edges_added',0)} edges "
+                        f"(touched {kc.get('edges_touched',0)}), "
+                        f"+{kc.get('learnings_logged',0)} learnings; "
+                        f"projected {mg.get('nodes_projected',0)} nodes "
+                        f"/ {mg.get('edges_projected',0)} edges into graph"
+                    )
+            except Exception as e:
+                logging.warning(f"Knowledge corpus round failed: {e}")
+
+            # Step 3f: Brain → Body bridge. The User is the Body of the
+            # Brain — every effective signal across self-train, dispatch,
+            # network, and corpus is distilled here into prioritized,
+            # role-targeted Directives. The User's feedback (recorded via
+            # `record_feedback`) loops back through Step 3e on the next
+            # cycle, so the Body's actions become signals the Brain learns
+            # from — closing the cognition↔operation loop.
+            try:
+                from src.brain.brain_body_signals import surface_effective_signals
+                bb = surface_effective_signals()
+                if isinstance(bb, dict) and "directives_emitted" in bb:
+                    logging.info(
+                        f"Brain→Body: emitted={bb.get('directives_emitted',0)} "
+                        f"deduped={bb.get('directives_deduped',0)} "
+                        f"top_priority={bb.get('top_priority',0):.2f}"
+                    )
+            except Exception as e:
+                logging.warning(f"Brain→Body round failed: {e}")
+
+            # Step 3g: Quest-Console mission refresh. Every open Mission is
+            # a contract between the Brain and the Body — its two living
+            # PPTX artifacts (Executive 1-Pager + Implementation Plan) must
+            # stay current as new data arrives. Sequential refresh with
+            # per-mission file-locking (handled inside mission_runner) so
+            # manual "Refresh now" clicks and this scheduled tick can't
+            # collide. Failures on individual missions don't stop the loop.
+            try:
+                from src.brain.mission_runner import refresh_open_missions
+                mr = refresh_open_missions(max_concurrent=1, limit=25)
+                if mr:
+                    ok = sum(1 for r in mr if r.get("ok"))
+                    logging.info(
+                        f"Quest missions: refreshed {ok}/{len(mr)} open"
+                    )
+            except Exception as e:
+                logging.warning(f"Quest mission refresh failed: {e}")
+
                         # Step 4: Self-document the changes
             generate_documentation()
 

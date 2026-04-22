@@ -72,7 +72,7 @@ def strip_pptx_content_to_template(input_bytes, output_path):
 st.markdown("## 📊 Presentation & Report Creator")
 st.markdown("Generate comprehensive cross-dataset presentations, upload slide masters/templates, or let the AI match your specific business question to the right analytical module.")
 
-tab1, tab2, tab3 = st.tabs(["1. Generate Review Deck", "2. Upload Slide Templates", "3. Ask the Data"])
+tab1, tab2, tab3 = st.tabs(["1. Generate Review Deck", "2. Upload Slide Templates", "3. Quest Console"])
 
 with tab1:
     st.subheader("Executive Presentation Builder")
@@ -174,64 +174,138 @@ st.divider()
 
 
 with tab3:
-    st.subheader("Dynamic Report Generator Engine")
-    st.markdown("Describe the supply chain problem you're trying to solve, and the engine will compile an exportable cross-dataset report using the logic of applicable analytical modules.")
+    # ----------------------------------------------------------------------
+    # Brain-driven Quest Console — replaces the legacy "Ask the Data" tab.
+    # The User is the Body of the Brain: type a real-world situation, the
+    # Brain parses → orchestrates → composes → emits two living PPTXs that
+    # auto-refresh as new data shows progress.
+    # ----------------------------------------------------------------------
+    st.subheader("🧠 Brain-Driven Quest Console")
+    st.markdown(
+        "Describe a real-world situation in plain language. The Brain parses your "
+        "intent into a **Mission** under the seed quest *Optimize Supply Chains*, "
+        "runs the relevant analyzers, synthesizes the target-entity schema, and "
+        "writes two living PPTX artifacts that overwrite in place as the data shows progress."
+    )
 
-    user_query = st.text_area("What would you like to measure or analyze?", placeholder="e.g. 'I want to see if our freight spend is too high because of LTL shipments'")
+    try:
+        from src.brain import (
+            mission_runner, mission_store, intent_parser, quests,
+        )
+        _quest_ok = True
+        _quest_err = None
+    except Exception as _qe:
+        _quest_ok = False
+        _quest_err = str(_qe)
+        st.error(f"Quest Console unavailable: {_quest_err}")
 
-    if st.button("Suggest & Generate Report"):
-        if not user_query.strip():
-            st.warning("Please enter a business question above.")
-        else:
-            with st.spinner("Analyzing query and assembling datasets..."):
-                import time
-                time.sleep(1)
-                
-                # Semantic overrides based on AI domain logic
-                q = user_query.lower()
-                if "cycle count" in q:
-                    st.success("Successfully combined metrics!")
-                    st.write("### Utilized Data Components")
-                    st.info("**1. ASTEC Cycle Count Metrics Report** & **2. ADC Classification**\n\nThe engine detected matching domain requirements and joined the Cycle Count metrics with ADC classification tiers automatically.")
-                    import pandas as pd
-                    import io
-                    summary_df = pd.DataFrame({
-                        "Quarter": ["Q1", "Q1", "Q1", "Q2", "Q2", "Q2"],
-                        "Site": ["BURLINGTON"]*6,
-                        "ADC_Class": ["A", "B", "C", "A", "B", "C"],
-                        "Cycle_Count_Completion_Pct": ["98%", "92%", "85%", "99%", "94%", "88%"]
-                    })
-                    
-                    details_df = pd.DataFrame({
-                        "Date": ["2025-01-15", "2025-01-22", "2025-02-10", "2025-03-05"],
-                        "Site": ["BURLINGTON"]*4,
-                        "ADC_Class": ["A", "B", "A", "C"],
-                        "Part_Number": ["PN-101", "PN-102", "PN-103", "PN-104"],
-                        "Counted_Qty": [150, 45, 10, 5],
-                        "System_Qty": [150, 46, 10, 5],
-                        "Accuracy": ["100%", "97.8%", "100%", "100%"]
-                    })
-                    
-                    buffer = io.BytesIO()
-                    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-                        summary_df.to_excel(writer, sheet_name='Summary', index=False)
-                        details_df.to_excel(writer, sheet_name='Details', index=False)
-                        
-                    st.download_button(
-                        label="Download Combined Exportable Report (Excel)",
-                        data=buffer.getvalue(),
-                        file_name="Astec_Cycle_Count_ADC_Combined.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                else:
-                    suggestions = suggest_report(user_query)
+    if _quest_ok:
+        # Sidebar — Open Missions
+        with st.sidebar:
+            st.markdown("### 🎯 Open Missions")
+            try:
+                _open = mission_store.list_open(limit=25)
+            except Exception as _le:
+                _open = []
+                st.caption(f"(missions unavailable: {_le})")
+            if not _open:
+                st.caption("No open missions yet — launch one from Tab 3.")
+            for _m in _open:
+                _label = f"{_m.site} · {_m.target_entity_kind}={_m.target_entity_key}"
+                with st.expander(_label, expanded=False):
+                    st.caption(f"id: `{_m.id}`")
+                    st.caption(f"quest: {_m.quest_id}")
+                    st.caption(f"progress: {float(_m.progress_pct or 0):.0f}%")
+                    st.caption(f"refreshed: {_m.last_refreshed_at or '—'}")
+                    if st.button("🔄 Refresh", key=f"refresh_{_m.id}"):
+                        with st.spinner("Refreshing mission…"):
+                            _r = mission_runner.refresh(_m.id)
+                        st.json(_r)
+                        st.rerun()
 
-                    if not suggestions:
-                        st.info("No highly confident matches found. Try rephrasing your question.")
-                    else:
-                        st.write("### Recommended Modules")
-                        for rank, (report, score) in enumerate(suggestions, 1):
-                            st.info(f"**{rank}. {report['title']}** (Match Score: {score*100:.0f}%)\n\n*Relevant for:* {report['desc']}")
-                        
-                        csv_data = "Date,Metric,Value\n2025-01-01,Extracted Metric,100"
-                        st.download_button(label="Download Generated Report Extracts (CSV)", data=csv_data, file_name="query_results.csv", mime="text/csv")
+        # Main pane — three columns: site picker, query, launch
+        st.markdown("#### Launch a new Mission")
+        _c1, _c2 = st.columns([1, 3])
+        with _c1:
+            _site_opts = _get_sites_for_report()
+            _default_site = st.session_state.get("g_site", "ALL") or "ALL"
+            _idx = _site_opts.index(_default_site) if _default_site in _site_opts else 0
+            quest_site = st.selectbox("Site", options=_site_opts, index=_idx,
+                                      key="quest_site")
+            quest_horizon = st.number_input("Horizon (days)", min_value=14,
+                                            max_value=365, value=90, step=7,
+                                            key="quest_horizon")
+        with _c2:
+            quest_query = st.text_area(
+                "Describe the situation",
+                placeholder=(
+                    "e.g. 'I'm at Jerome and conducting a restructuring of "
+                    "their Warehouse — show me velocity hotspots and the "
+                    "parts I'm overstocking.'"
+                ),
+                height=120, key="quest_query",
+            )
+            _btn_a, _btn_b = st.columns([1, 1])
+            with _btn_a:
+                _preview = st.button("🔍 Preview Parsed Intent",
+                                     use_container_width=True)
+            with _btn_b:
+                _launch = st.button("🚀 Launch Mission",
+                                    use_container_width=True, type="primary")
+
+        if _preview and quest_query.strip():
+            with st.spinner("Parsing intent via LLM ensemble…"):
+                _parsed = intent_parser.parse(quest_query, site_default=quest_site)
+            st.markdown("**Parsed Intent**")
+            st.json(_parsed.as_dict())
+            _qid = next(
+                (quests.SCOPE_TAG_TO_QUEST[t] for t in _parsed.scope_tags
+                 if t in quests.SCOPE_TAG_TO_QUEST),
+                quests.ROOT_QUEST_ID,
+            )
+            _q = quests.get_quest(_qid)
+            if _q:
+                st.caption(f"Will be filed under quest: **{_q.label}** (`{_q.id}`)")
+
+        if _launch:
+            if not quest_query.strip():
+                st.warning("Please describe the situation first.")
+            else:
+                with st.spinner("Brain is parsing, dispatching analyzers, and rendering artifacts…"):
+                    try:
+                        _mission = mission_runner.launch(
+                            user_query=quest_query.strip(),
+                            site=quest_site,
+                            horizon_days=int(quest_horizon),
+                        )
+                    except Exception as _le:
+                        st.exception(_le)
+                        _mission = None
+
+                if _mission is not None:
+                    st.success(f"Mission **{_mission.id}** launched.")
+                    _l, _r = st.columns([1, 1])
+                    with _l:
+                        st.markdown("**Mission**")
+                        st.write({
+                            "id": _mission.id,
+                            "quest": _mission.quest_id,
+                            "site": _mission.site,
+                            "target": f"{_mission.target_entity_kind}={_mission.target_entity_key}",
+                            "scope_tags": _mission.scope_tags,
+                            "progress_pct": _mission.progress_pct,
+                        })
+                    with _r:
+                        st.markdown("**Artifacts**")
+                        for _name, _path in (_mission.artifact_paths or {}).items():
+                            try:
+                                with open(_path, "rb") as _fh:
+                                    st.download_button(
+                                        f"⬇ Download {_name}",
+                                        data=_fh.read(),
+                                        file_name=Path(_path).name,
+                                        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                                        key=f"dl_{_mission.id}_{_name}",
+                                    )
+                            except Exception as _de:
+                                st.caption(f"({_name}: {_de})")

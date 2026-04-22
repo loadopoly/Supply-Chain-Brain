@@ -49,6 +49,41 @@ def _conn() -> sqlite3.Connection:
     """)
     c.execute("CREATE INDEX IF NOT EXISTS ix_decision_target     ON decision_log(target_kind, target_key)")
     c.execute("CREATE INDEX IF NOT EXISTS ix_decision_created_at ON decision_log(created_at DESC)")
+    # Quest engine — Missions are user-initiated instances of a Brain Quest.
+    # mission_events captures status changes, refresh runs, and progress signals
+    # so the deck/one-pager footer can show "refreshed YYYY-MM-DD · progress X%"
+    # without losing history.
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS missions (
+        id                  TEXT PRIMARY KEY,
+        quest_id            TEXT NOT NULL,
+        site                TEXT NOT NULL,
+        user_query          TEXT NOT NULL,
+        parsed_intent_json  TEXT NOT NULL,
+        scope_tags_json     TEXT NOT NULL,
+        target_entity_kind  TEXT NOT NULL,
+        target_entity_key   TEXT NOT NULL,
+        horizon_days        INTEGER NOT NULL DEFAULT 90,
+        status              TEXT NOT NULL DEFAULT 'open',
+        progress_pct        REAL NOT NULL DEFAULT 0.0,
+        artifact_paths_json TEXT NOT NULL DEFAULT '{}',
+        created_at          TEXT NOT NULL,
+        last_refreshed_at   TEXT
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS ix_missions_status ON missions(status)")
+    c.execute("CREATE INDEX IF NOT EXISTS ix_missions_site   ON missions(site)")
+    c.execute("CREATE INDEX IF NOT EXISTS ix_missions_quest  ON missions(quest_id)")
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS mission_events (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        mission_id  TEXT NOT NULL,
+        kind        TEXT NOT NULL,
+        payload_json TEXT,
+        created_at  TEXT NOT NULL
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS ix_mission_events_mid ON mission_events(mission_id)")
     return c
 
 

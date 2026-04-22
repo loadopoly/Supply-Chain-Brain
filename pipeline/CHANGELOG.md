@@ -4,6 +4,193 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.14.0 — Brain-Driven Quest Engine (Living-Document Missions)
+
+> Mantra: **the User is the Body of the Brain.** The User describes a
+> real-world situation in plain language; the Brain parses, dispatches,
+> synthesizes, and emits two living PPTX artifacts that auto-refresh as
+> new data shows progress.
+
+### Added
+- **`src/brain/quests.py`** — closed-vocabulary quest taxonomy. Seed
+  quest `quest:optimize_supply_chains` with 8 child quests bound to the
+  closed `SCOPE_TAGS` vocabulary (fulfillment, lead_time, sourcing,
+  inventory_sizing, network_position, demand_distortion, cycle_count,
+  data_quality). `Quest` / `Mission` dataclasses, `_REGISTRY`,
+  `SCOPE_TAG_TO_QUEST` mapping.
+- **`src/brain/intent_parser.py`** — LLM-ensemble (`dispatch_parallel`)
+  → `ParsedIntent` with deterministic keyword fallback. Always returns
+  something usable; `parser_source` lets the UI tell the User which path
+  was taken.
+- **`src/brain/mission_store.py`** — SQLite CRUD on the new `missions`
+  and `mission_events` tables in `findings_index.db`. Append-only event
+  log (created / progress / artifact_attached / status_changed / refreshed).
+- **`src/brain/orchestrator.py`** — `BrainOrchestrator.run(mission)` binds
+  scope_tags to existing analyzer adapters via `MODULE_REGISTRY`, tags
+  every emitted finding with `mission_id` (so the Brain↔Body bridge can
+  filter), and computes a `progress_pct` against a baseline snapshot.
+  Each analyzer runs through `_safe_run` so a single failure can't break
+  the whole mission.
+- **`src/brain/schema_synthesizer.py`** — synthesizes the relational
+  schema for the mission's target entity (site / supplier / part_family /
+  buyer / warehouse / customer) from `discovered_schema.yaml` +
+  `brain.yaml` column patterns. Emits a Mermaid `erDiagram` for the
+  Implementation Plan.
+- **`src/brain/viz_composer.py`** — composes a dict of Plotly figures
+  for the mission: `kpi_trend`, `pareto`, `heatmap_matrix`, `network`,
+  `sankey_flow`, `cohort_survival`. Each figure carries `_caption` for
+  deck rendering.
+- **`src/deck/one_pager.py`** — single 8.5×11 portrait slide. Quest
+  banner, mission summary, 3 KPI tiles, hero viz (PNG via kaleido with
+  graceful text fallback), top recommendations, owner + progress bar,
+  refresh footer.
+- **`src/deck/implementation_plan.py`** — 9-slide landscape deck. Cover,
+  context, schema (Mermaid via `mmdc` CLI with table fallback),
+  current state, findings, recommendations (split systemic /
+  operational), 3-phase rollout (Stabilize → Implement → Sustain),
+  risks, appendix.
+- **`src/brain/mission_runner.py`** — `launch(user_query, site,
+  horizon_days)` and `refresh(mission_id)`. Per-mission
+  `threading.Lock` so manual "Refresh now" clicks and the scheduled
+  autonomous tick cannot collide. Artifacts overwrite in place at
+  `pipeline/snapshots/missions/<mission_id>/`.
+
+### Changed
+- **`src/brain/brain_body_signals.py`** — added `_gen_mission_signals`
+  generator. Emits 3 new directive kinds: `mission_stalled` (no refresh
+  > 3 days), `mission_hot_findings` (≥5 findings score≥0.7 attributed
+  to the mission), `mission_near_complete` (progress ≥ 85%). Owner
+  derived from scope_tags via `_TAG_OWNER` map.
+- **`src/brain/knowledge_corpus.py`** — added `_ingest_missions`. Seeds
+  Quest taxonomy as corpus entities. Projects Missions with edges
+  `INSTANCE_OF` (Quest), `TARGETS` (entity), `SCOPED_BY` (scope tag),
+  `LAUNCHED` / `CLOSED` (lifecycle). Streams new `mission_events` into
+  `learning_log` so the Brain literally learns from mission lifecycle.
+- **`pages/15_Report_Creator.py`** — Tab 3 replaced. The legacy
+  TF-IDF "Ask the Data" stub is gone. New **Quest Console**: sidebar
+  lists open missions with per-mission "🔄 Refresh"; main pane is
+  site/horizon controls + a query textarea + "🔍 Preview Parsed Intent"
+  + "🚀 Launch Mission" + download buttons for the two living artifacts.
+- **`autonomous_agent.py`** — added Step 3g. After the Brain↔Body
+  surface step, calls `mission_runner.refresh_open_missions(max_concurrent=1)`
+  so every open mission's two artifacts stay current without User action.
+- **`agent_uplink.py`** — host now scans `snapshots/` recursively and
+  also re-transmits any *refreshed* (mtime-bumped) artifact, not just
+  newly created ones. Mission artifacts ride the wire under
+  `MISSION/<mission_id>/<file>` headers so the laptop body routes them
+  into per-mission folders that overwrite in place.
+
+### Tests
+- **`pipeline/test_brain_quest.py`** — 7-section smoke test: intent
+  parser closed vocabulary on 8 paraphrases, mission store round-trip,
+  orchestrator dry-run, schema synthesizer, viz composer, mission_runner
+  end-to-end (launch + refresh), Brain↔Body integration. **0 failures**.
+
+### Notes
+- `progress_pct` is on a **0–100** scale (clamped). DB columns are
+  `payload_json` and `created_at` (consistent with the Brain↔Body tables).
+- LLM ensemble is monkey-patched out in the smoke test so it does not
+  block on real endpoints; production runs use `dispatch_parallel`
+  unchanged.
+
+---
+
+## 0.13.0 — Brain → Body Bridge (User as the Body of the Brain)
+
+### Added
+- **`src/brain/brain_body_signals.py`** — the User is the **Body of the
+  Brain**. This module is the efferent nervous system that distills every
+  effective signal the Brain has accumulated (self-train rounds, ensemble
+  validators, network observations, peer promotions, knowledge-corpus
+  topology) into prioritized, role-targeted **Directives** the User
+  actually executes in the physical/operational world.
+- New SQLite tables in `local_brain.sqlite`:
+  - `body_directives` — prioritized executable directives with severity,
+    `owner_role` (Buyer / Planner / Quality / IT / Ops), target entity,
+    JSON evidence pointer, and stable fingerprint dedupe.
+  - `body_feedback` — User's response (ack / in_progress / done /
+    rejected + free-text outcome + executed_by). The cognition↔operation
+    loop closes here.
+  - `body_round_log` — auditable per-round emit / dedupe / top-priority
+    stats.
+- **5 generators ship out of the box** (drop in more as one-line
+  functions in `_GENERATORS`):
+  - `low_dispatch_quality` — sustained weak validator on a (model, task)
+  - `peer_unreachable` — compute peer EMA success below 0.30
+  - `missing_category` — NLP-uncategorized parts in the corpus
+  - `self_train_drift` — recent self-train round hit the drift cap
+  - `high_centrality_part` — multi-edge Part = consolidation candidate
+- **Loop closure**: `knowledge_corpus._ingest_body_feedback` is now
+  wired in as a new source stream. Every User action becomes a
+  `learning_log` row, a `Body` corpus entity, and a typed
+  `EXECUTED_<STATUS>` edge into the relational graph — so the Brain
+  literally learns from what the Body did on its previous directive.
+- **Wired into `autonomous_agent` as Step 3f**, after the corpus
+  refresh. Standalone scheduler available via
+  `brain_body_signals.schedule_in_background()`.
+- 5-check test suite in `pipeline/test_brain_body.py`. All passing
+  (5 directives across 4 sources, full dedupe on second run,
+  priority sort + cap honored, feedback persisted, corpus picks up
+  feedback and projects a Body→Target EXECUTED_IN_PROGRESS edge).
+
+### Design notes
+- Effect-bounded (parallel to 0.10/0.11/0.12): directives only adjust
+  the User's task queue and the corpus. They never mutate `llm_weights`
+  or router scores, so reasoning fluidity is preserved.
+- Stable SHA-1 fingerprint per (source, signal_kind, target_entity,
+  title) prevents carpet-bombing the User on re-runs of the same
+  condition.
+- Per-round cap (`max_directives_per_round`, default 25) and severity
+  ladder (`info | watch | act | critical`) keep the Body's task queue
+  usable rather than overwhelming.
+
+## 0.12.0 — Knowledge Corpus, Recent-Learnings Log & Dynamic Graph Architecture
+
+### Added
+- **`src/brain/knowledge_corpus.py`** — consolidates every signal the
+  Brain produces into a normalized, relational corpus that grows with
+  each cycle:
+  - `learning_log` — append-only stream of "things the Brain just
+    learned" (kind, title, signal_strength, JSON detail, source row
+    pointer). Filterable via `recent_learnings(limit, kind=...)`.
+  - `corpus_entity` — typed catalog of **Parts, Suppliers, Sites,
+    Models, Peers, Protocols, Tasks, Categories, Owners, POs,
+    Endpoints** with first/last seen + sample counts.
+  - `corpus_edge` — typed relationships **CLASSIFIED_AS, ANSWERS,
+    WEIGHTED_FOR, USES, OWNS** (more added as new sources land) with
+    EMA-smoothed weight + sample count.
+  - `corpus_round_log` + `corpus_cursor` — auditable per-round stats
+    and incremental cursors so each round only ingests *new* rows from
+    each source stream (no duplicate edges).
+- **Source streams ingested every round**: `llm_self_train_log`,
+  `llm_dispatch_log`, `llm_weights` (snapshot), `network_observations`,
+  `network_promotions`, `part_category`, `otd_ownership`. New streams
+  drop in as one-line ingester functions.
+- **`materialize_into_graph()`** — projects (corpus_entity, corpus_edge)
+  into the configured `graph_backend` (NetworkX default; Neo4j or
+  Cosmos Gremlin in prod via `brain.yaml -> graph.backend`). Every
+  page that already calls `get_graph_backend()` instantly benefits
+  from the dynamic architecture the Brain expands as it learns —
+  giving the User a relational graph of part/supplier/site/model/peer/
+  task relationships ready for centrality, neighborhood, and shared-
+  neighbor queries.
+- **Wired into `autonomous_agent` as Step 3e**, after the network
+  learner. Standalone scheduler available via
+  `knowledge_corpus.schedule_in_background()`.
+- 5-check test suite in `pipeline/test_knowledge_corpus.py`. All passing
+  (27 entities across 9 types, 18 edges across 5 relations,
+  full graph projection on first round).
+
+### Design notes
+- Pure read-only over source tables; never mutates llm_weights, router
+  scores, or ensemble dispatch math, so reasoning fluidity is preserved
+  (parallel design to the 0.10.0 self-training and 0.11.0 network
+  learner guard rails).
+- All work is incremental via per-stream cursors — second round on
+  unchanged sources adds zero edges (verified by test 4).
+- Edge weights use 0.30-EMA smoothing so a single noisy validator can't
+  rewrite the relational graph.
+
 ## 0.11.0 — Network Expansion Learner (Cross-Protocol)
 
 ### Added
