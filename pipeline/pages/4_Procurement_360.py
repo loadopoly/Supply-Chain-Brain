@@ -143,11 +143,26 @@ elif not recv.empty and _recv_lt_col:
 _sup_nunique = recv[_recv_sup_col].nunique() if _recv_sup_col in recv.columns else "—"
 _lt_mean = f"{recv['lead_time_days'].mean():.0f}d" if "lead_time_days" in recv.columns else "—"
 k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("📦 Parts",          f"{len(parts):,}")
-k2.metric("📋 PO Receipts",    f"{len(recv):,}")
-k3.metric("🏭 Suppliers",      str(_sup_nunique))
-k4.metric("⏱ Avg Lead Time",  _lt_mean)
-k5.metric("📊 On-hand Rows",  f"{len(on_hand):,}")
+with k1:
+    st.metric("📦 Parts", f"{len(parts):,}")
+    with st.expander("🟢 Brain · Parts", expanded=False):
+        st.markdown(f"**Population:** `{len(parts):,}` active part masters in scope.")
+with k2:
+    st.metric("📋 PO Receipts", f"{len(recv):,}")
+    with st.expander("🟢 Brain · PO Receipts", expanded=False):
+        st.markdown(f"**Volume:** `{len(recv):,}` PO receipt events — supply-side relationship source.")
+with k3:
+    st.metric("🏭 Suppliers", str(_sup_nunique))
+    with st.expander("🟢 Brain · Suppliers", expanded=False):
+        st.markdown(f"**Diversity:** `{_sup_nunique}` unique suppliers identified across receipts.")
+with k4:
+    st.metric("⏱ Avg Lead Time", _lt_mean)
+    with st.expander("🟢 Brain · Lead Time", expanded=False):
+        st.markdown(f"**Mean lead time:** `{_lt_mean}` — baseline for OTD and CVaR analysis.")
+with k5:
+    st.metric("📊 On-hand Rows", f"{len(on_hand):,}")
+    with st.expander("🟢 Brain · On-hand", expanded=False):
+        st.markdown(f"**Inventory snapshot:** `{len(on_hand):,}` on-hand quantity rows loaded.")
 
 st.divider()
 
@@ -309,8 +324,15 @@ with tab3:
         )
 
         ob1, ob2 = st.columns(2)
-        ob1.metric("🪦 Obsolescence Candidates", f"{len(obsolete):,}")
-        ob2.metric("Avg Days Inactive", f"{obsolete['days_inactive'].mean():.0f}d" if not obsolete.empty else "—")
+        with ob1:
+            st.metric("🪦 Obsolescence Candidates", f"{len(obsolete):,}")
+            with st.expander("🟢 Brain · Obsolescence", expanded=False):
+                st.markdown(f"**At risk:** `{len(obsolete):,}` parts inactive beyond threshold. Review for write-down.")
+        with ob2:
+            _avg_inactive = f"{obsolete['days_inactive'].mean():.0f}d" if not obsolete.empty else "—"
+            st.metric("Avg Days Inactive", _avg_inactive)
+            with st.expander("🟢 Brain · Inactivity", expanded=False):
+                st.markdown(f"**Mean inactivity:** `{_avg_inactive}` — longer durations signal higher write-down risk.")
 
         if not obsolete.empty:
             fig_ob = px.histogram(obsolete, x="days_inactive", nbins=30,

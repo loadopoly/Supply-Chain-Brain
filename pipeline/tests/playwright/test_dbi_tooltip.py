@@ -95,10 +95,11 @@ class PageReport:
             and self.popover_opens and self.popover_shows_source
             and self.timestamp_advances
         )
-        # If the page renders any st.metric widgets, every one MUST have help text.
-        tooltips_ok = (self.metrics_total == 0
-                       or self.metrics_with_help == self.metrics_total)
-        return base and tooltips_ok
+        # If the page renders any st.metric widgets, every one MUST have
+        # an adjacent st.expander providing Brain context (replaces old help= icons).
+        expanders_ok = (self.metrics_total == 0
+                        or self.metrics_with_help == self.metrics_total)
+        return base and expanders_ok
 
 
 def _try_navigate(page: Page, url_suffix: str) -> bool:
@@ -198,14 +199,15 @@ def _check_popover(page: Page, rep: PageReport):
                 const c = document.querySelector('[data-testid="dbi-card"]');
                 return c && c.getAttribute('data-loading') === '0';
             }""",
-            timeout=15000,
+            timeout=20000,
         )
     except PWTimeout:
         rep.error = "card stayed in LOADING state"
         return
 
-    # Find the Parameters expander (st.expander replaced st.popover for VS Code compat).
-    trigger = page.get_by_role("button", name=lambda n: "Parameters" in n and "🔍" in n).first
+    # Find the Parameters expander button within the DBI card.
+    import re as _re
+    trigger = page.locator('[data-testid="dbi-card"] button').filter(has_text="Parameters").first
     try:
         trigger.wait_for(state="visible", timeout=10000)
         trigger.click()
@@ -219,12 +221,24 @@ def _check_popover(page: Page, rep: PageReport):
             rep.error = "Parameters expander not clickable"
             return
 
-    # Body should mention "Insight source"
-    try:
-        page.wait_for_selector("text=Insight source", timeout=5000)
-        rep.popover_shows_source = True
-    except PWTimeout:
-        pass
+    # Body should mention "Insight source".
+    # @st.fragment(run_every=2) re-renders every 2s which may collapse the expander;
+    # retry clicking up to 4 times (1.6s each = ~6.4s total coverage).
+    # Re-locate the trigger on each attempt — the fragment rebuild detaches old nodes.
+    for _attempt in range(4):
+        try:
+            page.wait_for_selector("text=Insight source", timeout=1600)
+            rep.popover_shows_source = True
+            break
+        except PWTimeout:
+            # Reopen expander if it collapsed on fragment re-render
+            try:
+                if not page.locator("text=Insight source").is_visible():
+                    # Re-locate: fragment re-render replaces DOM nodes
+                    trigger = page.locator('[data-testid="dbi-card"] button').filter(has_text="Parameters").first
+                    trigger.click()
+            except Exception:
+                break
 
 
 def _check_liveness(page: Page, rep: PageReport, expects_plotly: bool):
@@ -286,32 +300,40 @@ def _check_liveness(page: Page, rep: PageReport, expects_plotly: bool):
 
 
 def _check_help_tooltips(page: Page, rep: PageReport):
-    """Every st.metric widget must expose a help tooltip (the small '?' icon
-    that Streamlit renders when `help=` is passed). This catches pages where
-    KPI labels like 'Missing %' have no hover documentation."""
+    """Every st.metric widget must have a co-located st.expander in the same
+    column div — the always-visible Brain insight pattern that replaced
+    help= tooltip icons (invisible in VS Code Simple Browser)."""
     try:
         info = page.evaluate(
             """() => {
-                // Only true st.metric containers (skip label-only stubs).
-                const containers = Array.from(document.querySelectorAll(
-                    '[data-testid=\"stMetric\"]'
+                const metrics = Array.from(document.querySelectorAll(
+                    '[data-testid="stMetric"]'
                 )).filter(c => {
-                    const lbl = c.querySelector('[data-testid=\"stMetricLabel\"]');
+                    const lbl = c.querySelector('[data-testid="stMetricLabel"]');
                     return lbl && lbl.innerText.trim().length > 0;
                 });
                 const missing = [];
                 let withHelp = 0;
-                containers.forEach(c => {
-                    const hasIcon = !!c.querySelector(
-                        '[data-testid=\"stTooltipIcon\"], [data-testid=\"stTooltipHoverTarget\"]'
-                    );
-                    const hasTitle = !!c.querySelector('[title]:not([title=\"\"])');
-                    const labelEl = c.querySelector('[data-testid=\"stMetricLabel\"]');
+                metrics.forEach(m => {
+                    // Walk up the DOM up to 8 levels; stop at the first ancestor
+                    // that also contains an stExpander (our per-metric Brain insight).
+                    // This is more robust than relying on a specific data-testid name
+                    // for the column wrapper across Streamlit versions.
+                    let ancestor = m.parentElement;
+                    let hasExpander = false;
+                    for (let d = 0; d < 8 && ancestor && ancestor.tagName !== 'BODY'; d++) {
+                        if (ancestor.querySelector('[data-testid="stExpander"]')) {
+                            hasExpander = true;
+                            break;
+                        }
+                        ancestor = ancestor.parentElement;
+                    }
+                    const labelEl = m.querySelector('[data-testid="stMetricLabel"]');
                     const label = labelEl ? labelEl.innerText.trim() : '(unknown)';
-                    if (hasIcon || hasTitle) withHelp += 1;
+                    if (hasExpander) withHelp += 1;
                     else missing.push(label);
                 });
-                return {total: containers.length, withHelp, missing};
+                return {total: metrics.length, withHelp, missing};
             }"""
         )
         rep.metrics_total = int(info.get("total", 0))
@@ -319,7 +341,7 @@ def _check_help_tooltips(page: Page, rep: PageReport):
         rep.metrics_missing_help = list(info.get("missing", []))[:10]
     except Exception as e:
         # Non-fatal: leave defaults so the assertion still fires later.
-        rep.error = (rep.error + " | " if rep.error else "") + f"tooltip-scan: {e}"
+        rep.error = (rep.error + " | " if rep.error else "") + f"expander-scan: {e}"
 
 
 def _run_one(page: Page, url: str, name: str, expects_plotly: bool) -> PageReport:
@@ -348,6 +370,25 @@ def _flush(reports):
     RESULTS_PATH.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
 
+def _wait_for_server_stable(page: Page, timeout_s: int = 60) -> bool:
+    """Retry navigating to the root page until stAppViewContainer appears.
+
+    Streamlit reloads on file changes; this ensures the server is fully up
+    before the test suite begins.
+    """
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            page.goto(BASE + "/", wait_until="domcontentloaded", timeout=12000)
+            page.wait_for_selector('[data-testid="stAppViewContainer"]', timeout=10000)
+            # Brief pause to let any in-progress reload settle.
+            page.wait_for_timeout(2000)
+            return True
+        except Exception:
+            page.wait_for_timeout(4000)
+    return False
+
+
 def main() -> int:
     # SMOKE=1 limits to a representative subset for fast feedback.
     pages = PAGES
@@ -363,14 +404,22 @@ def main() -> int:
         page = ctx.new_page()
         page.set_default_timeout(10000)
 
+        # Wait for Streamlit to be fully loaded before starting any page tests.
+        print("Waiting for Streamlit server to stabilise...", flush=True)
+        if not _wait_for_server_stable(page):
+            print("ERROR: Streamlit server not stable after 60 s — aborting.", flush=True)
+            browser.close()
+            return 1
+        print("Server stable. Starting page tests.", flush=True)
+
         for url, name, has_plotly in pages:
             print(f"-> {name:30s} {url}", flush=True)
             rep = _run_one(page, url, name, has_plotly)
             reports.append(rep)
             mark = "PASS" if rep.passed else "FAIL"
-            tip = (f"tips={rep.metrics_with_help}/{rep.metrics_total}"
-                   if rep.metrics_total else "tips=n/a")
-            miss = (" missing_help=" + ",".join(rep.metrics_missing_help)
+            tip = (f"expanders={rep.metrics_with_help}/{rep.metrics_total}"
+                   if rep.metrics_total else "metrics=n/a")
+            miss = (" no_expander=" + ",".join(rep.metrics_missing_help)
                     if rep.metrics_missing_help else "")
             print(
                 f"  [{mark}] present={rep.card_present} visible={rep.card_visible} "

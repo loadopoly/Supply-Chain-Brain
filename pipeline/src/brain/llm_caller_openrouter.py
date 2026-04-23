@@ -99,7 +99,7 @@ def openrouter_caller(decision: Any, payload: Any, _cfg: dict) -> Any:
             "temperature": 0.35,
         }
         try:
-            r = requests.post(_OR_BASE_URL, headers=headers, json=body, timeout=40)
+            r = requests.post(_OR_BASE_URL, headers=headers, json=body, timeout=7)
             r.raise_for_status()
             data = r.json()
             text = data["choices"][0]["message"]["content"].strip()

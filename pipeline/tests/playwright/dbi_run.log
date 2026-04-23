@@ -1,13 +1,43 @@
+Waiting for Streamlit server to stabilise...
+Server stable. Starting page tests.
 -> Query Console                  /
-  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False metrics=n/a
+-> Schema Discovery               /Schema_Discovery
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False metrics=n/a
 -> Supply Chain Brain             /Supply_Chain_Brain
-  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=5/5
+-> Supply Chain Pipeline          /b_Supply_Chain_Pipeline
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=2/2
 -> EOQ Deviation                  /EOQ_Deviation
-  [FAIL] present=False visible=False unclipped=False z_above=True popover=False src=False ts_tick=False digest_chg=False err=dbi-card never appeared
+  [FAIL] present=False visible=False unclipped=False z_above=True popover=False src=False ts_tick=False digest_chg=False metrics=n/a err=dbi-card never appeared
+-> OTD Recursive                  /OTD_Recursive
+  [FAIL] present=False visible=False unclipped=False z_above=True popover=False src=False ts_tick=False digest_chg=False metrics=n/a err=dbi-card never appeared
+-> Procurement 360                /Procurement_360
+  [FAIL] present=True visible=True unclipped=True z_above=True popover=True src=False ts_tick=True digest_chg=False expanders=7/7
+-> Data Quality                   /Data_Quality
+  [FAIL] present=True visible=True unclipped=True z_above=True popover=False src=False ts_tick=True digest_chg=False expanders=4/4 err=card stayed in LOADING state
 -> Connectors                     /Connectors
-  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False metrics=n/a
+-> Lead-Time Survival             /Lead_Time_Survival
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=4/4
+-> Bullwhip Effect                /Bullwhip
+  [FAIL] present=False visible=False unclipped=False z_above=True popover=False src=False ts_tick=False digest_chg=False metrics=n/a err=dbi-card never appeared
+-> Multi-Echelon                  /Multi_Echelon
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=4/4
 -> Sustainability                 /Sustainability
-  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=4/4
+-> Freight Portfolio              /Freight_Portfolio
+  [FAIL] present=True visible=True unclipped=True z_above=True popover=False src=False ts_tick=True digest_chg=False expanders=3/3 err=card stayed in LOADING state
+-> What-If Sandbox                /What_If
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False metrics=n/a
+-> Decision Log                   /Decision_Log
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=4/4
+-> Benchmarks                     /Benchmarks
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False expanders=5/5
+-> Report Creator                 /Report_Creator
+  [FAIL] present=True visible=True unclipped=True z_above=True popover=True src=False ts_tick=True digest_chg=False metrics=n/a
+-> Cycle Count Accuracy           /Cycle_Count_Accuracy
+  [FAIL] present=True visible=True unclipped=True z_above=True popover=False src=False ts_tick=True digest_chg=False metrics=n/a err=card stayed in LOADING state
 
-=== DBI tooltip suite: 4/5 pages passed ===
+=== DBI tooltip suite: 11/19 pages passed ===
 Detailed results → C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\tests\playwright\dbi_tooltip_results.json
