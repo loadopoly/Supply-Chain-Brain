@@ -1,14 +1,15 @@
 """ml_research.py — Brain-native ML research module.
 
-Brings the value of the HuggingFace ``ml-intern`` project
-(https://github.com/huggingface/ml-intern) directly into the Brain's knowledge
-acquisition pipeline.  Rather than spawning the full ml-intern agent (which
-requires ANTHROPIC_API_KEY and heavy LLM calls), this module makes the same
-lightweight HTTP calls that ml-intern's ``papers_tool.py`` uses under the hood:
+Fetches academic papers and datasets from multiple free, open APIs that work
+through corporate SSL inspection (truststore-wired throughout):
 
-* **HuggingFace Papers API** — trending daily papers and keyword search
-* **Semantic Scholar API** — citation-count-ranked search across 200M+ papers
-* **HuggingFace Datasets API** — discover datasets tagged for a topic
+* **arXiv API**   — CS/ML/math preprint server; authoritative ML paper source
+* **OpenAlex**    — open bibliographic database, 200 M+ scholarly works
+* **CrossRef**    — DOI-indexed published paper metadata (900 K+ SC results)
+* **CORE**        — aggregator of 300 M+ open-access papers with full-text links
+* **NASA NTRS**   — technical reports for systems engineering / ops research
+* **Zenodo**      — open research data repository (5 K+ supply-chain datasets)
+* **MIT OCW**     — 2 500+ free courses scored by keyword overlap via sitemap
 
 Every discovered paper / dataset is persisted as a ``kind="ml_research"`` entry
 in ``learning_log`` so it becomes a first-class signal in the Brain's corpus
@@ -99,18 +100,26 @@ _OCW_TOPICS: list[str] = [
 _OCW_TOPICS_PER_CYCLE = 4   # OCW is slow-changing; 4 topics/cycle is plenty
 _OCW_COURSES_PER_QUERY = 8
 
-# External API endpoints (same as ml-intern/papers_tool.py)
-_HF_API = "https://huggingface.co/api"
-_S2_API = "https://api.semanticscholar.org"
-_S2_TIMEOUT = 8
-_HF_TIMEOUT = 8
-_OCW_TIMEOUT = 25
+# External API endpoints — all verified accessible through corporate SSL inspection
+_ARXIV_API    = "https://export.arxiv.org/api/query"    # Atom XML, no auth
+_OPENALEX_API = "https://api.openalex.org"              # JSON, 200 M+ works
+_CROSSREF_API = "https://api.crossref.org"              # JSON, DOI metadata
+_CORE_API     = "https://api.core.ac.uk/v3"             # JSON, open-access
+_NTRS_API     = "https://ntrs.nasa.gov/api"             # JSON, systems-eng reports
+_ZENODO_API   = "https://zenodo.org/api"                # JSON, research datasets
+_ARXIV_TIMEOUT    = 15
+_OPENALEX_TIMEOUT = 10
+_CROSSREF_TIMEOUT = 10
+_CORE_TIMEOUT     = 10
+_NTRS_TIMEOUT     = 10
+_ZENODO_TIMEOUT   = 10
+_OCW_TIMEOUT      = 25
 
 # ---------------------------------------------------------------------------
 # HTTP helpers
 # ---------------------------------------------------------------------------
 
-def _get_json(url: str, params: dict | None = None, timeout: int = _HF_TIMEOUT) -> Any:
+def _get_json(url: str, params: dict | None = None, timeout: int = 10) -> Any:
     """Synchronous HTTP GET → parsed JSON.  Returns None on any failure."""
     try:
         import ssl
@@ -137,133 +146,348 @@ def _get_json(url: str, params: dict | None = None, timeout: int = _HF_TIMEOUT) 
         return None
 
 
+def _get_text(url: str, params: dict | None = None, timeout: int = 15) -> str | None:
+    """Synchronous HTTP GET → decoded text body (for XML and plain-text APIs)."""
+    try:
+        import ssl
+        import urllib.request
+        import urllib.parse
+        try:
+            import truststore
+            _ssl_ctx = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        except ImportError:
+            try:
+                import certifi
+                _ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+            except ImportError:
+                _ssl_ctx = ssl.create_default_context()
+        full_url = url
+        if params:
+            full_url = url + "?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(full_url, headers={"User-Agent": "SupplyChainBrain/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout, context=_ssl_ctx) as resp:
+            return resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        log.debug(f"ml_research._get_text({url}): {exc}")
+        return None
+
+
 # ---------------------------------------------------------------------------
 # Paper discovery helpers
 # ---------------------------------------------------------------------------
 
-def search_papers_hf(query: str, limit: int = _PAPERS_PER_TOPIC) -> list[dict]:
-    """Search HuggingFace Papers API for ``query``.
+def search_papers_arxiv(query: str, limit: int = _PAPERS_PER_TOPIC) -> list[dict]:
+    """Search arXiv for papers matching ``query`` (Atom XML feed).
 
-    Returns a list of paper dicts with keys:
-    ``arxiv_id``, ``title``, ``summary``, ``upvotes``, ``url``.
+    Uses ``https://export.arxiv.org/api/query`` — free, no auth, never blocked.
+    Returns paper dicts: ``arxiv_id``, ``title``, ``summary``, ``year``,
+    ``authors``, ``url``, ``source="arxiv"``, ``query``.
     """
-    data = _get_json(f"{_HF_API}/papers/search", params={"q": query, "limit": limit})
-    if not isinstance(data, list):
+    import xml.etree.ElementTree as ET
+    text = _get_text(
+        _ARXIV_API,
+        params={"search_query": f"all:{query}", "max_results": limit, "sortBy": "relevance"},
+        timeout=_ARXIV_TIMEOUT,
+    )
+    if not text:
         return []
-
     results: list[dict] = []
-    for p in data[:limit]:
-        arxiv_id = p.get("id", "")
-        results.append({
-            "arxiv_id": arxiv_id,
-            "title": p.get("title", ""),
-            "summary": (p.get("ai_summary") or p.get("summary") or "")[:400],
-            "upvotes": p.get("upvotes", 0),
-            "keywords": p.get("ai_keywords") or [],
-            "url": f"https://huggingface.co/papers/{arxiv_id}" if arxiv_id else "",
-            "source": "hf_papers",
-            "query": query,
-        })
+    try:
+        root = ET.fromstring(text)
+        ns = {
+            "atom": "http://www.w3.org/2005/Atom",
+            "arxiv": "http://arxiv.org/schemas/atom",
+        }
+        for entry in root.findall("atom:entry", ns):
+            raw_id = (entry.findtext("atom:id", "", ns) or "").strip()
+            arxiv_id = raw_id.split("/abs/")[-1].split("v")[0] if "/abs/" in raw_id else ""
+            title = (entry.findtext("atom:title", "", ns) or "").strip().replace("\n", " ")
+            summary = (entry.findtext("atom:summary", "", ns) or "").strip().replace("\n", " ")[:400]
+            published = (entry.findtext("atom:published", "", ns) or "")[:4]
+            year = int(published) if published.isdigit() else None
+            authors = [
+                (a.findtext("atom:name", "", ns) or "")
+                for a in entry.findall("atom:author", ns)
+            ][:4]
+            results.append({
+                "arxiv_id": arxiv_id,
+                "title": title,
+                "summary": summary,
+                "year": year,
+                "authors": authors,
+                "upvotes": 0,
+                "citations": 0,
+                "keywords": [],
+                "url": f"https://arxiv.org/abs/{arxiv_id}" if arxiv_id else raw_id,
+                "source": "arxiv",
+                "query": query,
+            })
+    except Exception as exc:
+        log.debug(f"search_papers_arxiv: XML parse error: {exc}")
     return results
 
 
-def search_papers_semantic_scholar(
-    query: str,
-    limit: int = _PAPERS_PER_TOPIC,
-    min_citations: int = 5,
-) -> list[dict]:
-    """Search Semantic Scholar for ``query``, ranked by citation count.
+def search_papers_openalex(query: str, limit: int = _PAPERS_PER_TOPIC) -> list[dict]:
+    """Search OpenAlex for papers — 200 M+ scholarly works, free, no auth.
 
-    Returns a list of paper dicts with keys:
-    ``arxiv_id``, ``title``, ``summary``, ``citations``, ``year``, ``url``.
+    Replaces the Semantic Scholar API (blocked/rate-limited on corporate networks).
+    Returns paper dicts: ``arxiv_id``, ``title``, ``summary``, ``citations``,
+    ``year``, ``doi``, ``url``, ``source="openalex"``, ``query``.
     """
-    params: dict[str, Any] = {
-        "query": query,
-        "limit": limit,
-        "fields": "title,externalIds,year,citationCount,tldr",
-        "sort": "citationCount:desc",
-    }
-    if min_citations:
-        params["minCitationCount"] = str(min_citations)
-
     data = _get_json(
-        f"{_S2_API}/graph/v1/paper/search/bulk",
-        params=params,
-        timeout=_S2_TIMEOUT,
+        f"{_OPENALEX_API}/works",
+        params={
+            "search": query,
+            "per-page": limit,
+            "select": "id,title,doi,publication_year,cited_by_count,concepts,primary_location",
+            "mailto": "brain@supplychainbrain.local",  # polite-pool header
+        },
+        timeout=_OPENALEX_TIMEOUT,
     )
     if not isinstance(data, dict):
         return []
-
     results: list[dict] = []
-    for p in (data.get("data") or [])[:limit]:
-        arxiv_id = (p.get("externalIds") or {}).get("ArXiv", "")
-        tldr = (p.get("tldr") or {}).get("text", "")
+    for w in (data.get("results") or [])[:limit]:
+        doi = (w.get("doi") or "").replace("https://doi.org/", "").strip()
+        openalex_id = (w.get("id") or "").replace("https://openalex.org/", "")
+        # Concept labels serve as a summary proxy (abstract not returned by default)
+        concepts = [
+            c.get("display_name", "")
+            for c in (w.get("concepts") or [])
+            if c.get("score", 0) > 0.3
+        ]
+        summary = "; ".join(concepts[:6]) if concepts else ""
+        loc = w.get("primary_location") or {}
+        url = loc.get("landing_page_url", "") or (f"https://doi.org/{doi}" if doi else "")
+        # Extract arXiv ID from URL if available
+        arxiv_id = openalex_id
+        if url and "arxiv.org/abs/" in url:
+            arxiv_id = url.split("/abs/")[-1].split("v")[0]
+        elif doi and "arxiv" in doi.lower():
+            arxiv_id = doi.split("/")[-1]
         results.append({
             "arxiv_id": arxiv_id,
-            "title": p.get("title", ""),
-            "summary": tldr[:400] if tldr else "",
-            "citations": p.get("citationCount", 0),
-            "year": p.get("year"),
-            "url": f"https://arxiv.org/abs/{arxiv_id}" if arxiv_id else "",
-            "source": "semantic_scholar",
+            "title": (w.get("title") or "").strip(),
+            "summary": summary[:400],
+            "citations": w.get("cited_by_count", 0),
+            "year": w.get("publication_year"),
+            "doi": doi,
+            "upvotes": 0,
+            "keywords": concepts[:5],
+            "url": url,
+            "source": "openalex",
             "query": query,
         })
     return results
 
 
-def fetch_trending_papers(limit: int = 10) -> list[dict]:
-    """Fetch today's trending HuggingFace papers.
+def search_papers_crossref(query: str, limit: int = 5) -> list[dict]:
+    """Search CrossRef for published, peer-reviewed papers with DOIs.
 
-    Returns up to ``limit`` paper dicts.
+    ``https://api.crossref.org/works`` \u2014 free, no auth, 130 M+ records.
+    Returns paper dicts with ``source="crossref"``.
     """
-    data = _get_json(f"{_HF_API}/daily_papers", params={"limit": limit})
-    if not isinstance(data, list):
+    data = _get_json(
+        f"{_CROSSREF_API}/works",
+        params={"query": query, "rows": limit, "select": "title,DOI,published,author,subject"},
+        timeout=_CROSSREF_TIMEOUT,
+    )
+    if not isinstance(data, dict):
         return []
-
     results: list[dict] = []
-    for item in data[:limit]:
-        paper = item.get("paper", item)
-        arxiv_id = paper.get("id", "")
+    for item in (data.get("message", {}).get("items") or [])[:limit]:
+        titles = item.get("title") or [""]
+        title = titles[0].strip() if titles else ""
+        doi = (item.get("DOI") or "").strip()
+        pub = item.get("published") or {}
+        date_parts = (pub.get("date-parts") or [[None]])[0]
+        year = date_parts[0] if date_parts else None
+        authors_raw = item.get("author") or []
+        authors = [
+            f"{a.get('given', '')} {a.get('family', '')}".strip()
+            for a in authors_raw[:3]
+        ]
+        subjects = item.get("subject") or []
         results.append({
-            "arxiv_id": arxiv_id,
-            "title": paper.get("title", ""),
-            "summary": (paper.get("ai_summary") or paper.get("summary") or "")[:400],
-            "upvotes": paper.get("upvotes", 0),
-            "keywords": paper.get("ai_keywords") or [],
-            "url": f"https://huggingface.co/papers/{arxiv_id}" if arxiv_id else "",
-            "source": "hf_trending",
-            "query": "trending",
+            "arxiv_id": doi.replace("/", "_") if doi else title[:40],
+            "title": title,
+            "summary": "; ".join(subjects[:5]) if subjects else "",
+            "year": year,
+            "authors": authors,
+            "doi": doi,
+            "upvotes": 0,
+            "citations": 0,
+            "keywords": subjects[:5],
+            "url": f"https://doi.org/{doi}" if doi else "",
+            "source": "crossref",
+            "query": query,
         })
     return results
 
 
-def discover_hf_datasets(query: str, limit: int = _DATASETS_PER_TOPIC) -> list[dict]:
-    """Discover HuggingFace datasets relevant to ``query``.
+def search_papers_core(query: str, limit: int = 5) -> list[dict]:
+    """Search CORE open-access repository (300 M+ papers, free, no auth).
 
-    Returns a list of dataset dicts with keys:
-    ``dataset_id``, ``title``, ``downloads``, ``likes``, ``tags``, ``url``.
+    ``https://api.core.ac.uk/v3/search/works`` \u2014 returns full-text links.
+    Returns paper dicts with ``source="core"``.
     """
     data = _get_json(
-        f"{_HF_API}/datasets",
-        params={"search": query, "limit": limit, "sort": "downloads", "direction": -1},
+        f"{_CORE_API}/search/works",
+        params={"q": query, "limit": limit},
+        timeout=_CORE_TIMEOUT,
     )
-    if not isinstance(data, list):
+    if not isinstance(data, dict):
         return []
-
     results: list[dict] = []
-    for ds in data[:limit]:
-        ds_id = ds.get("id", "")
-        tags = ds.get("tags") or []
-        interesting_tags = [t for t in tags if not t.startswith(("arxiv:", "region:"))][:5]
+    for r in (data.get("results") or [])[:limit]:
+        arxiv_id = (r.get("arxivId") or "").strip()
+        core_id = str(r.get("id") or "")
+        outputs = r.get("outputs") or []
+        url = outputs[0] if outputs else ""
+        if arxiv_id:
+            url = f"https://arxiv.org/abs/{arxiv_id}"
+        abstract = (r.get("abstract") or "")[:400]
+        authors = [(a.get("name") or "") for a in (r.get("authors") or [])[:3]]
         results.append({
-            "dataset_id": ds_id,
-            "title": ds_id,
-            "description": (ds.get("description") or "")[:300],
-            "downloads": ds.get("downloads", 0),
-            "likes": ds.get("likes", 0),
-            "tags": interesting_tags,
-            "url": f"https://huggingface.co/datasets/{ds_id}" if ds_id else "",
-            "source": "hf_datasets",
+            "arxiv_id": arxiv_id or f"core:{core_id}",
+            "title": (r.get("title") or "").strip(),
+            "summary": abstract,
+            "citations": r.get("citationCount", 0),
+            "year": None,
+            "authors": authors,
+            "upvotes": 0,
+            "keywords": [],
+            "url": url,
+            "source": "core",
+            "query": query,
+        })
+    return results
+
+
+def search_ntrs(query: str, limit: int = 5) -> list[dict]:
+    """Search NASA Technical Reports Server for systems-engineering papers.
+
+    Best for systems engineering / operations research / manufacturing topics.
+    ``https://ntrs.nasa.gov/api/citations/search`` \u2014 free, 100 K+ reports.
+    Returns paper dicts with ``source="ntrs"``.
+    """
+    data = _get_json(
+        f"{_NTRS_API}/citations/search",
+        params={"q": query, "rows": limit},
+        timeout=_NTRS_TIMEOUT,
+    )
+    if not isinstance(data, dict):
+        return []
+    results: list[dict] = []
+    for r in (data.get("results") or [])[:limit]:
+        ntrs_id = str(r.get("id") or "")
+        abstract = (r.get("abstract") or "")[:400]
+        authors = [(a.get("name") or "") for a in (r.get("authors") or [])[:3]]
+        created = (r.get("created") or "")[:4]
+        year = int(created) if created.isdigit() else None
+        results.append({
+            "arxiv_id": f"ntrs:{ntrs_id}",
+            "title": (r.get("title") or "").strip(),
+            "summary": abstract,
+            "citations": 0,
+            "year": year,
+            "authors": authors,
+            "upvotes": 0,
+            "keywords": [],
+            "url": f"https://ntrs.nasa.gov/citations/{ntrs_id}" if ntrs_id else "",
+            "source": "ntrs",
+            "query": query,
+        })
+    return results
+
+
+def fetch_arxiv_recent(limit: int = 10) -> list[dict]:
+    """Fetch recent arXiv papers in CS/ML/math/economics categories.
+
+    Covers cs.LG (machine learning), cs.AI, math.OC (optimization & control),
+    and econ.GN \u2014 all directly relevant to supply chain intelligence.
+
+    Replaces the blocked HuggingFace daily papers feed.
+    Returns paper dicts with ``source="arxiv_recent"``.
+    """
+    import xml.etree.ElementTree as ET
+    cat_query = "cat:cs.LG OR cat:cs.AI OR cat:math.OC OR cat:econ.GN"
+    text = _get_text(
+        _ARXIV_API,
+        params={
+            "search_query": cat_query,
+            "max_results": limit,
+            "sortBy": "submittedDate",
+            "sortOrder": "descending",
+        },
+        timeout=_ARXIV_TIMEOUT,
+    )
+    if not text:
+        return []
+    results: list[dict] = []
+    try:
+        root = ET.fromstring(text)
+        ns = {
+            "atom": "http://www.w3.org/2005/Atom",
+            "arxiv": "http://arxiv.org/schemas/atom",
+        }
+        for entry in root.findall("atom:entry", ns):
+            raw_id = (entry.findtext("atom:id", "", ns) or "").strip()
+            arxiv_id = raw_id.split("/abs/")[-1].split("v")[0] if "/abs/" in raw_id else ""
+            title = (entry.findtext("atom:title", "", ns) or "").strip().replace("\n", " ")
+            summary = (entry.findtext("atom:summary", "", ns) or "").strip().replace("\n", " ")[:400]
+            published = (entry.findtext("atom:published", "", ns) or "")[:4]
+            year = int(published) if published.isdigit() else None
+            results.append({
+                "arxiv_id": arxiv_id,
+                "title": title,
+                "summary": summary,
+                "year": year,
+                "upvotes": 0,
+                "citations": 0,
+                "keywords": [],
+                "url": f"https://arxiv.org/abs/{arxiv_id}" if arxiv_id else raw_id,
+                "source": "arxiv_recent",
+                "query": "recent",
+            })
+    except Exception as exc:
+        log.debug(f"fetch_arxiv_recent: parse error: {exc}")
+    return results
+
+
+def discover_zenodo_datasets(query: str, limit: int = _DATASETS_PER_TOPIC) -> list[dict]:
+    """Search Zenodo for research datasets relevant to ``query``.
+
+    ``https://zenodo.org/api/records`` \u2014 5 000+ supply-chain datasets, free, no auth.
+    Replaces the blocked HuggingFace Datasets API.
+    Returns dataset dicts: ``dataset_id``, ``title``, ``description``,
+    ``tags``, ``url``, ``source="zenodo"``, ``query``.
+    """
+    data = _get_json(
+        f"{_ZENODO_API}/records",
+        params={"q": query, "type": "dataset", "size": limit},
+        timeout=_ZENODO_TIMEOUT,
+    )
+    if not isinstance(data, dict):
+        return []
+    results: list[dict] = []
+    for hit in (data.get("hits", {}).get("hits") or [])[:limit]:
+        meta = hit.get("metadata") or {}
+        links = hit.get("links") or {}
+        record_id = str(hit.get("id", ""))
+        title = (meta.get("title") or "").strip()
+        description = (meta.get("description") or "")[:300]
+        keywords = meta.get("keywords") or []
+        url = links.get("html", f"https://zenodo.org/record/{record_id}")
+        results.append({
+            "dataset_id": f"zenodo:{record_id}",
+            "title": title,
+            "description": description,
+            "downloads": 0,
+            "likes": 0,
+            "tags": keywords[:5],
+            "url": url,
+            "source": "zenodo",
             "query": query,
         })
     return results
@@ -444,6 +668,343 @@ def persist_ocw_courses(courses: list[dict], topic: str) -> int:
     except Exception as exc:
         log.warning(f"ml_research.persist_ocw_courses: {exc}")
     return written
+
+
+# ---------------------------------------------------------------------------
+# OCW deep-fetch — expansive knowledge acquisition from a course page
+# ---------------------------------------------------------------------------
+#
+# Each MIT OCW course page is a portal:  it carries instructors, lecture
+# topics, syllabus, readings, lab notebooks, and dozens of hyperlinks that
+# reach out to other courses, external papers, GitHub repos, and university
+# sites.  ``fetch_ocw_course_detail`` follows those threads so the corpus
+# absorbs the *whole* lattice of knowledge each course unlocks — not just
+# the slug.
+# ---------------------------------------------------------------------------
+
+_OCW_DETAIL_TIMEOUT = 20
+
+
+def _ocw_ssl_context():
+    """Build an SSL context that survives corporate inspection (truststore→certifi→default)."""
+    import ssl
+    try:
+        import truststore
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except ImportError:
+        try:
+            import certifi
+            return ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            return ssl.create_default_context()
+
+
+def fetch_ocw_course_detail(slug: str) -> dict:
+    """Fetch the OCW course page for ``slug`` and harvest every link it surfaces.
+
+    Returns a dict::
+
+        {
+            "course_id":       "<slug>",
+            "url":             "https://ocw.mit.edu/courses/<slug>/",
+            "description":     "<first meaningful paragraph or meta description>",
+            "instructors":     ["Prof. ...", ...],
+            "topics":          ["...", ...],         # course-page topic tags
+            "level":           "Undergraduate" | "Graduate" | "",
+            "resources":       [{"label","url","kind"} ...],   # /resources/, /pages/, etc.
+            "related_courses": [{"slug","url"} ...],          # other ocw courses
+            "external_links":  [{"label","url","domain"} ...],# off-site references
+        }
+
+    All HTTP failures soft-skip (return ``{}``).  Stdlib only (no BS4).
+    """
+    import re
+    import urllib.parse
+    import urllib.request
+    from html.parser import HTMLParser
+
+    if not slug:
+        return {}
+
+    course_url = f"{_OCW_COURSE_BASE}/courses/{slug}/"
+    try:
+        req = urllib.request.Request(
+            course_url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; SupplyChainBrain/1.0)"},
+        )
+        with urllib.request.urlopen(req, timeout=_OCW_DETAIL_TIMEOUT,
+                                     context=_ocw_ssl_context()) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except Exception as exc:
+        log.debug(f"fetch_ocw_course_detail({slug}): {exc}")
+        return {}
+
+    # --- Lightweight HTML parser: collect <a> hrefs + meta + text fragments ---
+    class _OCWHarvester(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.links: list[tuple[str, str]] = []   # (href, link_text)
+            self.metas: dict[str, str] = {}
+            self._cur_href: str | None = None
+            self._cur_text: list[str] = []
+            self._in_title = False
+            self.title_text = ""
+            self._capture_text = False
+
+        def handle_starttag(self, tag, attrs):
+            attrs_d = dict(attrs)
+            if tag == "a" and attrs_d.get("href"):
+                self._cur_href = attrs_d["href"]
+                self._cur_text = []
+                self._capture_text = True
+            elif tag == "meta":
+                name = attrs_d.get("name") or attrs_d.get("property") or ""
+                content = attrs_d.get("content") or ""
+                if name and content:
+                    self.metas[name.lower()] = content
+            elif tag == "title":
+                self._in_title = True
+
+        def handle_endtag(self, tag):
+            if tag == "a" and self._cur_href is not None:
+                text = " ".join(self._cur_text).strip()
+                self.links.append((self._cur_href, text))
+                self._cur_href = None
+                self._cur_text = []
+                self._capture_text = False
+            elif tag == "title":
+                self._in_title = False
+
+        def handle_data(self, data):
+            if self._in_title:
+                self.title_text += data
+            if self._capture_text:
+                self._cur_text.append(data)
+
+    parser = _OCWHarvester()
+    try:
+        parser.feed(html)
+    except Exception as exc:
+        log.debug(f"fetch_ocw_course_detail({slug}): parse error: {exc}")
+
+    metas = parser.metas
+    description = (
+        metas.get("description")
+        or metas.get("og:description")
+        or metas.get("twitter:description")
+        or ""
+    ).strip()[:600]
+
+    # --- Instructors: pull from JSON-LD or meta or page heuristics ---
+    instructors: list[str] = []
+    # JSON-LD often carries instructor info
+    for m in re.finditer(
+        r'"(?:instructor|author)"\s*:\s*(?:\{[^{}]*?"name"\s*:\s*"([^"]{2,80})"'
+        r'|\[[^\]]*?"name"\s*:\s*"([^"]{2,80})")',
+        html,
+    ):
+        name = (m.group(1) or m.group(2) or "").strip()
+        if name and name not in instructors:
+            instructors.append(name)
+    # Fallback: link text under /search/?q=&l=Lecturer or /search/?q=&i=
+    for href, text in parser.links:
+        if "/search/" in href and ("instructor" in href.lower() or "&i=" in href):
+            t = text.strip()
+            if t and len(t) < 80 and t not in instructors:
+                instructors.append(t)
+
+    # --- Topics: OCW exposes /search/?t=<topic> filter links ---
+    topics: list[str] = []
+    for href, text in parser.links:
+        if "/search/" in href and ("&t=" in href or "?t=" in href):
+            t = (text or "").strip()
+            if t and len(t) < 60 and t not in topics:
+                topics.append(t)
+    # Also harvest from JSON-LD "about" / "keywords"
+    kw_match = re.search(r'"keywords"\s*:\s*"([^"]{1,400})"', html)
+    if kw_match:
+        for kw in re.split(r"[,;]", kw_match.group(1)):
+            kw = kw.strip()
+            if kw and kw not in topics:
+                topics.append(kw)
+
+    # --- Level (Undergraduate / Graduate) — surfaces in JSON-LD or meta ---
+    level = ""
+    for pat in (r'"educationalLevel"\s*:\s*"([^"]+)"',
+                r"course[_\- ]level[\"']?\s*[:=]\s*[\"']([^\"']+)"):
+        m = re.search(pat, html, re.I)
+        if m:
+            level = m.group(1).strip()
+            break
+
+    # --- Categorise hyperlinks ---
+    resources: list[dict] = []
+    related_courses: list[dict] = []
+    external_links: list[dict] = []
+    seen: set[str] = set()
+
+    for href, text in parser.links:
+        href = (href or "").strip()
+        if not href or href.startswith("#") or href.startswith("mailto:"):
+            continue
+        absolute = urllib.parse.urljoin(course_url, href)
+        if absolute in seen:
+            continue
+        seen.add(absolute)
+        text = (text or "").strip()
+
+        parsed = urllib.parse.urlparse(absolute)
+        host = parsed.netloc.lower()
+        path = parsed.path.lower()
+
+        # Skip nav junk
+        if path in ("", "/") or path.endswith(("/login", "/donate", "/about")):
+            continue
+        # OCW global nav links
+        if host == "ocw.mit.edu" and not path.startswith("/courses/") and "/search" not in path:
+            continue
+
+        if host == "ocw.mit.edu":
+            # /courses/<other-slug>/...
+            m = re.match(r"^/courses/([^/]+)/", path)
+            if m and m.group(1) != slug:
+                related_courses.append({"slug": m.group(1), "url": absolute})
+                continue
+            # /courses/<slug>/pages/, /resources/, /lecture-notes/ ...
+            if f"/courses/{slug}/" in path:
+                # Determine resource kind from path segment
+                rkind = "page"
+                for token in ("lecture-notes", "lecture-videos", "assignments",
+                              "exams", "readings", "labs", "projects",
+                              "study-materials", "syllabus", "calendar",
+                              "tools", "related-resources", "video-lectures",
+                              "recitations", "tutorials"):
+                    if token in path:
+                        rkind = token
+                        break
+                resources.append({"label": text or rkind, "url": absolute, "kind": rkind})
+                continue
+        else:
+            # Off-site reference — anything not on OCW
+            if host and host not in ("www.mit.edu", "mit.edu"):
+                external_links.append({
+                    "label": text or host,
+                    "url": absolute,
+                    "domain": host,
+                })
+
+    return {
+        "course_id":       slug,
+        "url":             course_url,
+        "description":     description,
+        "instructors":     instructors[:10],
+        "topics":          topics[:20],
+        "level":           level,
+        "resources":       resources[:50],
+        "related_courses": related_courses[:25],
+        "external_links":  external_links[:50],
+    }
+
+
+def persist_ocw_course_detail(slug: str, detail: dict) -> int:
+    """Write one ``ocw_course_detail`` row + N ``ocw_resource`` rows to ``learning_log``.
+
+    De-duped by ``title`` so re-crawls don't bloat the log.
+    Returns the number of new rows written.
+    """
+    if not slug or not detail:
+        return 0
+
+    written = 0
+    try:
+        db = _get_db_path()
+        with sqlite3.connect(db) as cn:
+            _ensure_learning_log(cn)
+            now = datetime.now(timezone.utc).isoformat()
+
+            # 1) The course-level detail row (description + instructors + topics)
+            detail_title = f"[ocw_detail] {slug}"
+            existing = cn.execute(
+                "SELECT id FROM learning_log WHERE kind='ocw_course_detail' AND title=?",
+                (detail_title,),
+            ).fetchone()
+            if not existing:
+                cn.execute(
+                    """INSERT INTO learning_log(logged_at, kind, title, detail, signal_strength)
+                       VALUES(?,?,?,?,?)""",
+                    (now, "ocw_course_detail", detail_title,
+                     json.dumps({
+                         "course_id":   slug,
+                         "url":         detail.get("url"),
+                         "description": detail.get("description"),
+                         "instructors": detail.get("instructors", []),
+                         "topics":      detail.get("topics", []),
+                         "level":       detail.get("level", ""),
+                         "type":        "ocw_course_detail",
+                     }, default=str),
+                     0.85),
+                )
+                written += 1
+
+            # 2) One ocw_resource row per harvested link / related course
+            def _emit_resource(payload: dict, kind_tag: str, title_key: str):
+                nonlocal written
+                row = cn.execute(
+                    "SELECT id FROM learning_log WHERE kind='ocw_resource' AND title=?",
+                    (title_key,),
+                ).fetchone()
+                if row:
+                    return
+                cn.execute(
+                    """INSERT INTO learning_log(logged_at, kind, title, detail, signal_strength)
+                       VALUES(?,?,?,?,?)""",
+                    (now, "ocw_resource", title_key,
+                     json.dumps({**payload,
+                                 "course_id": slug,
+                                 "resource_kind": kind_tag,
+                                 "type": "ocw_resource"}, default=str),
+                     0.7),
+                )
+                written += 1
+
+            for r in detail.get("resources", []):
+                tk = f"[ocw_resource] {slug}::{r.get('kind','page')}::{r.get('url','')}"
+                _emit_resource(r, r.get("kind", "page"), tk)
+
+            for rc in detail.get("related_courses", []):
+                tk = f"[ocw_related] {slug}->{rc.get('slug','')}"
+                _emit_resource(rc, "related_course", tk)
+
+            for ext in detail.get("external_links", []):
+                tk = f"[ocw_external] {slug}::{ext.get('url','')}"
+                _emit_resource(ext, "external_link", tk)
+
+            cn.commit()
+    except Exception as exc:
+        log.warning(f"ml_research.persist_ocw_course_detail({slug}): {exc}")
+    return written
+
+
+def deepen_ocw_course(slug: str) -> dict:
+    """Convenience: fetch + persist a single course's full link lattice.
+
+    Returns ``{"slug","fetched": bool, "rows_written": int, "resources": int,
+    "related": int, "external": int, "instructors": int}``.
+    """
+    detail = fetch_ocw_course_detail(slug)
+    if not detail:
+        return {"slug": slug, "fetched": False, "rows_written": 0}
+    written = persist_ocw_course_detail(slug, detail)
+    return {
+        "slug":         slug,
+        "fetched":      True,
+        "rows_written": written,
+        "resources":    len(detail.get("resources", [])),
+        "related":      len(detail.get("related_courses", [])),
+        "external":     len(detail.get("external_links", [])),
+        "instructors":  len(detail.get("instructors", [])),
+        "topics":       len(detail.get("topics", [])),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -659,20 +1220,15 @@ def research_supply_chain_topics(
     """Sweep supply-chain ML topics and persist findings to the corpus.
 
     Rotates through :data:`_SUPPLY_CHAIN_TOPICS` in round-robin so every
-    cycle covers fresh ground.  Fetches papers from both HuggingFace and
-    Semantic Scholar, plus relevant datasets, then writes each unique
-    finding as a ``kind="ml_research"`` entry in ``learning_log``.
-
-    When ``include_ocw=True`` (default), also sweeps MIT OpenCourseWare
-    across :data:`_OCW_TOPICS` — supply chain structures are a physical
-    manifestation of systems engineering, so OCW coverage spans both the
-    SC management and systems engineering / operations research disciplines.
+    cycle covers fresh ground.  Fetches papers from arXiv, OpenAlex, CrossRef,
+    and CORE; datasets from Zenodo; plus MIT OCW courses and NASA NTRS reports
+    for systems-engineering topics.
 
     Args:
         topics: Override ML topic list (``None`` uses the built-in rotation).
         topics_per_cycle: How many ML topics to research this cycle.
-        include_trending: If ``True``, also fetch today's trending HF papers.
-        include_ocw: If ``True``, sweep MIT OCW alongside the ML sources.
+        include_trending: If ``True``, also fetch recent arXiv CS/ML papers.
+        include_ocw: If ``True``, sweep MIT OCW and NASA NTRS alongside ML sources.
 
     Returns:
         ``{topics_researched, papers_found, datasets_found, learnings_written,
@@ -711,27 +1267,35 @@ def research_supply_chain_topics(
     all_datasets: list[dict] = []
     topics_researched: list[str] = []
 
-    # Trending papers (one-shot fetch, not topic-specific)
+    # Recent arXiv CS/ML papers (replaces HF trending feed)
     if include_trending:
-        trending = fetch_trending_papers(limit=5)
+        trending = fetch_arxiv_recent(limit=5)
         if trending:
             all_papers.extend(trending)
-            log.debug(f"ml_research: fetched {len(trending)} trending papers")
+            log.debug(f"ml_research: fetched {len(trending)} recent arXiv papers")
 
-    # Per-topic paper + dataset search
+    # Per-topic paper + dataset search across four open sources
     for topic in selected:
         log.debug(f"ml_research: researching topic '{topic}'")
 
-        # HF Papers search
-        hf_papers = search_papers_hf(topic, limit=_PAPERS_PER_TOPIC)
-        all_papers.extend(hf_papers)
+        # arXiv — authoritative ML/CS preprint server
+        arxiv_papers = search_papers_arxiv(topic, limit=_PAPERS_PER_TOPIC)
+        all_papers.extend(arxiv_papers)
 
-        # Semantic Scholar search (higher citation threshold for quality)
-        s2_papers = search_papers_semantic_scholar(topic, limit=_PAPERS_PER_TOPIC, min_citations=10)
-        all_papers.extend(s2_papers)
+        # OpenAlex — 200 M+ scholarly works (Semantic Scholar replacement)
+        oa_papers = search_papers_openalex(topic, limit=_PAPERS_PER_TOPIC)
+        all_papers.extend(oa_papers)
 
-        # Dataset discovery
-        datasets = discover_hf_datasets(topic, limit=_DATASETS_PER_TOPIC)
+        # CrossRef — peer-reviewed published papers with DOIs
+        cr_papers = search_papers_crossref(topic, limit=3)
+        all_papers.extend(cr_papers)
+
+        # CORE — open-access full-text repository
+        core_papers = search_papers_core(topic, limit=3)
+        all_papers.extend(core_papers)
+
+        # Zenodo — research datasets (replaces HuggingFace Datasets API)
+        datasets = discover_zenodo_datasets(topic, limit=_DATASETS_PER_TOPIC)
         all_datasets.extend(datasets)
 
         topics_researched.append(topic)
@@ -741,7 +1305,7 @@ def research_supply_chain_topics(
     written = persist_research_findings(all_papers, all_datasets, topic=", ".join(topics_researched))
 
     # -----------------------------------------------------------------------
-    # MIT OCW sweep — supply chain as systems engineering
+    # MIT OCW sweep + NASA NTRS technical reports
     # -----------------------------------------------------------------------
     ocw_courses_found = 0
     ocw_written = 0
@@ -766,6 +1330,13 @@ def research_supply_chain_topics(
             log.debug(f"ml_research: fetching OCW courses for '{ocw_topic}'")
             courses = fetch_ocw_courses(ocw_topic, limit=_OCW_COURSES_PER_QUERY)
             all_ocw_courses.extend(courses)
+
+            # NASA NTRS technical reports complement OCW on systems-eng topics
+            ntrs_papers = search_ntrs(ocw_topic, limit=3)
+            if ntrs_papers:
+                all_papers.extend(ntrs_papers)
+                log.debug(f"ml_research: NTRS {len(ntrs_papers)} reports for '{ocw_topic}'")
+
             time.sleep(1.0)   # polite crawl delay — OCW is a public resource
 
         ocw_courses_found = len(all_ocw_courses)
@@ -774,6 +1345,15 @@ def research_supply_chain_topics(
                 all_ocw_courses,
                 topic=", ".join(ocw_selected),
             )
+
+        # Auto-deepen undiscovered courses — progressively absorbs full link
+        # lattices for every newly-discovered course (3 per cycle keeps it fast)
+        try:
+            deepened = auto_deepen_undiscovered(max_courses=3)
+            if deepened:
+                log.info(f"ml_research: auto-deepened {deepened} OCW courses")
+        except Exception as _exc:
+            log.debug(f"ml_research: auto_deepen_undiscovered error: {_exc}")
 
         try:
             db = _get_db_path()
@@ -846,15 +1426,17 @@ def recent_ml_learnings(limit: int = 20) -> list[dict]:
 
 
 def search_papers_interactive(query: str) -> dict[str, Any]:
-    """Convenience function for the Streamlit page: run a one-shot search.
+    """Convenience function for the Streamlit page: run a multi-source one-shot search.
 
     Returns:
-        ``{hf_papers: [...], s2_papers: [...], datasets: [...]}``
+        ``{arxiv_papers, openalex_papers, crossref_papers, core_papers, datasets}``
     """
     return {
-        "hf_papers": search_papers_hf(query, limit=8),
-        "s2_papers": search_papers_semantic_scholar(query, limit=5, min_citations=0),
-        "datasets": discover_hf_datasets(query, limit=5),
+        "arxiv_papers": search_papers_arxiv(query, limit=8),
+        "openalex_papers": search_papers_openalex(query, limit=5),
+        "crossref_papers": search_papers_crossref(query, limit=5),
+        "core_papers": search_papers_core(query, limit=3),
+        "datasets": discover_zenodo_datasets(query, limit=5),
     }
 
 
@@ -864,3 +1446,163 @@ def search_ocw_interactive(query: str) -> list[dict]:
     Returns a list of course dicts from :func:`fetch_ocw_courses`.
     """
     return fetch_ocw_courses(query, limit=12)
+
+
+# ---------------------------------------------------------------------------
+# Graph traversal — cascade BFS across OCW's link lattice
+# ---------------------------------------------------------------------------
+
+def cascade_deepen_ocw(
+    seed_slug: str,
+    hops: int = 2,
+    fan_out: int = 5,
+) -> dict:
+    """BFS-traverse the OCW knowledge graph starting from ``seed_slug``.
+
+    At each hop, deepens the current course and enqueues its ``related_courses``
+    for the next hop.  Bounded by ``hops`` (depth) and ``fan_out`` (breadth per
+    level) to prevent runaway crawls.
+
+    Returns::
+
+        {
+            "seed":          "<slug>",
+            "hops_executed": int,
+            "courses_deepened": [slug, ...],
+            "rows_written":  int,
+            "resources":     int,
+            "related":       int,
+            "external":      int,
+        }
+    """
+    from collections import deque
+
+    visited: set[str] = set()
+    queue: deque[tuple[str, int]] = deque()  # (slug, depth)
+    queue.append((seed_slug, 0))
+
+    courses_deepened: list[str] = []
+    total_rows = total_res = total_rel = total_ext = 0
+
+    while queue:
+        slug, depth = queue.popleft()
+        if slug in visited or depth > hops:
+            continue
+        visited.add(slug)
+
+        result = deepen_ocw_course(slug)
+        if not result.get("fetched"):
+            continue
+
+        courses_deepened.append(slug)
+        total_rows += result.get("rows_written", 0)
+        total_res  += result.get("resources", 0)
+        total_rel  += result.get("related", 0)
+        total_ext  += result.get("external", 0)
+
+        if depth < hops:
+            # Enqueue related courses discovered at this node
+            detail = fetch_ocw_course_detail(slug) if result.get("related", 0) else {}
+            for rc in (detail.get("related_courses") or [])[:fan_out]:
+                rc_slug = rc.get("slug", "")
+                if rc_slug and rc_slug not in visited:
+                    queue.append((rc_slug, depth + 1))
+
+        time.sleep(0.8)  # polite crawl delay
+
+    return {
+        "seed":             seed_slug,
+        "hops_executed":    hops,
+        "courses_deepened": courses_deepened,
+        "rows_written":     total_rows,
+        "resources":        total_res,
+        "related":          total_rel,
+        "external":         total_ext,
+    }
+
+
+def auto_deepen_undiscovered(max_courses: int = 5) -> int:
+    """Deepen any ``ocw_course`` entries in ``learning_log`` that have no detail row yet.
+
+    Called automatically at the end of each research cycle to progressively
+    absorb full link lattices for every newly-discovered course.
+
+    Returns the number of courses deepened.
+    """
+    deepened = 0
+    try:
+        db = _get_db_path()
+        with sqlite3.connect(db) as cn:
+            # Courses discovered but not yet detailed
+            rows = cn.execute(
+                """SELECT title FROM learning_log
+                   WHERE kind = 'ocw_course'
+                   AND title NOT IN (
+                       SELECT REPLACE(title, '[ocw_detail] ', '[ocw] ')
+                       FROM learning_log WHERE kind = 'ocw_course_detail'
+                   )
+                   ORDER BY id DESC
+                   LIMIT ?""",
+                (max_courses,),
+            ).fetchall()
+    except Exception as exc:
+        log.warning(f"auto_deepen_undiscovered query: {exc}")
+        return 0
+
+    for (title,) in rows:
+        # title is like "[ocw] some-course-slug-fall-2020"
+        slug = title.replace("[ocw] ", "").strip()
+        if not slug:
+            continue
+        result = deepen_ocw_course(slug)
+        if result.get("fetched"):
+            deepened += 1
+            log.debug(
+                f"auto_deepen: {slug} → "
+                f"{result['rows_written']} rows, "
+                f"{result['resources']} resources, "
+                f"{result['related']} related, "
+                f"{result['external']} external"
+            )
+        time.sleep(1.0)
+
+    return deepened
+
+
+def recent_ocw_details(limit: int = 50) -> list[dict]:
+    """Return recent ``ocw_course_detail`` and ``ocw_resource`` entries from ``learning_log``.
+
+    Used by the Knowledge Graph tab to surface all harvested link data.
+    Each dict has: ``id``, ``logged_at``, ``kind``, ``title``, ``detail``, ``signal_strength``.
+    """
+    try:
+        db = _get_db_path()
+        with sqlite3.connect(db) as cn:
+            cn.row_factory = sqlite3.Row
+            rows = cn.execute(
+                """SELECT id, logged_at, kind, title, detail, signal_strength
+                   FROM learning_log
+                   WHERE kind IN ('ocw_course_detail', 'ocw_resource')
+                   ORDER BY id DESC
+                   LIMIT ?""",
+                (limit,),
+            ).fetchall()
+            results = []
+            for r in rows:
+                detail = {}
+                try:
+                    detail = json.loads(r["detail"] or "{}")
+                except Exception:
+                    pass
+                results.append({
+                    "id": r["id"],
+                    "logged_at": r["logged_at"],
+                    "kind": r["kind"],
+                    "title": r["title"],
+                    "detail": detail,
+                    "signal_strength": r["signal_strength"],
+                })
+            return results
+    except Exception as exc:
+        log.warning(f"ml_research.recent_ocw_details: {exc}")
+        return []

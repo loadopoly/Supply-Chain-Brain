@@ -2,16 +2,19 @@
 
 Surfaces the Brain's ``ml_research`` module as an interactive Streamlit page.
 Browse papers, datasets, and MIT OpenCourseWare courses the Brain has
-discovered from HuggingFace Papers, Semantic Scholar, HuggingFace Datasets,
-and the MIT OCW academic catalogue.
+discovered from:
+
+* **arXiv** — CS/ML/math preprints (replaces HuggingFace Papers)
+* **OpenAlex** — 200 M+ scholarly works (replaces Semantic Scholar)
+* **CrossRef** — DOI-indexed published papers
+* **CORE** — open-access full-text repository
+* **NASA NTRS** — systems engineering technical reports
+* **Zenodo** — research datasets (replaces HuggingFace Datasets)
+* **MIT OCW** — 2 500+ free courses via sitemap keyword scoring
 
 Supply chain structures are an advanced form of systems engineering in the
-physical realm — so the OCW crawl intentionally spans both supply chain
-management and the foundational systems engineering / operations research
-disciplines that underpin it.
-
-Inspired by the HuggingFace ``ml-intern`` project:
-https://github.com/huggingface/ml-intern
+physical realm — so the OCW + NTRS crawls intentionally span both supply
+chain management and foundational systems engineering / operations research.
 """
 
 import sys
@@ -29,6 +32,10 @@ from src.brain.ml_research import (
     search_ocw_interactive,
     research_supply_chain_topics,
     recent_ml_learnings,
+    recent_ocw_details,
+    deepen_ocw_course,
+    cascade_deepen_ocw,
+    fetch_ocw_course_detail,
     _SUPPLY_CHAIN_TOPICS,
     _OCW_TOPICS,
 )
@@ -36,10 +43,10 @@ from src.brain.ml_research import (
 st.set_page_config(page_title="ML Research Hub", page_icon="🔬", layout="wide")
 st.title("🔬 ML Research Hub")
 st.caption(
-    "Brain-native research discovery — HuggingFace Papers, Semantic Scholar, "
-    "HuggingFace Datasets, and **MIT OpenCourseWare**. "
+    "Brain-native research discovery — **arXiv**, **OpenAlex**, **CrossRef**, **CORE**, "
+    "**NASA NTRS**, **Zenodo** datasets, and **MIT OpenCourseWare**. "
     "Supply chain structures are an advanced form of systems engineering; "
-    "OCW coverage spans both domains. "
+    "coverage spans CS/ML and systems engineering / operations research. "
     "All findings are persisted to the knowledge corpus as first-class entities."
 )
 
@@ -78,7 +85,9 @@ with st.sidebar:
 # ---------------------------------------------------------------------------
 # Tabs
 # ---------------------------------------------------------------------------
-tab_search, tab_ocw, tab_corpus = st.tabs(["🔍 Live Search", "🎓 MIT OCW", "📚 Corpus Learnings"])
+tab_search, tab_ocw, tab_corpus, tab_graph = st.tabs(
+    ["🔍 Live Search", "🎓 MIT OCW", "📚 Corpus Learnings", "🕸️ Knowledge Graph"]
+)
 
 # --- Tab 1: Live search ---
 with tab_search:
@@ -90,62 +99,79 @@ with tab_search:
     )
 
     if query:
-        with st.spinner(f"Searching for '{query}'…"):
+        with st.spinner(f"Searching across arXiv, OpenAlex, CrossRef, CORE, Zenodo for '{query}'…"):
             results = search_papers_interactive(query)
 
-        hf_papers = results.get("hf_papers", [])
-        s2_papers = results.get("s2_papers", [])
-        datasets = results.get("datasets", [])
+        arxiv_papers  = results.get("arxiv_papers", [])
+        oa_papers     = results.get("openalex_papers", [])
+        cr_papers     = results.get("crossref_papers", [])
+        core_papers   = results.get("core_papers", [])
+        datasets      = results.get("datasets", [])
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("HF Papers", len(hf_papers))
-        col2.metric("Semantic Scholar", len(s2_papers))
-        col3.metric("HF Datasets", len(datasets))
+        cols = st.columns(5)
+        cols[0].metric("arXiv", len(arxiv_papers))
+        cols[1].metric("OpenAlex", len(oa_papers))
+        cols[2].metric("CrossRef", len(cr_papers))
+        cols[3].metric("CORE", len(core_papers))
+        cols[4].metric("Zenodo Datasets", len(datasets))
 
-        # HF Papers
-        if hf_papers:
-            st.markdown("#### HuggingFace Papers")
-            for p in hf_papers:
-                with st.expander(f"📄 {p.get('title', 'Unknown')} — ↑{p.get('upvotes', 0)}", expanded=False):
-                    st.markdown(f"**arxiv:** `{p.get('arxiv_id', '')}` | **upvotes:** {p.get('upvotes', 0)}")
-                    if p.get("url"):
-                        st.markdown(f"[View on HuggingFace]({p['url']})")
-                    if p.get("keywords"):
-                        st.markdown(f"**Keywords:** {', '.join(p['keywords'][:5])}")
-                    if p.get("summary"):
-                        st.markdown(p["summary"])
+        def _paper_expander(p: dict, source_label: str) -> None:
+            title = p.get("title") or "Unknown"
+            year  = p.get("year") or "?"
+            cites = p.get("citations", 0)
+            header = f"📄 {title} ({year})"
+            if cites:
+                header += f" — {cites} citations"
+            with st.expander(header, expanded=False):
+                st.caption(f"Source: **{source_label}** | ID: `{p.get('arxiv_id', '')}` | DOI: `{p.get('doi', '')}`")
+                if p.get("url"):
+                    st.markdown(f"[Open paper]({p['url']})")
+                if p.get("authors"):
+                    st.markdown(f"**Authors:** {', '.join(p['authors'][:3])}")
+                if p.get("keywords"):
+                    st.markdown(f"**Keywords:** {', '.join(p['keywords'][:5])}")
+                if p.get("summary"):
+                    st.markdown(p["summary"])
 
-        # Semantic Scholar Papers
-        if s2_papers:
-            st.markdown("#### Semantic Scholar")
-            for p in s2_papers:
-                with st.expander(
-                    f"📄 {p.get('title', 'Unknown')} — {p.get('citations', 0)} citations ({p.get('year', '?')})",
-                    expanded=False,
-                ):
-                    st.markdown(f"**arxiv:** `{p.get('arxiv_id', '')}` | **citations:** {p.get('citations', 0)}")
-                    if p.get("url"):
-                        st.markdown(f"[View on arXiv]({p['url']})")
-                    if p.get("summary"):
-                        st.markdown(p["summary"])
+        # arXiv
+        if arxiv_papers:
+            st.markdown("#### arXiv (preprints)")
+            for p in arxiv_papers:
+                _paper_expander(p, "arXiv")
 
-        # HF Datasets
+        # OpenAlex
+        if oa_papers:
+            st.markdown("#### OpenAlex (scholarly database)")
+            for p in oa_papers:
+                _paper_expander(p, "OpenAlex")
+
+        # CrossRef
+        if cr_papers:
+            st.markdown("#### CrossRef (published / peer-reviewed)")
+            for p in cr_papers:
+                _paper_expander(p, "CrossRef")
+
+        # CORE
+        if core_papers:
+            st.markdown("#### CORE (open access)")
+            for p in core_papers:
+                _paper_expander(p, "CORE")
+
+        # Zenodo Datasets
         if datasets:
-            st.markdown("#### HuggingFace Datasets")
+            st.markdown("#### Zenodo Research Datasets")
             for ds in datasets:
-                with st.expander(
-                    f"🗄️ {ds.get('dataset_id', 'Unknown')} — {ds.get('downloads', 0):,} downloads",
-                    expanded=False,
-                ):
-                    st.markdown(f"**ID:** `{ds.get('dataset_id', '')}` | **downloads:** {ds.get('downloads', 0):,} | **likes:** {ds.get('likes', 0)}")
+                ds_title = ds.get("title") or ds.get("dataset_id", "Unknown")
+                with st.expander(f"🗄️ {ds_title}", expanded=False):
+                    st.caption(f"ID: `{ds.get('dataset_id', '')}` | Source: **Zenodo**")
                     if ds.get("url"):
-                        st.markdown(f"[View on HuggingFace]({ds['url']})")
+                        st.markdown(f"[View on Zenodo]({ds['url']})")
                     if ds.get("tags"):
-                        st.markdown(f"**Tags:** {', '.join(ds['tags'])}")
+                        st.markdown(f"**Keywords:** {', '.join(ds['tags'])}")
                     if ds.get("description"):
                         st.markdown(ds["description"])
     else:
-        st.info("Enter a query above to search for ML papers and datasets.")
+        st.info("Enter a query above to search for papers and datasets across arXiv, OpenAlex, CrossRef, CORE, and Zenodo.")
 
 # --- Tab 2: MIT OCW Courses ---
 with tab_ocw:
@@ -166,23 +192,136 @@ with tab_ocw:
     if st.button("Search MIT OCW", key="ocw_search_btn"):
         with st.spinner(f"Searching MIT OCW for '{ocw_query}'…"):
             ocw_results = search_ocw_interactive(ocw_query)
+        st.session_state["_ocw_results"] = ocw_results
 
-        if ocw_results:
-            st.success(f"Found {len(ocw_results)} courses")
-            for course in ocw_results:
-                title = course.get("title", course.get("course_id", "Unknown"))
-                num   = course.get("course_number", "")
-                url   = course.get("url", "")
-                subjs = course.get("subjects", [])
-                label = f"🎓 [{num}] {title}" if num else f"🎓 {title}"
-                with st.expander(label, expanded=False):
-                    if url:
-                        st.markdown(f"[Open on MIT OCW]({url})")
-                    if subjs:
-                        st.markdown(f"**Subjects:** {', '.join(subjs)}")
-                    st.caption(f"Query: *{course.get('query', '')}*")
-        else:
-            st.info("No courses found — OCW may be temporarily unavailable or the query returned no matches.")
+    ocw_results = st.session_state.get("_ocw_results") or []
+    if ocw_results:
+        st.success(f"Found {len(ocw_results)} courses")
+        for course in ocw_results:
+            title = course.get("title", course.get("course_id", "Unknown"))
+            num   = course.get("course_number", "")
+            url   = course.get("url", "")
+            subjs = course.get("subjects", [])
+            slug  = course.get("course_id", "")
+            label = f"🎓 [{num}] {title}" if num else f"🎓 {title}"
+            with st.expander(label, expanded=False):
+                if url:
+                    st.markdown(f"[Open on MIT OCW]({url})")
+                if subjs:
+                    st.markdown(f"**Subjects:** {', '.join(subjs)}")
+                st.caption(f"Query: *{course.get('query', '')}*")
+
+                detail_key = f"_ocw_detail::{slug}"
+                cols = st.columns([1, 1, 4])
+                if cols[0].button("🌐 Deep-fetch links", key=f"deep_{slug}"):
+                    with st.spinner(f"Crawling {slug}…"):
+                        st.session_state[detail_key] = fetch_ocw_course_detail(slug)
+                if cols[1].button("💾 Persist to corpus", key=f"persist_{slug}"):
+                    with st.spinner(f"Persisting {slug} to corpus…"):
+                        res = deepen_ocw_course(slug)
+                    st.success(
+                        f"Wrote {res.get('rows_written',0)} rows · "
+                        f"{res.get('resources',0)} resources · "
+                        f"{res.get('related',0)} related · "
+                        f"{res.get('external',0)} external"
+                    )
+
+                detail = st.session_state.get(detail_key)
+                if detail:
+                    st.markdown("---")
+                    if detail.get("description"):
+                        st.markdown(f"**Description:** {detail['description']}")
+                    if detail.get("level"):
+                        st.markdown(f"**Level:** {detail['level']}")
+                    if detail.get("instructors"):
+                        st.markdown(
+                            "**Instructors:** "
+                            + ", ".join(detail["instructors"])
+                        )
+                    if detail.get("topics"):
+                        st.markdown(
+                            "**Topics:** "
+                            + ", ".join(detail["topics"][:15])
+                        )
+                    res_list = detail.get("resources") or []
+                    rel_list = detail.get("related_courses") or []
+                    ext_list = detail.get("external_links") or []
+                    rcols = st.columns(3)
+                    rcols[0].metric("Course resources", len(res_list))
+                    rcols[1].metric("Related courses", len(rel_list))
+                    rcols[2].metric("External links",  len(ext_list))
+
+                    if res_list:
+                        with st.expander(f"📚 {len(res_list)} course resources",
+                                         expanded=False):
+                            for r in res_list:
+                                st.markdown(
+                                    f"- **[{r.get('kind','page')}]** "
+                                    f"[{r.get('label','(untitled)')}]({r.get('url','')})"
+                                )
+                    if rel_list:
+                        with st.expander(f"🔗 {len(rel_list)} related courses",
+                                         expanded=False):
+                            for rc in rel_list:
+                                st.markdown(
+                                    f"- [{rc.get('slug','?')}]({rc.get('url','')})"
+                                )
+                    if ext_list:
+                        with st.expander(f"🌍 {len(ext_list)} external references",
+                                         expanded=False):
+                            for ext in ext_list:
+                                st.markdown(
+                                    f"- *{ext.get('domain','')}* — "
+                                    f"[{ext.get('label','(link)')}]({ext.get('url','')})"
+                                )
+    elif "_ocw_results" in st.session_state:
+        st.info("No courses found — OCW may be temporarily unavailable or the query returned no matches.")
+
+    st.divider()
+
+    # ----- Cascade BFS deep-fetch -----
+    st.markdown("#### 🕸️ Cascade Graph Expansion")
+    st.caption(
+        "Start from any course slug and BFS-traverse the OCW knowledge graph "
+        "up to N hops, absorbing every resource link, related course, and "
+        "external reference into the corpus."
+    )
+    c1, c2, c3 = st.columns([3, 1, 1])
+    cascade_slug = c1.text_input(
+        "Seed course slug",
+        placeholder="e.g. 15-762j-supply-chain-planning-spring-2011",
+        key="cascade_slug",
+    )
+    cascade_hops = c2.number_input("Hops", min_value=1, max_value=4, value=2, key="cascade_hops")
+    cascade_fan  = c3.number_input("Fan-out", min_value=2, max_value=10, value=5, key="cascade_fan")
+    if st.button("🚀 Launch Cascade Deepen", key="cascade_btn", disabled=not cascade_slug):
+        with st.spinner(
+            f"BFS traversal from '{cascade_slug}' — up to {cascade_hops} hops "
+            f"× {cascade_fan} branches each…"
+        ):
+            cascade_result = cascade_deepen_ocw(
+                cascade_slug.strip(),
+                hops=int(cascade_hops),
+                fan_out=int(cascade_fan),
+            )
+        st.session_state["_cascade_result"] = cascade_result
+
+    cr = st.session_state.get("_cascade_result")
+    if cr:
+        deepened = cr.get("courses_deepened", [])
+        st.success(
+            f"Traversal complete — **{len(deepened)} courses** deepened · "
+            f"**{cr.get('rows_written',0)}** corpus rows written · "
+            f"**{cr.get('resources',0)}** resources · "
+            f"**{cr.get('related',0)}** related · "
+            f"**{cr.get('external',0)}** external links"
+        )
+        if deepened:
+            with st.expander(f"Courses visited ({len(deepened)})", expanded=False):
+                for s in deepened:
+                    st.markdown(
+                        f"- [{s}](https://ocw.mit.edu/courses/{s}/)"
+                    )
 
     st.divider()
     st.markdown("#### Monitored OCW Topics (Brain auto-sweeps)")
@@ -263,3 +402,128 @@ with tab_corpus:
                     st.markdown(f"**Prompt:** {detail.get('prompt', '')}")
                     if detail.get("output"):
                         st.markdown(detail["output"])
+
+# --- Tab 4: Knowledge Graph ---
+with tab_graph:
+    st.subheader("🕸️ OCW Knowledge Graph — Harvested Link Lattice")
+    st.caption(
+        "Every deep-fetched course contributes its full link lattice to this graph: "
+        "course pages, lecture notes, assignments, related courses, and external "
+        "references from GitHub, journal sites, and university pages."
+    )
+
+    graph_limit = st.slider(
+        "Show last N graph entries", min_value=20, max_value=500, value=100, step=20,
+        key="graph_limit",
+    )
+    graph_entries = recent_ocw_details(limit=graph_limit)
+
+    if not graph_entries:
+        st.info(
+            "No deep-fetched OCW data yet. "
+            "Use the **🌐 Deep-fetch links** or **💾 Persist to corpus** "
+            "buttons on a course in the MIT OCW tab, or run "
+            "**Run research cycle now** — the Brain auto-deepens 3 courses per cycle."
+        )
+    else:
+        details    = [e for e in graph_entries if e["kind"] == "ocw_course_detail"]
+        resources  = [e for e in graph_entries if e["kind"] == "ocw_resource"]
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Courses deep-fetched", len(details))
+        m2.metric("Resource / link nodes", len(resources))
+        m3.metric("Total corpus nodes", len(graph_entries))
+
+        st.divider()
+
+        # Group resources by course_id for display
+        from collections import defaultdict
+        by_course: dict[str, list[dict]] = defaultdict(list)
+        for e in resources:
+            cid = e["detail"].get("course_id", "unknown")
+            by_course[cid].append(e)
+
+        # Show each detailed course as an expandable card
+        if details:
+            st.markdown("### Course Detail Nodes")
+            for e in details:
+                d = e["detail"]
+                slug = d.get("course_id", e["title"].replace("[ocw_detail] ", ""))
+                desc = d.get("description", "")
+                level = d.get("level", "")
+                instructors = d.get("instructors", [])
+                topics = d.get("topics", [])
+                course_resources = by_course.get(slug, [])
+
+                header = f"🎓 {slug}"
+                if level:
+                    header += f" · {level}"
+                with st.expander(header, expanded=False):
+                    if desc:
+                        st.markdown(desc)
+                    if instructors:
+                        st.markdown(f"**Instructors:** {', '.join(instructors)}")
+                    if topics:
+                        st.markdown(f"**Topics:** {', '.join(topics[:12])}")
+
+                    st.markdown(
+                        f"[Open on MIT OCW](https://ocw.mit.edu/courses/{slug}/)"
+                    )
+
+                    # Partition resources by kind
+                    by_kind: dict[str, list[dict]] = defaultdict(list)
+                    for re_entry in course_resources:
+                        rk = re_entry["detail"].get("resource_kind", "page")
+                        by_kind[rk].append(re_entry)
+
+                    if by_kind:
+                        st.markdown("**Harvested Links:**")
+                        for kind, items in sorted(by_kind.items()):
+                            # Determine if these are internal resources, related courses, or external
+                            if kind == "related_course":
+                                icon = "🔗"
+                            elif kind == "external_link":
+                                icon = "🌍"
+                            else:
+                                icon = "📄"
+                            with st.expander(
+                                f"{icon} {kind.replace('-', ' ').title()} ({len(items)})",
+                                expanded=False,
+                            ):
+                                for item in items:
+                                    det = item["detail"]
+                                    url = det.get("url", "")
+                                    label = (
+                                        det.get("label")
+                                        or det.get("slug")
+                                        or det.get("domain")
+                                        or url
+                                        or "(link)"
+                                    )
+                                    if url:
+                                        st.markdown(f"- [{label}]({url})")
+                                    else:
+                                        st.markdown(f"- {label}")
+                    else:
+                        st.caption("No link data harvested yet for this course.")
+
+        # Orphan resources (courses without a detail node)
+        orphan_slugs = set(by_course.keys()) - {
+            e["detail"].get("course_id", "") for e in details
+        }
+        if orphan_slugs:
+            with st.expander(
+                f"📦 {sum(len(by_course[s]) for s in orphan_slugs)} "
+                f"orphan link nodes (courses pending deep-fetch)",
+                expanded=False,
+            ):
+                for slug in sorted(orphan_slugs):
+                    items = by_course[slug]
+                    st.markdown(f"**{slug}** — {len(items)} link(s)")
+                    for item in items[:5]:
+                        det = item["detail"]
+                        url = det.get("url", "")
+                        label = det.get("label") or det.get("slug") or url or "(link)"
+                        if url:
+                            st.markdown(f"  - [{label}]({url})")
+
