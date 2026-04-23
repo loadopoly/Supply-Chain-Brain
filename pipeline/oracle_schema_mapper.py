@@ -20,9 +20,9 @@ OUTPUT_JSON = Path(__file__).parent / "oracle_schema_map.json"
 OUTPUT_TXT  = Path(__file__).parent / "oracle_schema_map.txt"
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
-# Top-nav tabs to enumerate (left → right order)
+# Top-nav tabs to enumerate — skip "Me" (user profile widget, no module tiles)
 TOP_NAV_TABS = [
-    "Me", "Sales", "Service", "Order Management",
+    "Sales", "Service", "Order Management",
     "Supply Chain Execution", "Supply Chain Planning",
     "Product Management", "General Accounting", "Procurement",
     "Tools", "Others",
@@ -111,6 +111,36 @@ def get_tiles(page):
     """)
 
 
+def get_all_tiles_with_scroll(page):
+    """Enumerate ALL SpringBoard tiles, scrolling to capture off-viewport ones."""
+    all_tiles = {}
+    for scroll_y in [0, 400, 800, 1200, 1600, 2000]:
+        page.evaluate(f"window.scrollTo(0, {scroll_y})")
+        page.wait_for_timeout(400)
+        batch = page.evaluate("""
+            () => {
+                const results = [];
+                const seen = new Set();
+                for (const el of document.querySelectorAll('a')) {
+                    if (!el.offsetParent) continue;
+                    const t = el.textContent.trim().replace(/\\s+/g,' ');
+                    if (!t || t.length < 3 || t.length > 80 || seen.has(t)) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.y < 200 || r.height < 15) continue;
+                    seen.add(t);
+                    results.push({text: t, href: (el.href||'').slice(0,120)});
+                }
+                return results;
+            }
+        """)
+        for t in batch:
+            if t['text'] not in all_tiles:
+                all_tiles[t['text']] = t
+    page.evaluate("window.scrollTo(0, 0)")
+    page.wait_for_timeout(300)
+    return list(all_tiles.values())
+
+
 def get_quick_actions(page):
     """Enumerate left-side Quick Actions links."""
     return page.evaluate("""
@@ -135,9 +165,8 @@ def get_quick_actions(page):
 
 
 def click_show_more(page):
-    """Click 'Show More' links to expand all tiles/actions."""
-    found = True
-    while found:
+    """Click 'Show More' links to expand tiles/actions (max 3 clicks)."""
+    for _ in range(3):
         found = page.evaluate("""
             () => {
                 for (const el of document.querySelectorAll('a,button,span,div')) {
@@ -152,43 +181,87 @@ def click_show_more(page):
         """)
         if found:
             page.wait_for_timeout(1500)
+        else:
+            break
 
 
 def open_task_panel(page):
     """Open the right-side task panel if not already open."""
-    for sel in ["[title='Tasks']", "[aria-label='Tasks']"]:
+    # Extra wait for ADF Classic to fully render after module navigation
+    page.wait_for_timeout(2000)
+    for sel in ["[title='Tasks']", "[aria-label='Tasks']", "button[title='Tasks']",
+                "a[title='Tasks']", "[role='button'][title='Tasks']"]:
         try:
             el = page.locator(sel).first
-            if el.is_visible(timeout=2000):
+            if el.is_visible(timeout=5000):
                 el.click()
-                page.wait_for_timeout(1800)
+                page.wait_for_timeout(2500)
                 return True
         except Exception:
             pass
+    # Fallback: JS click on any Tasks button in the toolbar area
+    found = page.evaluate("""
+        () => {
+            for (const el of document.querySelectorAll('a,button,span,div')) {
+                if (!el.offsetParent) continue;
+                const title = el.getAttribute('title') || '';
+                const label = el.getAttribute('aria-label') || '';
+                if (title === 'Tasks' || label === 'Tasks') {
+                    const r = el.getBoundingClientRect();
+                    if (r.y < 200) {
+                        el.click();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    """)
+    if found:
+        page.wait_for_timeout(2500)
+        return True
     return False
 
 
-def get_task_panel_select_options(page):
-    """Return list of option labels in the task panel SELECT dropdown."""
-    return page.evaluate("""
+def get_task_panel_select(page):
+    """Return (cx, cy, options) for the task panel SELECT dropdown, or (None, None, [])."""
+    result = page.evaluate("""
         () => {
             for (const sel of document.querySelectorAll('select')) {
                 if (!sel.offsetParent) continue;
                 const r = sel.getBoundingClientRect();
                 if (r.x < 900) continue;
-                return Array.from(sel.options).map(o => o.text.trim());
+                const opts = Array.from(sel.options).map(o => o.text.trim());
+                return {
+                    cx: Math.round(r.x + r.width/2),
+                    cy: Math.round(r.y + r.height/2),
+                    options: opts
+                };
             }
-            return [];
+            return null;
         }
     """)
+    if result:
+        return result['cx'], result['cy'], result['options']
+    return None, None, []
+
+
+def get_task_panel_select_options(page):
+    """Return list of option labels in the task panel SELECT dropdown."""
+    _, _, options = get_task_panel_select(page)
+    return options
 
 
 def select_task_tab(page, option_index: int):
     """
     Switch the task panel to the given option index using native
     mouse-click + keyboard (the only method that fires ADF's event handler).
+    Uses dynamically detected SELECT position.
     """
-    page.mouse.click(1288, 107)
+    cx, cy, _ = get_task_panel_select(page)
+    if cx is None:
+        cx, cy = 1288, 107  # fallback to hardcoded
+    page.mouse.click(cx, cy)
     page.wait_for_timeout(300)
     page.keyboard.press("Home")
     page.wait_for_timeout(100)
@@ -246,22 +319,65 @@ def get_task_panel_content(page):
     """)
 
 
-def navigate_to_module(page, tile_cx, tile_cy):
-    """Click a module tile and wait for it to load."""
-    page.mouse.click(tile_cx, tile_cy)
-    page.wait_for_timeout(4000)
+def navigate_to_module_by_text(page, tile_text: str) -> bool:
+    """
+    Navigate into a module tile using text-based locator with auto-scroll.
+    This correctly handles tiles that are below the viewport fold.
+    """
     try:
-        page.wait_for_load_state("networkidle", timeout=15_000)
-    except Exception:
-        pass
-    page.wait_for_timeout(1000)
+        # Use exact text match on A elements in the content area (y > 200)
+        loc = page.locator("a").filter(has_text=tile_text).first
+        loc.scroll_into_view_if_needed(timeout=6000)
+        page.wait_for_timeout(600)
+        loc.click(timeout=8000)
+        page.wait_for_timeout(5000)
+        try:
+            page.wait_for_load_state("domcontentloaded", timeout=15_000)
+        except Exception:
+            pass
+        page.wait_for_timeout(2000)
+        return True
+    except Exception as ex:
+        print(f"    Tile '{tile_text}' nav error (locator): {ex}")
+        # Fallback: JS scroll-into-view + click
+        try:
+            result = page.evaluate("""
+                ([txt]) => {
+                    for (const el of document.querySelectorAll('a')) {
+                        if (!el.offsetParent) continue;
+                        const t = el.textContent.trim().replace(/\\s+/g,' ');
+                        if (t !== txt) continue;
+                        const r = el.getBoundingClientRect();
+                        if (r.y < 200) continue;
+                        el.scrollIntoView({block:'center'});
+                        return {cx: Math.round(r.x+r.width/2), cy: Math.round(r.y+r.height/2)};
+                    }
+                    return null;
+                }
+            """, [tile_text])
+            if result:
+                page.wait_for_timeout(500)
+                page.mouse.click(result['cx'], result['cy'])
+                page.wait_for_timeout(5000)
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=15_000)
+                except Exception:
+                    pass
+                page.wait_for_timeout(2000)
+                return True
+        except Exception as ex2:
+            print(f"    Tile '{tile_text}' nav error (JS fallback): {ex2}")
+        return False
 
 
 def go_home(page):
     """Return to the Oracle Fusion home page."""
-    page.goto(f"{HOST}/fscmUI/faces/FuseWelcome",
-              wait_until="networkidle", timeout=60_000)
-    page.wait_for_timeout(1500)
+    try:
+        page.goto(f"{HOST}/fscmUI/faces/FuseWelcome",
+                  wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_timeout(2000)
+    except Exception:
+        pass
 
 
 # ── main mapper ──────────────────────────────────────────────────────────────
@@ -275,7 +391,13 @@ def map_module(page, tab_name: str, tile: dict, schema: dict):
     slug = tile_text.replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
     print(f"\n    [MODULE] {tile_text}")
 
-    navigate_to_module(page, tile['cx'], tile['cy'])
+    ok = navigate_to_module_by_text(page, tile_text)
+    if not ok:
+        print(f"    Navigation failed — skipping")
+        schema[tab_name]["modules"][tile_text] = {"error": "navigation failed"}
+        go_home(page)
+        return
+
     module_title = page.title()
     print(f"    Title: {module_title[:70]}")
     ss(page, f"{tab_name[:8]}_{slug[:20]}_overview")
@@ -347,57 +469,87 @@ def map_tab(page, tab_name: str, schema: dict):
     print(f"TAB: {tab_name}")
     print(f"{'='*60}")
 
-    # Click the tab
-    try:
-        page.locator(f"a:has-text('{tab_name}')").first.click(timeout=8000)
-        page.wait_for_timeout(3000)
-    except Exception as ex:
-        print(f"  Tab click failed: {ex}")
-        schema[tab_name] = {"error": str(ex), "modules": {}}
-        return
+    # Click the tab — try exact A locator, then DIV
+    clicked = False
+    for attempt in [f"a:has-text('{tab_name}')", f"[role='tab']:has-text('{tab_name}')"]:
+        try:
+            loc = page.locator(attempt).first
+            if loc.is_visible(timeout=4000):
+                loc.click()
+                page.wait_for_timeout(2500)
+                clicked = True
+                break
+        except Exception:
+            pass
+
+    if not clicked:
+        # Fallback: JS text match on nav area
+        res = page.evaluate("""
+            ([txt]) => {
+                for (const el of document.querySelectorAll('a,div,span')) {
+                    if (!el.offsetParent) continue;
+                    if (el.textContent.trim() !== txt) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.y > 280 || r.y < 220) continue;
+                    el.click();
+                    return true;
+                }
+                return false;
+            }
+        """, [tab_name])
+        page.wait_for_timeout(2500)
+        if not res:
+            print(f"  Tab '{tab_name}' not found — skipping")
+            schema[tab_name] = {"error": "tab not found", "modules": {}}
+            return
 
     ss(page, f"tab_{tab_name[:15].replace(' ','_')}_overview")
-
-    # Expand Show More to see all tiles and quick actions
     click_show_more(page)
+    page.wait_for_timeout(1000)
     ss(page, f"tab_{tab_name[:15].replace(' ','_')}_expanded")
 
-    tiles = get_tiles(page)
+    # Use scroll-based enumeration to capture ALL tiles (including off-viewport)
+    tiles_all = get_all_tiles_with_scroll(page)
     quick_actions = get_quick_actions(page)
 
-    print(f"  Tiles ({len(tiles)}): {[t['text'] for t in tiles]}")
-    print(f"  Quick Actions ({len(quick_actions)}): {[q['text'] for q in quick_actions]}")
+    # Filter out nav links (y < 290 tiles already excluded inside get_all_tiles_with_scroll)
+    # Additional filter: exclude very short strings and known nav items
+    tiles_all = [t for t in tiles_all if len(t['text']) >= 3 and len(t['text']) <= 80]
+
+    print(f"  Tiles ({len(tiles_all)}): {[t['text'] for t in tiles_all]}")
+    print(f"  Quick Actions ({len(quick_actions)}): {[q['text'] for q in quick_actions[:8]]}")
 
     schema[tab_name] = {
-        "tiles": [t['text'] for t in tiles],
+        "tiles": [t['text'] for t in tiles_all],
         "quick_actions": [q['text'] for q in quick_actions],
         "modules": {}
     }
 
-    # Navigate into each tile and map its task panel
-    for tile in tiles:
+    # Navigate into each tile using text-based navigation
+    for tile in tiles_all:
         try:
             map_module(page, tab_name, tile, schema)
             # Return to this tab after module exploration
-            try:
-                page.locator(f"a:has-text('{tab_name}')").first.click(timeout=8000)
-                page.wait_for_timeout(2000)
-                click_show_more(page)
-            except Exception:
-                go_home(page)
+            returned = False
+            for attempt in [f"a:has-text('{tab_name}')", f"[role='tab']:has-text('{tab_name}')"]:
                 try:
-                    page.locator(f"a:has-text('{tab_name}')").first.click(timeout=8000)
+                    page.locator(attempt).first.click(timeout=6000)
                     page.wait_for_timeout(2000)
                     click_show_more(page)
+                    page.wait_for_timeout(500)
+                    returned = True
+                    break
                 except Exception:
                     pass
-            # Re-fetch tiles after navigation (positions may have changed)
-            tiles_fresh = get_tiles(page)
-            # Find this tile again by text
-            tile_match = next((t for t in tiles_fresh if t['text'] == tile['text']), None)
-            if tile_match:
-                tile['cx'] = tile_match['cx']
-                tile['cy'] = tile_match['cy']
+            if not returned:
+                go_home(page)
+                try:
+                    page.locator(f"a:has-text('{tab_name}')").first.click(timeout=6000)
+                    page.wait_for_timeout(2000)
+                    click_show_more(page)
+                    page.wait_for_timeout(500)
+                except Exception:
+                    pass
         except Exception as ex:
             print(f"    Error mapping {tile['text']}: {ex}")
             schema[tab_name]["modules"][tile['text']] = {"error": str(ex)}
@@ -459,8 +611,8 @@ def main():
         load_cookies(ctx)
 
         page.goto(f"{HOST}/fscmUI/faces/FuseWelcome",
-                  wait_until="networkidle", timeout=120_000)
-        page.wait_for_timeout(2000)
+                  wait_until="domcontentloaded", timeout=120_000)
+        page.wait_for_timeout(3000)
         print(f"Home loaded: {page.title()}")
 
         for tab_name in TOP_NAV_TABS:

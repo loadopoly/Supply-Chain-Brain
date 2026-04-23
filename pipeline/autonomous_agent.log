@@ -53,3 +53,21 @@
 2026-04-22 15:43:01,353 - [AUTONOMOUS AGENT] - Exported: c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\rdp_files\laptop.rdp  (endpoint: 172.16.4.75:3389)
 2026-04-22 15:43:01,353 - [AUTONOMOUS AGENT] - RDP files refreshed: ['desktop', 'crp-fs03', 'laptop'] \u2192 c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\rdp_files
 2026-04-22 15:43:01,355 - [AUTONOMOUS AGENT] - host_status.json written: c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\host_status.json
+2026-04-22 23:15:53,628 - [AUTONOMOUS AGENT] - [synapse:builder] started — interval=10min window=24h
+2026-04-22 23:15:53,628 - [AUTONOMOUS AGENT] - [synapse:lookahead] started — interval=15min windows=7d/30d/90d rotating
+2026-04-22 23:15:53,629 - [AUTONOMOUS AGENT] - [synapse:sweeper] started — interval=20min mode=connector-rotation
+2026-04-22 23:15:53,629 - [AUTONOMOUS AGENT] - [synapse:convergence] started — interval=30min
+2026-04-22 23:15:54,377 - [AUTONOMOUS AGENT] - Continuous synaptic agents started: synapse-builder, synapse-lookahead, synapse-sweeper, synapse-convergence (4 threads, all daemon).
+2026-04-22 23:15:57,379 - [AUTONOMOUS AGENT] - Continuous synaptic agents stopped.
+2026-04-23 08:17:35,052 - [AUTONOMOUS AGENT] - [synapse:builder] started — interval=10min window=24h
+2026-04-23 08:17:35,052 - [AUTONOMOUS AGENT] - [synapse:lookahead] started — interval=15min windows=7d/30d/90d rotating
+2026-04-23 08:17:35,052 - [AUTONOMOUS AGENT] - [synapse:sweeper] started — interval=20min mode=connector-rotation
+2026-04-23 08:17:35,053 - [AUTONOMOUS AGENT] - [synapse:convergence] started — interval=30min
+2026-04-23 08:17:35,058 - [AUTONOMOUS AGENT] - Continuous synaptic agents started: synapse-builder, synapse-lookahead, synapse-sweeper, synapse-convergence (4 threads, all daemon).
+2026-04-23 08:17:36,089 - [AUTONOMOUS AGENT] - Continuous synaptic agents stopped.
+2026-04-23 08:17:36,090 - [AUTONOMOUS AGENT] - [synapse:builder] started — interval=10min window=24h
+2026-04-23 08:17:36,091 - [AUTONOMOUS AGENT] - [synapse:lookahead] started — interval=15min windows=7d/30d/90d rotating
+2026-04-23 08:17:36,092 - [AUTONOMOUS AGENT] - [synapse:sweeper] started — interval=20min mode=connector-rotation
+2026-04-23 08:17:36,093 - [AUTONOMOUS AGENT] - [synapse:convergence] started — interval=30min
+2026-04-23 08:17:36,101 - [AUTONOMOUS AGENT] - Continuous synaptic agents started: synapse-builder, synapse-lookahead, synapse-sweeper, synapse-convergence (4 threads, all daemon).
+2026-04-23 08:17:36,107 - [AUTONOMOUS AGENT] - Continuous synaptic agents stopped.

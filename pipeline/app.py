@@ -64,6 +64,9 @@ pg = st.navigation({
         st.Page(str(_P / "15_Report_Creator.py"),      title="Report Creator",     icon="📊"),
         st.Page(str(_P / "16_Cycle_Count_Accuracy.py"),title="Cycle Count Accuracy", icon="🔄"),
     ],
+    "🤖 AI": [
+        st.Page(str(_P / "17_Document_RAG.py"),        title="Document Analysis",  icon="📄"),
+    ],
 })
 
 from src.brain.data_access import query_df

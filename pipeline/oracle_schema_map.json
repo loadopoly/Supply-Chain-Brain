@@ -1,0 +1,42 @@
+{
+  "Sales": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Service": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Order Management": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Supply Chain Execution": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Supply Chain Planning": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Product Management": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "General Accounting": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Procurement": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Tools": {
+    "error": "tab not found",
+    "modules": {}
+  },
+  "Others": {
+    "error": "tab not found",
+    "modules": {}
+  }
+}
