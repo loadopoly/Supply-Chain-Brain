@@ -571,7 +571,7 @@ def _gen_mission_signals(cn) -> list[Directive]:
         quest_id = getattr(m, "quest_id", "") or ""
         try:
             quest = quests.get_quest(quest_id)
-            quest_label = quest.label if quest else quest_id
+            quest_label = quest.name if quest else quest_id
         except Exception:
             quest_label = quest_id
         parsed_intent = getattr(m, "parsed_intent", {}) or {}
@@ -611,32 +611,21 @@ def _gen_mission_signals(cn) -> list[Directive]:
                           "site": site, "target": f"{target_kind}:{target_key}"},
             ))
 
-        # 2) Hot findings?
+        # 2) Hot findings? — findings live in findings_index.db, not the
+        # local brain DB, so always query the right connection directly.
+        n_hot = 0
         try:
-            hot = cn.execute(
-                """SELECT COUNT(*) AS n FROM findings
-                    WHERE json_extract(payload_json, '$.mission_id') = ?
-                      AND score >= 0.7""",
-                (mid,),
-            ).fetchone()
-        except sqlite3.OperationalError:
-            hot = None
-        # findings live in findings_index.db, not the local brain DB the
-        # generator was handed — so query the right connection if local missed.
-        n_hot = int((hot or {"n": 0})["n"]) if hot else 0
-        if n_hot == 0:
-            try:
-                with findings_index._conn() as fcn:
-                    fcn.row_factory = sqlite3.Row
-                    row = fcn.execute(
-                        """SELECT COUNT(*) AS n FROM findings
-                            WHERE json_extract(payload_json, '$.mission_id') = ?
-                              AND score >= 0.7""",
-                        (mid,),
-                    ).fetchone()
-                    n_hot = int(row["n"]) if row else 0
-            except Exception:
-                n_hot = 0
+            with findings_index._conn() as fcn:
+                fcn.row_factory = sqlite3.Row
+                row = fcn.execute(
+                    """SELECT COUNT(*) AS n FROM findings
+                        WHERE json_extract(payload_json, '$.mission_id') = ?
+                          AND score >= 0.7""",
+                    (mid,),
+                ).fetchone()
+                n_hot = int(row["n"]) if row else 0
+        except Exception:
+            n_hot = 0
         if n_hot >= 5:
             prio = float(min(1.0, 0.6 + n_hot / 50.0))
             out.append(Directive(
@@ -690,6 +679,114 @@ def _gen_mission_signals(cn) -> list[Directive]:
     return out
 
 
+def _gen_corpus_stagnation(cn) -> list[Directive]:
+    """Detect when the RAG deepdive has been running but producing zero edges.
+
+    If the last 3+ learning_log entries for kind='rag_deepdive' all report
+    zero edges_discovered, the explored-pair cache is saturated — the Brain
+    needs fresh data to find new pathways. Surface a directive so the User
+    knows to check ERP/Azure SQL connectivity or to clear the cache.
+    """
+    out: list[Directive] = []
+    try:
+        rows = cn.execute(
+            """SELECT id, logged_at, signal_strength
+               FROM learning_log
+               WHERE kind='rag_deepdive'
+                 AND logged_at >= datetime('now', '-48 hour')
+               ORDER BY id DESC LIMIT 5"""
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return out
+    if len(rows) < 3:
+        return out
+    # All recent deepdive entries have zero signal = no new edges
+    if all(float(r["signal_strength"] or 0.0) == 0.0 for r in rows):
+        out.append(Directive(
+            source="corpus",
+            signal_kind="corpus_rag_saturated",
+            title="RAG deepdive has discovered 0 new edges in last 48 h — corpus saturated",
+            why_it_matters=(
+                "The explored-pair cache in brain_kv is exhausted. The Brain is "
+                "re-traversing known paths without finding new knowledge. Fresh "
+                "data from ERP or a cache reset would unlock deeper learning."
+            ),
+            do_this=(
+                "Run `python -c \"from pipeline.autonomous_agent import _kv_write; "
+                "_kv_write('rag_explored_pairs', '[]')\"` to clear the explored "
+                "cache, then verify ERP / Azure SQL data sources are active. "
+                "Alternatively, check if corpus_entity has grown since last week."
+            ),
+            owner_role="IT",
+            priority=0.50,
+            severity="watch",
+            target_entity=None,
+            evidence={"recent_deepdive_entries": len(rows)},
+        ))
+    return out
+
+
+def _gen_doc_rag_coverage(cn) -> list[Directive]:
+    """Alert when doc RAG documents exist but the index is stale or missing.
+
+    Checks whether Markdown files in ``pipeline/data/documents/`` are newer
+    than the last ``doc_rag_last_index`` timestamp in ``brain_kv``. If so,
+    the FAISS index is stale and DBI insight calls are missing context.
+    """
+    out: list[Directive] = []
+    try:
+        import os
+        from pathlib import Path
+        doc_dir = _PIPELINE_ROOT / "data" / "documents"
+        if not doc_dir.is_dir():
+            return out
+        md_files = list(doc_dir.rglob("*.md"))
+        if not md_files:
+            return out
+
+        last_indexed_ts = 0.0
+        try:
+            row = cn.execute(
+                "SELECT value FROM brain_kv WHERE key='doc_rag_last_index'"
+            ).fetchone()
+            if row:
+                last_indexed_ts = float(row[0] or 0)
+        except sqlite3.OperationalError:
+            pass
+
+        newest_doc_ts = max(f.stat().st_mtime for f in md_files)
+        n_stale = sum(
+            1 for f in md_files if f.stat().st_mtime > last_indexed_ts
+        )
+        if n_stale == 0:
+            return out
+
+        prio = float(min(0.65, 0.35 + n_stale / 20.0))
+        out.append(Directive(
+            source="corpus",
+            signal_kind="doc_rag_stale_index",
+            title=f"{n_stale} document(s) in data/documents/ not yet indexed for RAG",
+            why_it_matters=(
+                "The Brain's DBI insight engine uses the FAISS document index "
+                "as a third retrieval source. Stale or missing indexing means "
+                "LLM answers lack the context captured in your process documents."
+            ),
+            do_this=(
+                "The autonomous agent will re-index within 6 hours automatically. "
+                "To force it now: `cd pipeline; python -c \"from src.brain.doc_rag "
+                "import index_documents; index_documents(fresh=True)\"`"
+            ),
+            owner_role="IT",
+            priority=prio,
+            severity=_severity(prio),
+            target_entity=None,
+            evidence={"stale_docs": n_stale, "total_docs": len(md_files)},
+        ))
+    except Exception as _e:
+        logging.debug(f"_gen_doc_rag_coverage: {_e}")
+    return out
+
+
 _GENERATORS: list[Callable] = [
     _gen_low_dispatch_quality,
     _gen_peer_unreachable,
@@ -698,6 +795,8 @@ _GENERATORS: list[Callable] = [
     _gen_high_centrality_part,
     _gen_weak_llm_weights,
     _gen_mission_signals,
+    _gen_corpus_stagnation,
+    _gen_doc_rag_coverage,
 ]
 
 
