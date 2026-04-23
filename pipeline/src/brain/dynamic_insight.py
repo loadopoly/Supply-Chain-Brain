@@ -125,10 +125,30 @@ class BrainInsightWorker:
                     "Top spend concentration within acceptable Herfindahl bounds."
                 )
             elif "Data Quality" in p:
+                pct_miss  = context_dict.get("dbi_pct_missing", None)
+                null_ct   = context_dict.get("dbi_null_cells",  None)
+                n_rows    = context_dict.get("dbi_rows",        None)
+                n_cols    = context_dict.get("dbi_cols",        None)
+                if pct_miss is not None:
+                    miss_color  = "🔴" if pct_miss >= 50 else "🟡" if pct_miss >= 20 else "🟢"
+                    miss_verb   = ("critical — urgent remediation required" if pct_miss >= 50
+                                   else "warning — review upstream data sources" if pct_miss >= 20
+                                   else "healthy data coverage")
+                    pct_str = (
+                        f" {miss_color} Overall missing rate: **{pct_miss}%** ({null_ct:,} null cells "
+                        f"across {n_rows:,} rows × {n_cols} columns) — {miss_verb}."
+                    )
+                    action = ("Trace root cause before running analysis." if pct_miss >= 50
+                              else "Use the Value of Information tab to prioritise high-VOI fills first."
+                              if pct_miss >= 20
+                              else "Imputation optional; proceed with current dataset.")
+                else:
+                    pct_str = ""
+                    action  = "Flag any columns above 5% null threshold for upstream remediation."
                 insight = (
-                    f"Data quality audit — **{site}** · {window_str}. "
-                    "Null-rate and format-compliance checks run across active tables. "
-                    "Flag any columns above 5% null threshold for upstream remediation."
+                    f"Data quality audit — **{site}** · {window_str}.{pct_str} "
+                    f"Null-rate and format-compliance checks run across active tables. {action} "
+                    "Open the Value of Information tab to rank missing cells by predictive leverage."
                 )
             elif "Lead" in p and "Survival" in p:
                 insight = (
@@ -239,12 +259,42 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
         else insight
     )
 
+    # ── Liveness fingerprint ─────────────────────────────────────────────
+    # We hash insight text + a small subset of the relational context so the
+    # rendered card animates whenever either changes. The Playwright suite
+    # asserts that hovering / interacting with charts updates this digest.
+    import hashlib as _hl, time as _tm
+    digest = _hl.md5(
+        (str(insight) + "|" + ",".join(
+            f"{k}={context_dict.get(k)}"
+            for k in sorted(context_dict)
+            if k.startswith(("g_", "kg_", "dbi_"))
+        )).encode("utf-8")
+    ).hexdigest()[:10]
+    last_key = f"_dbi_last_digest_{page_name}"
+    prev = st.session_state.get(last_key)
+    updated_flag = "1" if prev and prev != digest else "0"
+    st.session_state[last_key] = digest
+    ts = _tm.strftime("%H:%M:%S")
+
     # .dbi-container class is preserved so Playwright / test selectors still work.
+    # data-testid + data-page + data-digest enable robust E2E assertions.
     st.markdown(
-        f"""<div class="dbi-container" style="background:#f0f2f6;border-left:4px solid #0068c9;
-        padding:.75rem 1rem;border-radius:.4rem;margin-bottom:.25rem;
-        color:#31333f;font-family:'Source Sans Pro',sans-serif;">
-        🧠 <b>Dynamic Brain Insight ({page_name}):</b><br>{body}
+        f"""<div class="dbi-container"
+            data-testid="dbi-card"
+            data-page="{page_name}"
+            data-digest="{digest}"
+            data-dbi-updated="{updated_flag}"
+            data-loading="{'1' if loading else '0'}"
+            role="status" aria-live="polite"
+            style="background:#f0f2f6;border-left:4px solid #0068c9;
+            padding:.75rem 1rem;border-radius:.4rem;margin-bottom:.25rem;
+            color:#31333f;font-family:'Source Sans Pro',sans-serif;">
+        🧠 <b>Dynamic Brain Insight ({page_name}):</b>
+        <span data-testid="dbi-stamp" style="float:right;font-size:.7rem;color:#64748b;">
+            {digest} · {ts}
+        </span><br>
+        <span data-testid="dbi-body">{body}</span>
         </div>""",
         unsafe_allow_html=True,
     )
@@ -265,7 +315,7 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
             k: v for k, v in context_dict.items()
             if v is not None and str(v).strip()
         }
-        with st.popover("🔍 Parameters"):
+        with st.expander(f"🔍 Parameters · {source_label}", expanded=False):
             st.caption(f"**Insight source:** {source_label}")
             st.divider()
             st.markdown("**Relational Parameters Read by Brain:**")

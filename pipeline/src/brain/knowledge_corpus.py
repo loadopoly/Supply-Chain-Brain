@@ -366,6 +366,282 @@ def _ingest_promotions(cn, stats: _Stats, since_id: int) -> int:
     return last
 
 
+def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
+    """Promote ml_research learning_log entries into the corpus graph.
+
+    Reads every ``kind='ml_research'`` row in ``learning_log`` with
+    ``id > since_id`` and upserts:
+
+    * ``MLPaper``       — one entity per paper (entity_id = arxiv_id or title slug)
+    * ``MLDataset``     — one entity per HF dataset (entity_id = dataset_id)
+    * ``ResearchTopic`` — one entity per supply-chain query string
+    * Edges:
+        - ``MLPaper    ─RESEARCHED_FOR─► ResearchTopic``
+        - ``MLDataset  ─APPLIES_TO────► ResearchTopic``
+        - keyword-based ``INFORMS`` edges to any existing ``Task`` entities
+          whose label overlaps a paper's keywords or title tokens
+
+    Every paper/dataset also reinforces the corpus on repeat corpus rounds
+    (samples counter increments), so the RAG deepdive traverses the
+    freshest, most-cited ML context each cycle.
+    """
+    try:
+        rows = cn.execute(
+            """SELECT id, logged_at, title, detail, signal_strength
+               FROM learning_log
+               WHERE kind='ml_research' AND id > ?
+               ORDER BY id LIMIT 300""",
+            (int(since_id),),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return since_id   # learning_log may not exist yet
+
+    # Pre-fetch existing Task entity labels for keyword cross-linking
+    try:
+        task_rows = cn.execute(
+            "SELECT entity_id, label FROM corpus_entity WHERE entity_type='Task'"
+        ).fetchall()
+        task_labels = {(r["label"] or r["entity_id"]).lower(): r["entity_id"]
+                       for r in task_rows}
+    except Exception:
+        task_labels = {}
+
+    last = since_id
+    for r in rows:
+        last = max(last, int(r["id"]))
+        try:
+            detail = json.loads(r["detail"] or "{}")
+        except Exception:
+            detail = {}
+
+        topic_str = (detail.get("topic") or "").strip()
+        signal = float(r["signal_strength"] or 0.3)
+        entry_type = detail.get("type", "")
+
+        # Upsert ResearchTopic entity
+        if topic_str:
+            for t in topic_str.split(","):
+                t = t.strip()
+                if t:
+                    _upsert_entity(cn, stats, entity_id=t,
+                                   entity_type="ResearchTopic", label=t)
+
+        if entry_type == "paper":
+            paper = detail.get("paper") or {}
+            arxiv_id = (paper.get("arxiv_id") or "").strip()
+            title_raw = (paper.get("title") or "").strip()
+            entity_id = arxiv_id or title_raw[:80] or r["title"][:80]
+            if not entity_id:
+                continue
+
+            props = {
+                "arxiv_id": arxiv_id,
+                "url": paper.get("url", ""),
+                "upvotes": paper.get("upvotes", 0),
+                "citations": paper.get("citations", 0),
+                "year": paper.get("year"),
+                "source": paper.get("source", ""),
+                "keywords": paper.get("keywords", []),
+            }
+            _upsert_entity(cn, stats, entity_id=entity_id,
+                           entity_type="MLPaper",
+                           label=title_raw or entity_id,
+                           props=props)
+
+            # Paper → ResearchTopic edges
+            if topic_str:
+                for t in topic_str.split(","):
+                    t = t.strip()
+                    if t:
+                        _upsert_edge(cn, stats,
+                                     src_id=entity_id, src_type="MLPaper",
+                                     dst_id=t, dst_type="ResearchTopic",
+                                     rel="RESEARCHED_FOR", weight=signal)
+
+            # Keyword cross-link to Task entities already in corpus
+            kw_tokens = set()
+            for kw in (paper.get("keywords") or []):
+                kw_tokens.update(kw.lower().split())
+            title_tokens = set((title_raw or "").lower().split())
+            all_tokens = kw_tokens | title_tokens
+            for task_label_lower, task_id in task_labels.items():
+                task_tokens = set(task_label_lower.split())
+                if len(task_tokens & all_tokens) >= 2:
+                    _upsert_edge(cn, stats,
+                                 src_id=entity_id, src_type="MLPaper",
+                                 dst_id=task_id, dst_type="Task",
+                                 rel="INFORMS", weight=signal)
+
+        elif entry_type == "dataset":
+            ds = detail.get("dataset") or {}
+            ds_id = (ds.get("dataset_id") or "").strip()
+            if not ds_id:
+                continue
+
+            props = {
+                "url": ds.get("url", ""),
+                "downloads": ds.get("downloads", 0),
+                "likes": ds.get("likes", 0),
+                "tags": ds.get("tags", []),
+            }
+            _upsert_entity(cn, stats, entity_id=ds_id,
+                           entity_type="MLDataset", label=ds_id, props=props)
+
+            # Dataset → ResearchTopic edges
+            if topic_str:
+                for t in topic_str.split(","):
+                    t = t.strip()
+                    if t:
+                        _upsert_edge(cn, stats,
+                                     src_id=ds_id, src_type="MLDataset",
+                                     dst_id=t, dst_type="ResearchTopic",
+                                     rel="APPLIES_TO", weight=signal)
+
+        elif detail.get("prompt"):
+            # ml-intern deep-research output — represent as an MLInsight entity
+            prompt = (detail.get("prompt") or "")[:80]
+            entity_id = f"ml_intern::{prompt}"
+            _upsert_entity(cn, stats, entity_id=entity_id,
+                           entity_type="MLInsight", label=prompt,
+                           props={"prompt": prompt,
+                                  "output_preview": (detail.get("output") or "")[:200]})
+            if topic_str:
+                _upsert_edge(cn, stats,
+                             src_id=entity_id, src_type="MLInsight",
+                             dst_id=topic_str.split(",")[0].strip(),
+                             dst_type="ResearchTopic",
+                             rel="SYNTHESIZED_FOR", weight=signal)
+
+    return last
+
+
+def _ingest_ocw_courses(cn, stats: _Stats, since_id: int) -> int:
+    """Promote MIT OCW course discoveries into the corpus graph.
+
+    Reads every ``kind='ocw_course'`` row in ``learning_log`` with
+    ``id > since_id`` and upserts:
+
+    * ``OCWCourse``         — one entity per course slug (entity_id = course_id)
+    * ``AcademicTopic``     — one entity per OCW search query (entity_id = query)
+    * ``SystemsEngDomain``  — one entity per extracted subject tag
+      (e.g. "Systems Engineering", "Operations Research", "Logistics")
+    * Edges:
+        - ``OCWCourse   ─TEACHES──────► AcademicTopic``
+        - ``OCWCourse   ─BELONGS_TO──► SystemsEngDomain``
+        - ``AcademicTopic ─GROUNDS────► ResearchTopic``  (cross-link to ML topics)
+        - ``OCWCourse   ─INFORMS─────► Task``            (when title tokens match)
+
+    This wires MIT's academic course catalogue into the same entity graph
+    that holds ML papers, supply-chain tasks, and network peers — giving the
+    RAG deepdive and synaptic agents a path from "supply chain planning" as a
+    real-world task all the way back to the MIT course that originally
+    formalised that theory.
+    """
+    try:
+        rows = cn.execute(
+            """SELECT id, logged_at, title, detail, signal_strength
+               FROM learning_log
+               WHERE kind='ocw_course' AND id > ?
+               ORDER BY id LIMIT 300""",
+            (int(since_id),),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return since_id
+
+    # Pre-fetch Task labels for cross-linking academic topics → operational tasks
+    try:
+        task_rows = cn.execute(
+            "SELECT entity_id, label FROM corpus_entity WHERE entity_type='Task'"
+        ).fetchall()
+        task_labels = {(r["label"] or r["entity_id"]).lower(): r["entity_id"]
+                       for r in task_rows}
+    except Exception:
+        task_labels = {}
+
+    # Pre-fetch ResearchTopic ids for academic→ML cross-links
+    try:
+        rt_rows = cn.execute(
+            "SELECT entity_id FROM corpus_entity WHERE entity_type='ResearchTopic'"
+        ).fetchall()
+        research_topics = {r["entity_id"].lower(): r["entity_id"] for r in rt_rows}
+    except Exception:
+        research_topics = {}
+
+    last = since_id
+    for r in rows:
+        last = max(last, int(r["id"]))
+        try:
+            detail = json.loads(r["detail"] or "{}")
+        except Exception:
+            detail = {}
+
+        course = detail.get("course") or {}
+        topic_str = (detail.get("topic") or "").strip()
+        signal = float(r["signal_strength"] or 0.8)
+
+        course_id   = (course.get("course_id") or "").strip()
+        title_raw   = (course.get("title") or "").strip()
+        url         = course.get("url", "")
+        course_num  = course.get("course_number", "")
+        subjects    = course.get("subjects") or []
+        query       = (course.get("query") or topic_str).strip()
+
+        if not course_id:
+            continue
+
+        # Upsert OCWCourse entity
+        _upsert_entity(cn, stats, entity_id=course_id,
+                       entity_type="OCWCourse",
+                       label=title_raw or course_id,
+                       props={"url": url, "course_number": course_num,
+                              "subjects": subjects, "query": query})
+
+        # Upsert AcademicTopic entity (the OCW search query)
+        if query:
+            _upsert_entity(cn, stats, entity_id=query,
+                           entity_type="AcademicTopic", label=query)
+            _upsert_edge(cn, stats,
+                         src_id=course_id, src_type="OCWCourse",
+                         dst_id=query, dst_type="AcademicTopic",
+                         rel="TEACHES", weight=signal)
+
+            # Cross-link AcademicTopic → ResearchTopic if any ML topic is close
+            query_lower = query.lower()
+            for rt_lower, rt_id in research_topics.items():
+                # Match on 2+ overlapping tokens
+                qt = set(query_lower.split())
+                rt = set(rt_lower.split())
+                if len(qt & rt) >= 2:
+                    _upsert_edge(cn, stats,
+                                 src_id=query, src_type="AcademicTopic",
+                                 dst_id=rt_id, dst_type="ResearchTopic",
+                                 rel="GROUNDS", weight=0.7)
+
+        # Upsert SystemsEngDomain entities for each subject tag
+        for subj in subjects:
+            subj = subj.strip()
+            if not subj:
+                continue
+            _upsert_entity(cn, stats, entity_id=subj,
+                           entity_type="SystemsEngDomain", label=subj)
+            _upsert_edge(cn, stats,
+                         src_id=course_id, src_type="OCWCourse",
+                         dst_id=subj, dst_type="SystemsEngDomain",
+                         rel="BELONGS_TO", weight=signal)
+
+        # Cross-link OCWCourse → Task when 2+ title tokens match task labels
+        title_tokens = set((title_raw or "").lower().split())
+        for task_label_lower, task_id in task_labels.items():
+            task_tokens = set(task_label_lower.split())
+            if len(task_tokens & title_tokens) >= 2:
+                _upsert_edge(cn, stats,
+                             src_id=course_id, src_type="OCWCourse",
+                             dst_id=task_id, dst_type="Task",
+                             rel="INFORMS", weight=signal)
+
+    return last
+
+
 def _ingest_part_category(cn, stats: _Stats) -> int:
     try:
         rows = cn.execute(
@@ -684,6 +960,12 @@ def refresh_corpus_round() -> dict:
         c_msn = _get_cursor(cn, "missions")
         try: c_msn = _ingest_missions(cn, stats, c_msn)
         except Exception as e: notes.append(f"missions: {e}")
+        c_mlr = _get_cursor(cn, "ml_research")
+        try: c_mlr = _ingest_ml_research(cn, stats, c_mlr)
+        except Exception as e: notes.append(f"ml_research: {e}")
+        c_ocw = _get_cursor(cn, "ocw_courses")
+        try: c_ocw = _ingest_ocw_courses(cn, stats, c_ocw)
+        except Exception as e: notes.append(f"ocw_courses: {e}")
 
         _set_cursor(cn, "self_train",  c_st)
         _set_cursor(cn, "dispatch",    c_dsp)
@@ -691,6 +973,8 @@ def refresh_corpus_round() -> dict:
         _set_cursor(cn, "promotions",  c_prm)
         _set_cursor(cn, "body_feedback", c_bf)
         _set_cursor(cn, "missions",    c_msn)
+        _set_cursor(cn, "ml_research", c_mlr)
+        _set_cursor(cn, "ocw_courses", c_ocw)
 
         graph_backend = ((load_config().get("graph") or {}).get("backend")) or "networkx"
 

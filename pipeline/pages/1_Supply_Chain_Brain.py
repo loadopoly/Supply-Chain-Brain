@@ -142,13 +142,50 @@ st.session_state["dbi_actual_so"]    = n_s
 ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
 render_dynamic_brain_insight('Supply Chain Brain', ctx)
 
-# ── KPI strip ────────────────────────────────────────────────────────────────
+# ── KPI strip (with per-metric Brain insight) ────────────────────────────────
 k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("🔩 Parts",       f"{n_p:,}")
-k2.metric("📋 PO Receipts", f"{n_r:,}")
-k3.metric("🛒 SO Lines",    f"{n_s:,}")
-k4.metric("🕸 Graph Edges", f"{g.g.number_of_edges():,}")
-k5.metric("🔗 Graph Nodes", f"{g.g.number_of_nodes():,}")
+
+with k1:
+    st.metric("🔩 Parts", f"{n_p:,}")
+    with st.expander("🟢 Brain · Parts", expanded=False):
+        st.markdown(
+            f"**Population:** `{n_p:,}` part masters loaded.  \n"
+            "This defines the available product scope for the entire search space."
+        )
+
+with k2:
+    st.metric("📋 PO Receipts", f"{n_r:,}")
+    with st.expander("🟢 Brain · POs", expanded=False):
+        st.markdown(
+            f"**Volume:** `{n_r:,}` receipts retrieved.  \n"
+            "Supply-side relationships (Supplier -> Part) are built from these events."
+        )
+
+with k3:
+    st.metric("🛒 SO Lines", f"{n_s:,}")
+    with st.expander("🟢 Brain · SOs", expanded=False):
+        st.markdown(
+            f"**Demand:** `{n_s:,}` sales lines retrieved.  \n"
+            "Demand-side relationships (Part -> Customer) are built from these events."
+        )
+
+with k4:
+    n_edges = g.g.number_of_edges() if g and HAS_NX else 0
+    st.metric("🕸 Graph Edges", f"{n_edges:,}")
+    with st.expander("🟢 Brain · Edges", expanded=False):
+        st.markdown(
+            f"**Connectivity:** `{n_edges:,}` links identified.  \n"
+            "High edge count indicates strong cross-domain overlap."
+        )
+
+with k5:
+    n_nodes = g.g.number_of_nodes() if g and HAS_NX else 0
+    st.metric("🟣 Total Nodes", f"{n_nodes:,}")
+    with st.expander("🟢 Brain · Nodes", expanded=False):
+        st.markdown(
+            f"**Domain breadth:** `{n_nodes:,}` unique entities.  \n"
+            "Counts Suppliers, Parts, and Customers linked in the graph."
+        )
 
 # ── Errors surface ───────────────────────────────────────────────────────────
 bad = {k: v for k, v in diag.items() if v}

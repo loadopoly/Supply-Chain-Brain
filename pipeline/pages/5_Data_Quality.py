@@ -102,21 +102,107 @@ if df.empty:
 
 st.markdown(f"🟢 **Live** · {len(df):,} rows × {df.shape[1]} columns from `{default_name or 'custom SQL'}`")
 
-ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
-render_dynamic_brain_insight('Data Quality', ctx)
-
 # ── KPI Strip ─────────────────────────────────────────────────────────────────
 total_cells = df.shape[0] * df.shape[1]
 null_cells  = int(df.isnull().sum().sum())
 pct_missing = null_cells / max(total_cells, 1) * 100
 
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("📊 Rows",       f"{len(df):,}")
-k2.metric("📋 Columns",    df.shape[1])
-k3.metric("❓ Null Cells", f"{null_cells:,}")
-k4.metric("🔴 Missing %",  f"{pct_missing:.1f}%")
+# Enrich context with actual values BEFORE calling DBI so the card
+# can reference real numbers (pct_missing, null count, etc.) in its insight.
+ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
+ctx.update({
+    "dbi_pct_missing":  round(pct_missing, 2),
+    "dbi_null_cells":   null_cells,
+    "dbi_total_cells":  total_cells,
+    "dbi_rows":         len(df),
+    "dbi_cols":         df.shape[1],
+})
+render_dynamic_brain_insight('Data Quality', ctx)
 
-st.divider()
+_miss_color   = "🔴" if pct_missing >= 50 else "🟡" if pct_missing >= 20 else "🟢"
+_miss_verdict = (
+    "critical — urgent remediation required" if pct_missing >= 50 else
+    "warning — review upstream data sources" if pct_missing >= 20 else
+    "healthy — below 20 % threshold"
+)
+
+# ── Per-metric KPI cells with own DBI expander directly underneath ──────────
+# Each KPI column owns its metric + a single-click expander showing the
+# Brain's interpretation for THAT metric only. No hover, no overlay panels —
+# works reliably in VS Code Simple Browser, classic Chrome/Edge, and headless
+# Playwright. Auto-expanded when the metric crosses a concern threshold.
+
+# Pre-compute per-metric verdicts so the expander label itself signals state.
+_rows_state    = "🟢" if len(df) >= 100  else "🟡" if len(df) >= 10 else "🔴"
+_cols_state    = "🟢" if df.shape[1] <= 50 else "🟡" if df.shape[1] <= 200 else "🔴"
+_nulls_state   = "🟢" if null_cells == 0  else "🟡" if pct_missing < 20 else "🔴"
+_miss_state    = "🟢" if pct_missing < 20 else "🟡" if pct_missing < 50 else "🔴"
+
+k1, k2, k3, k4 = st.columns(4)
+
+with k1:
+    st.metric("📊 Rows", f"{len(df):,}")
+    with st.expander(f"{_rows_state} Brain · Rows", expanded=False):
+        st.markdown(
+            f"**Population size:** `{len(df):,}` records.  \n"
+            + ("⚠️ Sample is **too small** for reliable statistics — "
+               "increase connector row limit or widen the date range."
+               if len(df) < 10 else
+               "⚠️ Modest sample — directional only; widen the window for stronger inference."
+               if len(df) < 100 else
+               "✅ Sufficient sample for descriptive metrics. "
+               "All quality calculations below use this full population.")
+        )
+
+with k2:
+    st.metric("📋 Columns", df.shape[1])
+    with st.expander(f"{_cols_state} Brain · Columns", expanded=False):
+        st.markdown(
+            f"**Feature width:** `{df.shape[1]}` columns.  \n"
+            + ("✅ Compact schema — easy to audit; sparse columns will be obvious."
+               if df.shape[1] <= 50 else
+               "⚠️ Wide schema — likelihood of sparse / redundant features rises. "
+               "Rank by null rate in **Missingness Profile** tab."
+               if df.shape[1] <= 200 else
+               "🔴 Very wide schema — strong candidates for dimensionality reduction. "
+               "Drop columns with > 80 % missing before modelling.")
+        )
+
+with k3:
+    st.metric("❓ Null Cells", f"{null_cells:,}")
+    with st.expander(f"{_nulls_state} Brain · Null Cells", expanded=null_cells > 0 and pct_missing >= 20):
+        st.markdown(
+            f"**Absolute nulls:** `{null_cells:,}` of `{total_cells:,}` total cells "
+            f"(`{len(df):,}` rows × `{df.shape[1]}` cols).  \n"
+            + ("✅ Zero nulls — dataset is fully populated."
+               if null_cells == 0 else
+               f"Each null is a missed observation. Use the **Value of Information** "
+               f"tab to rank which of these `{null_cells:,}` cells would unlock the most "
+               f"predictive signal if filled, then **Mass Impute** to bulk-fill.")
+        )
+
+with k4:
+    st.metric("🔴 Missing %", f"{pct_missing:.1f}%")
+    with st.expander(f"{_miss_state} Brain · Missing %", expanded=pct_missing >= 20):
+        st.markdown(
+            f"**Coverage rate:** `{pct_missing:.1f}%` missing — _{_miss_verdict}_.  \n\n"
+            "| Threshold | Status | Recommended action |\n"
+            "|-----------|--------|--------------------|\n"
+            "| `< 20 %`  | 🟢 Healthy | Imputation optional |\n"
+            "| `20 – 50 %` | 🟡 Degrades models | Fill high-VOI columns first |\n"
+            "| `> 50 %`  | 🔴 Too sparse | Trace root cause before analysis |\n\n"
+            + (
+                "🔧 **Action now:** Trace root cause before running analysis — "
+                "data too sparse for reliable modelling."
+                if pct_missing >= 50 else
+                "🔧 **Action now:** Open the **Value of Information** tab and fill "
+                "the top-ranked columns first; they unlock the most signal per cell."
+                if pct_missing >= 20 else
+                "✅ **Action now:** Coverage is healthy. Proceed with current dataset; "
+                "imputation is optional."
+            )
+        )
+
 
 tab1, tab2, tab3 = st.tabs(["🔍 Missingness Profile","💡 Value of Information","🔧 Mass Impute"])
 
@@ -156,9 +242,16 @@ with tab1:
             fig_heat.update_layout(paper_bgcolor="#0f172a", height=400)
             st.plotly_chart(fig_heat, use_container_width=True)
 
+        with st.expander("❓ Help · Missingness Table", expanded=False):
+            st.markdown(
+                f"**{ych}**: Percentage of rows where this column is NULL (0–100%).  \n"
+                f"**{xch}**: Source column / feature name as it appears in the live query."
+            )
         st.dataframe(sorted_p, use_container_width=True, hide_index=True,
-                     column_config={ych: st.column_config.ProgressColumn(
-                         ych, min_value=0, max_value=1)})
+                     column_config={
+                         ych: st.column_config.ProgressColumn(ych, min_value=0, max_value=1),
+                         xch: st.column_config.TextColumn(xch),
+                     })
 
 with tab2:
     st.subheader("💡 Value of Information — Fill These Cells First")
@@ -185,7 +278,21 @@ with tab2:
             fig_voi.update_layout(height=max(300, len(voi)*22),
                                    coloraxis_showscale=False)
             st.plotly_chart(fig_voi, use_container_width=True)
-            st.dataframe(voi, use_container_width=True, hide_index=True)
+            with st.expander("❓ Help · VOI Table Guide", expanded=False):
+                st.markdown(
+                    "**Column:** Source feature name.  \n"
+                    "**Importance:** GBT global feature importance — how strongly this column drives predictions.  \n"
+                    "**Missing %:** Percent of rows where this column is NULL.  \n"
+                    "**VOI:** Value of Information = importance × missing_pct. **Rank descending** and fill the top rows first."
+                )
+            voi_cfg = {
+                "column":      st.column_config.TextColumn("Column"),
+                "importance":  st.column_config.NumberColumn("Importance"),
+                "missing_pct": st.column_config.NumberColumn("Missing %", format="%.2f%%"),
+                "voi":         st.column_config.NumberColumn("VOI"),
+            }
+            st.dataframe(voi, use_container_width=True, hide_index=True,
+                         column_config={k: v for k, v in voi_cfg.items() if k in voi.columns})
 
 with tab3:
     st.subheader("🔧 Mass Imputation")

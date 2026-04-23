@@ -1,0 +1,13 @@
+-> Query Console                  /
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+-> Supply Chain Brain             /Supply_Chain_Brain
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+-> EOQ Deviation                  /EOQ_Deviation
+  [FAIL] present=False visible=False unclipped=False z_above=True popover=False src=False ts_tick=False digest_chg=False err=dbi-card never appeared
+-> Connectors                     /Connectors
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+-> Sustainability                 /Sustainability
+  [PASS] present=True visible=True unclipped=True z_above=True popover=True src=True ts_tick=True digest_chg=False
+
+=== DBI tooltip suite: 4/5 pages passed ===
+Detailed results → C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\tests\playwright\dbi_tooltip_results.json

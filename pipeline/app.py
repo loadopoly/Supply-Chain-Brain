@@ -42,6 +42,35 @@ div[data-testid="stPlotlyChart"] .hoverlayer {
 div[data-testid="stPlotlyChart"] .hoverlayer {
     pointer-events: none !important;
 }
+
+/* ── Dynamic Brain Insight (DBI) — robust stacking & visibility ───────────── */
+/* DBI card sits above all interactive widgets but below modals/popovers.    */
+.dbi-container {
+    position: relative !important;
+    z-index: 950 !important;
+    box-shadow: 0 2px 8px rgba(0, 104, 201, 0.12);
+}
+
+/* Make the parameter popover button visually anchored to the DBI card and  */
+/* ensure its popover surface (which Streamlit portals to <body>) floats    */
+/* above Plotly hover layers and other charts.                              */
+div[data-testid="stPopover"] {
+    z-index: 951 !important;
+}
+div[data-testid="stPopoverBody"],
+div[data-baseweb="popover"] {
+    z-index: 9999 !important;
+}
+
+/* Subtle pulse when DBI text refreshes — visual confirmation of liveness. */
+@keyframes dbiPulse {
+    0%   { box-shadow: 0 2px 8px rgba(0, 104, 201, 0.12); }
+    50%  { box-shadow: 0 2px 14px rgba(0, 104, 201, 0.32); }
+    100% { box-shadow: 0 2px 8px rgba(0, 104, 201, 0.12); }
+}
+.dbi-container[data-dbi-updated="1"] {
+    animation: dbiPulse 0.6s ease-out;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -82,6 +111,7 @@ pg = st.navigation({
     ],
     "🤖 AI": [
         st.Page(str(_P / "17_Document_RAG.py"),        title="Document Analysis",  icon="📄"),
+        st.Page(str(_P / "18_ML_Research.py"),          title="ML Research Hub",    icon="🔬"),
     ],
 })
 

@@ -5,49 +5,480 @@ Oracle Fusion Interactive Schema Map
 ============================================================
 TAB: Sales
 ============================================================
-  ERROR: tab not found
+  Tiles: Analytics
+  Quick Actions: Quick Actions, Apps, Directory, Benefits, AppsAnalytics, Analytics, AppsInstalled Base Assets, Installed Base Assets, AppsnewAstec ECN Tracking Application, new
+
+  MODULE: Analytics
+    Title: Analytics - Oracle Fusion Cloud Applications
 
 ============================================================
 TAB: Service
 ============================================================
-  ERROR: tab not found
+  Tiles: Installed Base Assets
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, AppsnewAstec ECN Tracking Application, new, Add Item, Things to Finish
+
+  MODULE: Installed Base Assets
+    Title: Installed Base Assets - Oracle Fusion Cloud Applications
 
 ============================================================
 TAB: Order Management
 ============================================================
-  ERROR: tab not found
+  Tiles: Manage Price Lists, Manage Discount Lists, Pricing Administration
+  Quick Actions: Quick Actions, Manage Price Lists, Manage Discount Lists, Show More, Add Item, Things to Finish, PreviousAssigned to Me0Created by Me0You have no open notifications.Show More, PreviousAssigned to Me0Created by Me0You have no open notifications., Assigned to Me0Created by Me0You have no open notifications., Assigned to Me0Created by Me0
+
+  MODULE: Manage Price Lists
+    Title: Manage Price Lists - Pricing Administration - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Application Default, --------, Personalize...
+    [Application Default]
+    [--------]
+    [Personalize...]
+
+  MODULE: Manage Discount Lists
+    Title: Manage Discount Lists - Pricing Administration - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Application Default, findByName, --------, Personalize...
+    [Application Default]
+    [findByName]
+    [--------]
+    [Personalize...]
+
+  MODULE: Pricing Administration
+    Title: Overview - Pricing Administration - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Manage Price Lists
+        - Manage Price Lists - New
+        - Manage Returns Price Lists
+        - Manage Cost Lists
+        - Manage Cost Lists - New
+        - Manage Discount Lists
+        - Manage Discount Lists - New
+        - Manage Customer Pricing Profiles
+        - Manage Pricing Segments
+        - Manage Pricing Strategies *** ABC ***
+        - Manage Pricing Strategy Assignments *** ABC ***
 
 ============================================================
 TAB: Supply Chain Execution
 ============================================================
-  ERROR: tab not found
+  Tiles: Manufacturing Work Definitions, Download Work Definitions to Spreadsheet, Work Definition Names, Manufacturing Work Centers, Manufacturing Work Areas, Work Definition, Work Execution, Quality Management, Inventory Management (Classic), Cost Accounting, Receipt Accounting, Financial Orchestration, Supply Orchestration, Supply Chain Orchestration
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Pricing Administration, Manufacturing Work Definitions, Download Work Definitions to Spreadsheet, Work Definition Names
+
+  MODULE: Manufacturing Work Definitions
+    Title: Work Definitions - Oracle Fusion Cloud Applications
+
+  MODULE: Download Work Definitions to Spreadsheet
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Work Definition Names
+    Title: Work Centers - Oracle Fusion Cloud Applications
+
+  MODULE: Manufacturing Work Centers
+    Title: Work Areas - Oracle Fusion Cloud Applications
+
+  MODULE: Manufacturing Work Areas
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Work Definition
+    Title: Work Definition Overview - Oracle Fusion Cloud Applications
+
+  MODULE: Work Execution
+    Title: Overview - Work Execution - Oracle Fusion Cloud Applications
+    [default]
+
+  MODULE: Quality Management
+    Title: Overview - Quality Management - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Quality Issues
+    [Quality Issues]
+
+  MODULE: Inventory Management (Classic)
+    Title: Overview - Inventory Management (Classic) - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Inventory, Counts, Shipments, Picks, Receipts
+    [Inventory]
+      Section: Unknown
+        - Manage Item Quantities
+        - Create Miscellaneous Transaction
+        - Create Subinventory Transfer
+        - Create Interorganization Transfer
+        - Manage Reservations and Picks
+        - Manage Movement Requests
+        - Manage Transfer Orders
+        - Manage Pending Transactions
+        - Review Completed Transactions
+        - Manage Reservation Interface
+        - Manage Lots
+        - Manage Serial Numbers
+        - Confirm Pick Slips
+        - Manage Inventory Balance Messages in Spreadsheet
+        - Review Item Supply and Demand
+        - Review Replenishment Requests in Spreadsheet
+        - Manage Pick Transactions from External System in Spreadsheet
+        - Review Consumption Advices
+        - Manage Consigned Inventory Aging
+        - Review Consumption Advice Exceptions
+        - Create Transfer to Owned Transaction
+        - Create Transfer to Consigned Transaction
+    [Counts]
+      Section: Unknown
+        - Create Cycle Count
+        - Manage Cycle Counts
+        - Record Count Sequences
+        - Approve Count Sequences
+        - Review Count Interface Records
+        - Manage Physical Inventories
+        - Record Physical Inventory Tags
+        - Approve Physical Inventory Adjustments
+    [Shipments]
+      Section: Unknown
+        - Manage Shipments
+        - Manage Shipment Lines
+        - Manage Shipment Message Interface
+        - Create Pick Wave
+        - Confirm Pick Slips
+        - Create Outbound Shipment Request
+        - Manage Shipping Transaction Corrections in Spreadsheet
+    [Picks]
+      Section: Unknown
+        - Create Pick Wave
+        - Confirm Pick Slips
+        - Schedule Pick Wave
+        - Create Outbound Shipment Request
+        - Manage Pick Transactions from External System in Spreadsheet
+    [Receipts]
+      Section: Unknown
+        - Receive Expected Shipments
+        - Manage Inbound Shipments
+        - Create ASN
+        - Create ASBN
+        - Upload ASN or ASBN
+        - Inspect Receipts
+        - Put Away Receipts
+        - Correct Receipts
+        - Review Receipts Interface
+        - Quality Inspection Results
+        - Create Unordered Receipt Lines
+        - Match Unordered Receipts
+        - Return Receipts
+        - Manage Supplier Returns Without Receipt
+
+  MODULE: Cost Accounting
+    Title: Overview - Cost Accounting - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Manage Cost Scenarios
+        - View Rolled-up Costs
+        - View Scenario Exceptions
+        - Compare Standard Costs
+        - Review Item Costs
+        - Analyze Standard Purchase Cost Variances
+        - Review Work Order Costs
+        - Review Maintenance Work Order Costs
+        - Review Cost Accounting Distributions
+        - Review Inventory Valuation
+        - Create Accounting
+        - Review Journal Entries
+
+  MODULE: Receipt Accounting
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Financial Orchestration
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Supply Orchestration
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Supply Chain Orchestration
+    Title: Oracle Fusion Cloud Applications
 
 ============================================================
 TAB: Supply Chain Planning
 ============================================================
-  ERROR: tab not found
+  Tiles: Manage Backlog Planning Rules, Supply Allocation Rules, Demand Priority Rules, Maintain Supply Network Model, Manage Assignment Sets, Plan Inputs, Demand Management, Supply Planning, Replenishment Planning
+  Quick Actions: Quick Actions, Manage Backlog Planning Rules, Supply Allocation Rules, Demand Priority Rules, Maintain Supply Network Model, Manage Assignment Sets, Show More, Add Item, Things to Finish, PreviousAssigned to Me0Created by Me0You have no open notifications.Show More
+
+  MODULE: Manage Backlog Planning Rules
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Supply Allocation Rules
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Demand Priority Rules
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Maintain Supply Network Model
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Manage Assignment Sets
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Plan Inputs
+    Title: Plan Inputs - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Application Default, --------, Personalize...
+    [Application Default]
+      Section: Unknown
+        - Collect Planning Data
+        - Load Planning Data from Files
+        - Maintain Supply Network Model
+        - Manage Assignment Sets
+        - Manage Sourcing Rules
+        - Manage Bills of Distribution
+        - Review Planning Calendars
+        - Review Planning Calendar Shifts
+        - Review Planning Calendar Associations
+        - Manage Planning Data Collection Processes
+        - Manage Planning Source Systems
+        - Cross-Reference Relationships for Collected Data
+        - Manage Planning Attributes
+        - Manage Project Groups
+        - Manage Attribute-Based Netting Rules
+        - Manage Segment Groups and Criteria
+        - Manage Segment Members
+        - View Segmentation Summary
+        - Manage Supply Allocation Rules
+        - Lead Time Performance Summary
+        - Lead Time Insights Parameter Configuration
+        - Administer Planning Security
+        - Configure Exceptions
+        - Configure Exception Sets
+        - Configure Planning Analytics
+        - Manage Demand Classes
+        - Manage Planning Measures
+        - Manage Planning Profile Options
+    [--------]
+      Section: Unknown
+        - Load Planning Data from Files
+        - Maintain Supply Network Model
+        - Manage Assignment Sets
+        - Manage Sourcing Rules
+        - Manage Bills of Distribution
+        - Review Planning Calendars
+        - Review Planning Calendar Shifts
+        - Review Planning Calendar Associations
+        - Manage Planning Data Collection Processes
+        - Manage Planning Source Systems
+        - Cross-Reference Relationships for Collected Data
+        - Manage Planning Attributes
+        - Manage Project Groups
+        - Manage Attribute-Based Netting Rules
+        - Manage Segment Groups and Criteria
+        - Manage Segment Members
+        - View Segmentation Summary
+        - Manage Supply Allocation Rules
+        - Lead Time Performance Summary
+        - Lead Time Insights Parameter Configuration
+        - Administer Planning Security
+        - Configure Exceptions
+        - Configure Exception Sets
+        - Configure Planning Analytics
+        - Manage Demand Classes
+        - Manage Planning Measures
+        - Manage Planning Profile Options
+    [Personalize...]
+      Section: Unknown
+        - Maintain Supply Network Model
+        - Manage Assignment Sets
+        - Manage Sourcing Rules
+        - Manage Bills of Distribution
+        - Review Planning Calendars
+        - Review Planning Calendar Shifts
+        - Review Planning Calendar Associations
+        - Manage Planning Data Collection Processes
+        - Manage Planning Source Systems
+        - Cross-Reference Relationships for Collected Data
+        - Manage Planning Attributes
+        - Manage Project Groups
+        - Manage Attribute-Based Netting Rules
+        - Manage Segment Groups and Criteria
+        - Manage Segment Members
+        - View Segmentation Summary
+        - Manage Supply Allocation Rules
+        - Lead Time Performance Summary
+        - Lead Time Insights Parameter Configuration
+        - Administer Planning Security
+        - Configure Exceptions
+        - Configure Exception Sets
+        - Configure Planning Analytics
+        - Manage Demand Classes
+        - Manage Planning Measures
+        - Manage Planning Profile Options
 
 ============================================================
 TAB: Product Management
 ============================================================
-  ERROR: tab not found
+  Tiles: Manufacturers (Classic), Browse Commercial Items, Product Development, Product Information Management
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Plan Inputs, Manufacturers (Classic), Browse Commercial Items, Show More
+
+  MODULE: Manufacturers (Classic)
+    Title: Manufacturers (Classic) - Product Development - Oracle Fusion Cloud Applications
+    Task Panel Tabs: --------, Application Default, --------, Personalize...
+    [--------]
+    [Application Default]
+    [Personalize...]
+
+  MODULE: Browse Commercial Items
+    Title: Browse Commercial Items - Product Information Management - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Application Default, UnApprovedItemSearchForCCO
+    [Application Default]
+      Section: Unknown
+        - Create Item
+        - Manage Items
+        - Browse Items
+        - Manage Catalogs
+        - Manage Item Relationships
+        - Manage Change Orders
+        - Manage Worklist
+    [UnApprovedItemSearchForCCO]
+      Section: Unknown
+        - Manage Items
+        - Browse Items
+        - Manage Catalogs
+        - Manage Item Relationships
+        - Manage Change Orders
+        - Manage Worklist
+
+  MODULE: Product Development
+    Title: Overview - Product Development - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Create Item
+        - Manage Items
+        - View Item Audit Trail
+        - Create Manufacturer Part
+        - Manage Manufacturer Parts
+
+  MODULE: Product Information Management
+    Title: Product Information Management - Oracle Fusion Cloud Applications
+    [default]
 
 ============================================================
 TAB: General Accounting
 ============================================================
-  ERROR: tab not found
+  Tiles: Manage Journals, Manage Approvals for Journals, Journals
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Product Development, Manage Journals, Manage Approvals for Journals, Show More
+
+  MODULE: Manage Journals
+    Title: Manage Journals - Journals - Oracle Fusion Cloud Applications
+
+  MODULE: Manage Approvals for Journals
+    Title: Manage Approvals for Journals - Journals - Oracle Fusion Cloud Applications
+
+  MODULE: Journals
+    Title: Journals - Oracle Fusion Cloud Applications
 
 ============================================================
 TAB: Procurement
 ============================================================
-  ERROR: tab not found
+  Tiles: Purchase Agreements, Suppliers, Requisition Lines, Approved Supplier List Entries, Shop (New), Purchase Requisitions, Purchase Requisitions (New), Purchase Orders, My Receipts, Catalogs, Supplier Qualification, Supplier Dashboard
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Journals, Purchase Agreements, Suppliers, Requisition Lines
+
+  MODULE: Purchase Agreements
+    Title: Purchase Agreements - Oracle Fusion Cloud Applications
+
+  MODULE: Suppliers
+    Title: Suppliers - Purchase Orders - Oracle Fusion Cloud Applications
+    Task Panel Tabs: All Suppliers, --------, Personalize...
+    [All Suppliers]
+      Section: Unknown
+        - Research Suppliers
+        - Manage Suppliers
+        - Manage Approved Supplier List Entries
+    [--------]
+      Section: Unknown
+        - Research Suppliers
+        - Manage Suppliers
+        - Manage Approved Supplier List Entries
+    [Personalize...]
+      Section: Unknown
+        - Research Suppliers
+        - Manage Suppliers
+        - Manage Approved Supplier List Entries
+
+  MODULE: Requisition Lines
+    Title: Approved Supplier List Entries - Purchase Orders - Oracle Fusion Cloud Applications
+    Task Panel Tabs: All Approved Supplier List Entries, --------, Personalize...
+    [All Approved Supplier List Entries]
+    [--------]
+    [Personalize...]
+
+  MODULE: Approved Supplier List Entries
+    Title: Self Service Procurement Home - Search - Oracle Fusion Cloud Applications
+
+  MODULE: Shop (New)
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Purchase Requisitions
+    Title: https://www.google.com/search?q=arxiv&oq=arxiv&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCDE4NjFqMGo0qAIAsAIB&sourceid=chrome&ie=UTF-8&sei=qm3qaZSFE9ugptQP3dXn-Qo
+
+  MODULE: Purchase Requisitions (New)
+    Title: Self Service Procurement Home - Search - Oracle Fusion Cloud Applications
+
+  MODULE: Purchase Orders
+    Title: Overview - Purchase Orders - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Research Suppliers
+        - Manage Suppliers
+        - Manage Approved Supplier List Entries
+
+  MODULE: My Receipts
+    Title: Receive Items - My Receipts - Oracle Fusion Cloud Applications
+    Task Panel Tabs: Items Due in Last 7 Days, --------, Personalize...
+    [Items Due in Last 7 Days]
+    [--------]
+    [Personalize...]
+
+  MODULE: Catalogs
+    Title: Overview - Catalogs - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Manage Agreements
+        - Manage Catalogs
+        - Manage Catalog Category Hierarchy *** ABC ***
+        - Manage Content Zones
+        - Manage Information Templates
+        - Manage Public Shopping Lists
+        - Manage Purchasing News
+        - Manage Smart Forms
+        - Manage Supplier Content Map Sets
+
+  MODULE: Supplier Qualification
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Supplier Dashboard
+    Title: Oracle Fusion Cloud Applications
 
 ============================================================
 TAB: Tools
 ============================================================
-  ERROR: tab not found
+  Tiles: Notifications, B2B Trading Partners, Set Preferences, Approvals, Reports and Analytics, Scheduled Processes
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Purchase Requisitions, Suppliers, Notifications, B2B Trading Partners
+
+  MODULE: Notifications
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: B2B Trading Partners
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Set Preferences
+    Title: Tasks - Set Preferences - Oracle Fusion Cloud Applications
+
+  MODULE: Approvals
+    Title: Approvals Tasks - Oracle Fusion Cloud Applications
+    [default]
+
+  MODULE: Reports and Analytics
+    Title: Reports and Analytics - Oracle Fusion Cloud Applications
+
+  MODULE: Scheduled Processes
+    Title: Monitor Processes - Scheduled Processes - Oracle Fusion Cloud Applications
 
 ============================================================
 TAB: Others
 ============================================================
-  ERROR: tab not found
+  Tiles: new, Astec ECN Tracking Application
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Set Preferences, AppsnewAstec ECN Tracking Application, new, Astec ECN Tracking Application
+
+  MODULE: new
+    Title: Oracle Fusion Cloud Applications
+
+  MODULE: Astec ECN Tracking Application
+    Title: Oracle Fusion Cloud Applications

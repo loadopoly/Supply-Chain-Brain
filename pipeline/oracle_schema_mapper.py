@@ -20,6 +20,197 @@ OUTPUT_JSON = Path(__file__).parent / "oracle_schema_map.json"
 OUTPUT_TXT  = Path(__file__).parent / "oracle_schema_map.txt"
 SCREENSHOTS.mkdir(parents=True, exist_ok=True)
 
+
+# ── session management ────────────────────────────────────────────────────────
+
+def _get_vault_creds() -> dict | None:
+    """Load oracle_fusion credentials from the DPAPI vault."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).parent))
+        from src.connections.secrets import get_credentials
+        return get_credentials("oracle_fusion")
+    except Exception as ex:
+        print(f"[auth] Vault read failed: {ex}")
+        return None
+
+
+def _sso_login(page, context) -> bool:
+    """
+    Perform Microsoft Entra SSO login using vault credentials.
+    Auto-fills email + password, then waits for FuseWelcome.
+    Returns True on success.
+    """
+    creds = _get_vault_creds()
+    ss_dir = Path(__file__).parent / "abc_screenshots"
+    ss_dir.mkdir(exist_ok=True)
+
+    if creds and creds.get("user") and creds.get("password"):
+        print(f"[auth] Auto-filling credentials for {creds['user']} ...")
+
+        try:
+            page.wait_for_selector("button, input[type='submit']", timeout=10000)
+            page.screenshot(path=str(ss_dir / "auth_01_login_page.png"))
+
+            # Step 1: Click "Company Single Sign-On" — this is the corporate SSO path
+            sso_clicked = False
+            for sel in ["button:has-text('Company Single Sign-On')",
+                        "a:has-text('Company Single Sign-On')",
+                        "button:has-text('Single Sign')",
+                        "a:has-text('Single Sign')"]:
+                try:
+                    el = page.locator(sel).first
+                    if el.is_visible(timeout=2000):
+                        el.click()
+                        sso_clicked = True
+                        print(f"[auth] Clicked SSO button via: {sel}")
+                        page.wait_for_timeout(3000)
+                        break
+                except Exception:
+                    pass
+
+            page.screenshot(path=str(ss_dir / "auth_02_after_sso_click.png"))
+            inputs_after = page.evaluate("""
+                () => Array.from(document.querySelectorAll('input')).map(el => ({
+                    type: el.type, name: el.name, id: el.id,
+                    placeholder: el.placeholder, visible: !!el.offsetParent
+                }))
+            """)
+            print(f"[auth] Inputs after SSO click: {inputs_after}")
+
+            # Step 2: Fill corporate email (Microsoft Entra two-step flow)
+            for sel in ["input[type='email']", "input[name='loginfmt']",
+                        "input[name='username']", "input[type='text']"]:
+                try:
+                    el = page.locator(sel).first
+                    if el.is_visible(timeout=4000):
+                        el.fill(creds["user"])
+                        print(f"[auth] Filled email via: {sel}")
+                        break
+                except Exception:
+                    pass
+
+            # Click Next
+            for sel in ["input[type='submit']", "button[type='submit']",
+                        "button:has-text('Next')", "button:has-text('Sign in')"]:
+                try:
+                    el = page.locator(sel).first
+                    if el.is_visible(timeout=2000):
+                        el.click()
+                        print(f"[auth] Clicked Next via: {sel}")
+                        break
+                except Exception:
+                    pass
+            page.wait_for_timeout(3000)
+            page.screenshot(path=str(ss_dir / "auth_03_after_email.png"))
+
+            # Step 3: Fill password
+            try:
+                page.wait_for_selector("input[type='password']", timeout=10000)
+                page.fill("input[type='password']", creds["password"])
+                print("[auth] Filled password")
+                for sel in ["input[type='submit']", "button[type='submit']",
+                            "button:has-text('Sign in')", "button:has-text('Next')"]:
+                    try:
+                        el = page.locator(sel).first
+                        if el.is_visible(timeout=2000):
+                            el.click()
+                            print(f"[auth] Clicked Sign in via: {sel}")
+                            break
+                    except Exception:
+                        pass
+                page.wait_for_timeout(3000)
+                page.screenshot(path=str(ss_dir / "auth_04_after_password.png"))
+            except Exception as ex:
+                print(f"[auth] Password step error: {ex}")
+
+            # Step 4: "Stay signed in?" prompt
+            try:
+                for sel in ["button:has-text('Yes')", "input[type='submit']",
+                            "button[type='submit']", "button:has-text('No')"]:
+                    try:
+                        el = page.locator(sel).first
+                        if el.is_visible(timeout=4000):
+                            el.click()
+                            print(f"[auth] Dismissed post-login prompt via: {sel}")
+                            break
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        except Exception as ex:
+            print(f"[auth] Login fill error: {ex}")
+            page.screenshot(path=str(ss_dir / "auth_error.png"))
+
+    else:
+        print("[auth] No vault credentials — manual login required in browser window.")
+
+    # Wait up to 3 minutes for FuseWelcome (covers MFA wait time)
+    print("[auth] Waiting for FuseWelcome URL (up to 3 min, complete any MFA now) ...")
+    try:
+        page.wait_for_url(
+            lambda url: "FuseWelcome" in url or "homePage" in url,
+            timeout=180_000,
+        )
+    except Exception:
+        try:
+            page.wait_for_load_state("networkidle", timeout=60_000)
+        except Exception:
+            pass
+
+    page.screenshot(path=str(ss_dir / "auth_05_final.png"))
+    title = page.title()
+    print(f"[auth] Final page: {title[:60]} | {page.url[:80]}")
+
+    if "Sign In" in title:
+        print(f"[auth] Login failed. Screenshots saved to {ss_dir}")
+        return False
+
+    # Save refreshed cookies
+    cookies = context.cookies()
+    with open(SESSION_FILE, "w") as f:
+        json.dump(cookies, f, indent=2)
+    print(f"[auth] Session saved ({len(cookies)} cookies) → {SESSION_FILE}")
+    return True
+
+
+def ensure_session(page, context) -> bool:
+    """
+    Load cached cookies and verify the session is live.
+    Re-authenticates via SSO if expired.
+    Returns True when the home page is loaded and ready.
+    """
+    # Load cached cookies if available
+    if SESSION_FILE.exists():
+        with open(SESSION_FILE) as f:
+            cookies = json.load(f)
+        pw = []
+        for c in cookies:
+            ck = {"name": c["name"], "value": c["value"],
+                  "domain": c.get("domain", "").lstrip("."),
+                  "path": c.get("path", "/"), "secure": c.get("secure", True),
+                  "httpOnly": c.get("httpOnly", False)}
+            if c.get("expires") and c["expires"] > 0:
+                ck["expires"] = int(c["expires"])
+            pw.append(ck)
+        context.add_cookies(pw)
+        print(f"[auth] Loaded {len(pw)} cached cookies from {SESSION_FILE}")
+
+    # Navigate to home — detect whether session is valid
+    page.goto(f"{HOST}/fscmUI/faces/FuseWelcome",
+              wait_until="domcontentloaded", timeout=60_000)
+    page.wait_for_timeout(2000)
+    title = page.title()
+    print(f"[auth] Page title after cookie load: {title}")
+
+    if "Sign In" in title:
+        print("[auth] Session expired — starting SSO login ...")
+        return _sso_login(page, context)
+
+    print(f"[auth] Session valid: {title[:60]}")
+    return True
+
 # Top-nav tabs to enumerate — skip "Me" (user profile widget, no module tiles)
 TOP_NAV_TABS = [
     "Sales", "Service", "Order Management",
@@ -89,7 +280,7 @@ def dump_page(page, min_x=0, min_y=0):
 
 
 def get_tiles(page):
-    """Enumerate SpringBoard tiles (A elements in content area y > 290)."""
+    """Enumerate SpringBoard tiles (A elements in content area y > 290, truly visible)."""
     return page.evaluate("""
         () => {
             const seen = new Set();
@@ -100,6 +291,21 @@ def get_tiles(page):
                 if (!t || t.length < 3 || t.length > 80 || seen.has(t)) continue;
                 const r = el.getBoundingClientRect();
                 if (r.y < 290 || r.height < 15) continue;
+                // Check computed visibility — filters out visibility:hidden sidebar items
+                const style = window.getComputedStyle(el);
+                if (style.visibility === 'hidden' || style.display === 'none'
+                    || parseFloat(style.opacity) < 0.1) continue;
+                // Check parent chain for visibility:hidden
+                let parent = el.parentElement;
+                let parentHidden = false;
+                for (let i = 0; i < 6 && parent; i++) {
+                    const ps = window.getComputedStyle(parent);
+                    if (ps.visibility === 'hidden' || ps.display === 'none') {
+                        parentHidden = true; break;
+                    }
+                    parent = parent.parentElement;
+                }
+                if (parentHidden) continue;
                 seen.add(t);
                 results.push({text: t,
                               cx: Math.round(r.x+r.width/2),
@@ -321,53 +527,92 @@ def get_task_panel_content(page):
 
 def navigate_to_module_by_text(page, tile_text: str) -> bool:
     """
-    Navigate into a module tile using text-based locator with auto-scroll.
-    This correctly handles tiles that are below the viewport fold.
+    Navigate into a module tile. Uses CSS visibility traversal to find the
+    truly visible tile, skipping hidden duplicates from other tabs' SpringBoards.
     """
     try:
-        # Use exact text match on A elements in the content area (y > 200)
-        loc = page.locator("a").filter(has_text=tile_text).first
-        loc.scroll_into_view_if_needed(timeout=6000)
-        page.wait_for_timeout(600)
-        loc.click(timeout=8000)
-        page.wait_for_timeout(5000)
+        result = page.evaluate("""
+            ([txt]) => {
+                for (const el of document.querySelectorAll('a')) {
+                    const t = el.textContent.trim().replace(/\\s+/g,' ');
+                    if (t !== txt) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.y < 200 || r.height < 10) continue;
+                    // CSS visibility check on element and parent chain (mirrors get_tiles)
+                    const style = window.getComputedStyle(el);
+                    if (style.visibility === 'hidden' || style.display === 'none'
+                        || parseFloat(style.opacity) < 0.1) continue;
+                    let parent = el.parentElement;
+                    let parentHidden = false;
+                    for (let i = 0; i < 6 && parent; i++) {
+                        const ps = window.getComputedStyle(parent);
+                        if (ps.visibility === 'hidden' || ps.display === 'none') {
+                            parentHidden = true; break;
+                        }
+                        parent = parent.parentElement;
+                    }
+                    if (parentHidden) continue;
+                    // Scroll into view and return refreshed coordinates
+                    el.scrollIntoView({block:'center', behavior:'instant'});
+                    const r2 = el.getBoundingClientRect();
+                    return {cx: Math.round(r2.x+r2.width/2), cy: Math.round(r2.y+r2.height/2)};
+                }
+                return null;
+            }
+        """, [tile_text])
+
+        if result:
+            page.wait_for_timeout(400)
+            page.mouse.click(result['cx'], result['cy'])
+            page.wait_for_timeout(5000)
+            try:
+                page.wait_for_load_state("domcontentloaded", timeout=15_000)
+            except Exception:
+                pass
+            page.wait_for_timeout(2000)
+            return True
+        else:
+            print(f"    Tile '{tile_text}' not found in visible DOM")
+    except Exception as ex:
+        print(f"    Tile '{tile_text}' nav error: {ex}")
+    return False
+
+
+def return_to_tab(page, tab_name: str) -> bool:
+    """Navigate back to a specific top-nav tab and re-expand Show More."""
+    # Try going home first for a clean state
+    go_home(page)
+    for attempt in [f"a:has-text('{tab_name}')", f"[role='tab']:has-text('{tab_name}')"]:
         try:
-            page.wait_for_load_state("domcontentloaded", timeout=15_000)
+            loc = page.locator(attempt).first
+            if loc.is_visible(timeout=5000):
+                loc.click()
+                page.wait_for_timeout(2500)
+                click_show_more(page)
+                page.wait_for_timeout(500)
+                return True
         except Exception:
             pass
-        page.wait_for_timeout(2000)
+    # JS fallback
+    res = page.evaluate("""
+        ([txt]) => {
+            for (const el of document.querySelectorAll('a,div,span')) {
+                if (!el.offsetParent) continue;
+                if (el.textContent.trim() !== txt) continue;
+                const r = el.getBoundingClientRect();
+                if (r.y > 280 || r.y < 220) continue;
+                el.click();
+                return true;
+            }
+            return false;
+        }
+    """, [tab_name])
+    if res:
+        page.wait_for_timeout(2500)
+        click_show_more(page)
+        page.wait_for_timeout(500)
         return True
-    except Exception as ex:
-        print(f"    Tile '{tile_text}' nav error (locator): {ex}")
-        # Fallback: JS scroll-into-view + click
-        try:
-            result = page.evaluate("""
-                ([txt]) => {
-                    for (const el of document.querySelectorAll('a')) {
-                        if (!el.offsetParent) continue;
-                        const t = el.textContent.trim().replace(/\\s+/g,' ');
-                        if (t !== txt) continue;
-                        const r = el.getBoundingClientRect();
-                        if (r.y < 200) continue;
-                        el.scrollIntoView({block:'center'});
-                        return {cx: Math.round(r.x+r.width/2), cy: Math.round(r.y+r.height/2)};
-                    }
-                    return null;
-                }
-            """, [tile_text])
-            if result:
-                page.wait_for_timeout(500)
-                page.mouse.click(result['cx'], result['cy'])
-                page.wait_for_timeout(5000)
-                try:
-                    page.wait_for_load_state("domcontentloaded", timeout=15_000)
-                except Exception:
-                    pass
-                page.wait_for_timeout(2000)
-                return True
-        except Exception as ex2:
-            print(f"    Tile '{tile_text}' nav error (JS fallback): {ex2}")
-        return False
+    return False
 
 
 def go_home(page):
@@ -464,12 +709,15 @@ def map_module(page, tab_name: str, tile: dict, schema: dict):
 
 
 def map_tab(page, tab_name: str, schema: dict):
-    """Navigate to a top-nav tab, enumerate all tiles + quick actions."""
+    """Navigate to a top-nav tab, enumerate its tiles, then map each from home."""
     print(f"\n{'='*60}")
     print(f"TAB: {tab_name}")
     print(f"{'='*60}")
 
-    # Click the tab — try exact A locator, then DIV
+    # Go home first to get a clean state
+    go_home(page)
+
+    # Click the tab
     clicked = False
     for attempt in [f"a:has-text('{tab_name}')", f"[role='tab']:has-text('{tab_name}')"]:
         try:
@@ -483,7 +731,6 @@ def map_tab(page, tab_name: str, schema: dict):
             pass
 
     if not clicked:
-        # Fallback: JS text match on nav area
         res = page.evaluate("""
             ([txt]) => {
                 for (const el of document.querySelectorAll('a,div,span')) {
@@ -504,20 +751,29 @@ def map_tab(page, tab_name: str, schema: dict):
             return
 
     ss(page, f"tab_{tab_name[:15].replace(' ','_')}_overview")
-    click_show_more(page)
-    page.wait_for_timeout(1000)
-    ss(page, f"tab_{tab_name[:15].replace(' ','_')}_expanded")
 
-    # Use scroll-based enumeration to capture ALL tiles (including off-viewport)
-    tiles_all = get_all_tiles_with_scroll(page)
+    # Enumerate tiles BEFORE Show More (tab-specific)
+    tiles_before = get_tiles(page)
     quick_actions = get_quick_actions(page)
 
-    # Filter out nav links (y < 290 tiles already excluded inside get_all_tiles_with_scroll)
-    # Additional filter: exclude very short strings and known nav items
-    tiles_all = [t for t in tiles_all if len(t['text']) >= 3 and len(t['text']) <= 80]
+    # Click Show More and re-enumerate
+    click_show_more(page)
+    page.wait_for_timeout(800)
+    tiles_after = get_tiles(page)
 
+    # Merge unique tiles
+    tab_name_set = set(TOP_NAV_TABS) | {"Show More"}
+    seen_texts = set()
+    tiles_all = []
+    for t in tiles_before + tiles_after:
+        if t['text'] not in seen_texts and t['text'] not in tab_name_set:
+            if 3 <= len(t['text']) <= 80:
+                tiles_all.append(t)
+                seen_texts.add(t['text'])
+
+    ss(page, f"tab_{tab_name[:15].replace(' ','_')}_expanded")
     print(f"  Tiles ({len(tiles_all)}): {[t['text'] for t in tiles_all]}")
-    print(f"  Quick Actions ({len(quick_actions)}): {[q['text'] for q in quick_actions[:8]]}")
+    print(f"  Quick Actions: {[q['text'] for q in quick_actions[:8]]}")
 
     schema[tab_name] = {
         "tiles": [t['text'] for t in tiles_all],
@@ -525,35 +781,18 @@ def map_tab(page, tab_name: str, schema: dict):
         "modules": {}
     }
 
-    # Navigate into each tile using text-based navigation
+    # Navigate each tile while staying in the tab context
     for tile in tiles_all:
         try:
             map_module(page, tab_name, tile, schema)
-            # Return to this tab after module exploration
-            returned = False
-            for attempt in [f"a:has-text('{tab_name}')", f"[role='tab']:has-text('{tab_name}')"]:
-                try:
-                    page.locator(attempt).first.click(timeout=6000)
-                    page.wait_for_timeout(2000)
-                    click_show_more(page)
-                    page.wait_for_timeout(500)
-                    returned = True
-                    break
-                except Exception:
-                    pass
-            if not returned:
-                go_home(page)
-                try:
-                    page.locator(f"a:has-text('{tab_name}')").first.click(timeout=6000)
-                    page.wait_for_timeout(2000)
-                    click_show_more(page)
-                    page.wait_for_timeout(500)
-                except Exception:
-                    pass
+            # Return to this tab and re-expand Show More for the next tile
+            if not return_to_tab(page, tab_name):
+                print(f"  Could not return to tab '{tab_name}' — stopping this tab")
+                break
         except Exception as ex:
             print(f"    Error mapping {tile['text']}: {ex}")
             schema[tab_name]["modules"][tile['text']] = {"error": str(ex)}
-            go_home(page)
+            return_to_tab(page, tab_name)
 
 
 def write_output(schema: dict):
@@ -608,11 +847,14 @@ def main():
         browser = pw.chromium.launch(headless=False, slow_mo=60)
         ctx = browser.new_context(viewport={"width": 1600, "height": 900})
         page = ctx.new_page()
-        load_cookies(ctx)
 
-        page.goto(f"{HOST}/fscmUI/faces/FuseWelcome",
-                  wait_until="domcontentloaded", timeout=120_000)
-        page.wait_for_timeout(3000)
+        ok = ensure_session(page, ctx)
+        if not ok:
+            print("Authentication failed — aborting.")
+            browser.close()
+            return
+
+        page.wait_for_timeout(2000)
         print(f"Home loaded: {page.title()}")
 
         for tab_name in TOP_NAV_TABS:

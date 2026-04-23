@@ -1,0 +1,5 @@
+RESULT:
+  passed=False
+  card_present=True popover=False src=False
+  metrics=4/4  missing_help=[]
+  error='card stayed in LOADING state'

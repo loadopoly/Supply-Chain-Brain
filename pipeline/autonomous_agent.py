@@ -1452,6 +1452,40 @@ def autonomous_loop():
             except Exception as e:
                 logging.warning(f"RAG knowledge deepdive step failed: {e}")
 
+            # Step 3e.7: ML Research cycle — scans HuggingFace Papers, Semantic
+            # Scholar, HuggingFace Datasets, and MIT OCW for supply-chain and
+            # systems-engineering research. Runs every 4 hours; findings land in
+            # learning_log as ml_research / ocw_course kinds, then _ingest_ml_research()
+            # and _ingest_ocw_courses() promote them to corpus_entity / corpus_edge
+            # on the next Step 3e round. No LLM required — pure HTTP fetches.
+            try:
+                import datetime as _dt
+                _ML_RESEARCH_COOLDOWN_S = 4 * 3600
+                _ml_last = _kv_read("ml_research_last_run")
+                _ml_ready = True
+                if _ml_last:
+                    _elapsed = (
+                        _dt.datetime.now(_dt.timezone.utc)
+                        - _dt.datetime.fromisoformat(_ml_last)
+                    ).total_seconds()
+                    _ml_ready = _elapsed >= _ML_RESEARCH_COOLDOWN_S
+                if _ml_ready:
+                    from src.brain.ml_research import research_supply_chain_topics
+                    mr = research_supply_chain_topics()
+                    _kv_write(
+                        "ml_research_last_run",
+                        _dt.datetime.now(_dt.timezone.utc).isoformat(),
+                    )
+                    cycle_velocity += mr.get("learnings_written", 0)
+                    logging.info(
+                        f"ML Research: papers={mr.get('papers_found', 0)} "
+                        f"datasets={mr.get('datasets_found', 0)} "
+                        f"ocw_courses={mr.get('ocw_courses_found', 0)} "
+                        f"written={mr.get('learnings_written', 0)}"
+                    )
+            except Exception as e:
+                logging.warning(f"ML research cycle failed: {e}")
+
             # Step 3f: Brain → Body bridge. The User is the Body of the
             # Brain — every effective signal across self-train, dispatch,
             # network, and corpus is distilled here into prioritized,

@@ -322,10 +322,24 @@ with icol1:
         delta=f"{delta:+.2f}{k['unit']} vs baseline",
         delta_color=("inverse" if k["lower_better"] else "normal"),
     )
+    with st.expander(f"🟢 Brain · {k['label']}", expanded=False):
+        st.markdown(
+            f"**Baseline:** `{k['baseline']}{k['unit']}`  \n"
+            f"**Variance:** `{delta:+.2f}{k['unit']}`  \n"
+            f"Targeting logic: **{'Lower' if k['lower_better'] else 'Higher'} is better.**"
+        )
+
 with icol2:
     st.metric("Friction Score", f"{k['friction']:.2f}",
               delta=("HIGH" if k["friction"] > 0.5 else "OK"),
               delta_color=("inverse" if k["friction"] > 0.5 else "off"))
+    _fric_state = "🔴" if k["friction"] > 0.5 else "🟢"
+    with st.expander(f"{_fric_state} Brain · Friction", expanded=k["friction"] > 0.5):
+        st.markdown(
+            f"**Friction:** `{k['friction']:.2f}`.  \n"
+            "Derived from delay propagation and document variance. "
+            "Scores > 0.5 signal process instability."
+        )
 with icol3:
     spark = go.Figure(go.Scatter(
         y=k["spark"], mode="lines+markers",

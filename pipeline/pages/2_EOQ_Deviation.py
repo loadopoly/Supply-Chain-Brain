@@ -105,8 +105,8 @@ with st.expander("🔍 Refine assumptions / SQL override", expanded=False):
     ordering_cost = c1.number_input("Ordering cost $/PO", 1.0, 1000.0, 75.0, key="eoq_oc")
     holding_rate  = c2.number_input("Holding rate /yr",   0.01, 1.0,  0.22,  key="eoq_hr")
     top_n         = c3.number_input("Show top N",         25, 5000,   250,   step=25, key="eoq_topn")
-    custom_sql = st.text_area("Optional override SQL", height=80, key="eoq_sql",
-        help="Must yield: part_id, demand_qty, periods, on_hand, open_qty, unit_cost")
+    custom_sql = st.text_area("Optional override SQL", height=80, key="eoq_sql")
+    st.caption("💡 **SQL Requirements:** Must yield `part_id`, `demand_qty`, `periods`, `on_hand`, `open_qty`, `unit_cost`")
 
 sql_to_run = st.session_state.get("eoq_sql","").strip() or DEFAULT_SQL
 
@@ -178,12 +178,56 @@ record_findings_bulk("eoq_deviation", "part",
 
 # ── KPI strip ────────────────────────────────────────────────────────────────
 st.markdown(f"🟢 **Live** · {len(result.df):,} parts loaded")
+# ── KPI strip (with per-metric Brain insight) ────────────────────────────────
 k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("Parts Evaluated",    f"{len(eoq_result):,}")
-k2.metric("Mean |z| deviation", f"{float(eoq_result['abs_dev_z'].mean(skipna=True) or 0):.2f}σ")
-k3.metric("Σ $ At Risk",        f"${float(eoq_result['dollar_at_risk'].sum(skipna=True)):,.0f}")
-k4.metric("Critical (|z|>3σ)",  f"{int((eoq_result['abs_dev_z']>3).sum())}")
-k5.metric("Overstock units",    f"{int(eoq_result['overstock_units'].sum(skipna=True)):,}")
+
+# Calculate some dynamic labels for the DBI
+mean_z = float(eoq_result['abs_dev_z'].mean(skipna=True) or 0)
+risk_usd = float(eoq_result['dollar_at_risk'].sum(skipna=True))
+crit_count = int((eoq_result['abs_dev_z']>3).sum())
+over_units = int(eoq_result['overstock_units'].sum(skipna=True))
+
+with k1:
+    st.metric("Parts Evaluated", f"{len(eoq_result):,}")
+    with st.expander("🟢 Brain · Count", expanded=False):
+        st.markdown(f"**Total scope:** `{len(eoq_result):,}` parts analyzed using current filters.")
+
+with k2:
+    st.metric("Mean |z| deviation", f"{mean_z:.2f}σ")
+    _z_state = "🔴" if mean_z > 2 else "🟡" if mean_z > 1 else "🟢"
+    with st.expander(f"{_z_state} Brain · Variance", expanded=mean_z > 1.5):
+        st.markdown(
+            f"**Average Deviation:** `{mean_z:.2f}σ`.  \n"
+            "This measures how far on average your inventory levels sit from the theoretical "
+            "Bayesian-Poisson EOQ centroid. Values above 2.0σ signal systemic misalignment."
+        )
+
+with k3:
+    st.metric("Σ $ At Risk", f"${risk_usd:,.0f}")
+    _risk_state = "🔴" if risk_usd > 1000000 else "🟡" if risk_usd > 100000 else "🟢"
+    with st.expander(f"{_risk_state} Brain · Exposure", expanded=risk_usd > 500000):
+        st.markdown(
+            f"**Financial Exposure:** `${risk_usd:,.0f}`.  \n"
+            "Calculated as the carrying value of inventory held in excess of the EOQ safety bound."
+        )
+
+with k4:
+    st.metric("Critical (|z|>3σ)", f"{crit_count}")
+    _crit_state = "🔴" if crit_count > 0 else "🟢"
+    with st.expander(f"{_crit_state} Brain · Outliers", expanded=crit_count > 0):
+        st.markdown(
+            f"**Statistical Outliers:** `{crit_count}` parts.  \n"
+            "These records deviate by more than 3 standard deviations — "
+            "highly unlikely to be random noise. Prioritize these for manual review."
+        )
+
+with k5:
+    st.metric("Overstock units", f"{over_units:,}")
+    with st.expander("🟢 Brain · Surplus", expanded=False):
+        st.markdown(
+            f"**Volume Surplus:** `{over_units:,}` units.  \n"
+            "The physical quantity count exceeding optimal stock parameters."
+        )
 
 st.divider()
 

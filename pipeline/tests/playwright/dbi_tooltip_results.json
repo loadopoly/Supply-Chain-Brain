@@ -1,0 +1,25 @@
+{
+  "passed": 0,
+  "total": 1,
+  "pages": [
+    {
+      "url": "/",
+      "name": "Query Console",
+      "nav_ok": true,
+      "card_present": true,
+      "card_visible": true,
+      "card_in_viewport": true,
+      "not_clipped": true,
+      "z_above_plotly": true,
+      "popover_opens": false,
+      "popover_shows_source": false,
+      "digest_updates": false,
+      "timestamp_advances": false,
+      "metrics_total": 0,
+      "metrics_with_help": 0,
+      "metrics_missing_help": [],
+      "error": "AttributeError: 'function' object has no attribute 'replace'",
+      "passed": false
+    }
+  ]
+}

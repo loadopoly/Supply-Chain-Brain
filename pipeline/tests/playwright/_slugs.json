@@ -1,0 +1,42 @@
+[
+  {
+    "text": "\ud83d\udd0d\n\nQuery Console",
+    "href": "http://localhost:8502/"
+  },
+  {
+    "text": "\ud83d\uddfa\ufe0f\n\nSchema Discovery",
+    "href": "http://localhost:8502/Schema_Discovery"
+  },
+  {
+    "text": "\ud83e\udde0\n\nOverview & Graph",
+    "href": "http://localhost:8502/Supply_Chain_Brain"
+  },
+  {
+    "text": "\ud83d\udd78\ufe0f\n\nSupply Chain Pipeline",
+    "href": "http://localhost:8502/b_Supply_Chain_Pipeline"
+  },
+  {
+    "text": "\ud83d\udce6\n\nEOQ Deviation",
+    "href": "http://localhost:8502/EOQ_Deviation"
+  },
+  {
+    "text": "\ud83d\ude9a\n\nOTD Recursive",
+    "href": "http://localhost:8502/OTD_Recursive"
+  },
+  {
+    "text": "\ud83c\udfed\n\nProcurement 360",
+    "href": "http://localhost:8502/Procurement_360"
+  },
+  {
+    "text": "\ud83e\udde9\n\nData Quality",
+    "href": "http://localhost:8502/Data_Quality"
+  },
+  {
+    "text": "\ud83d\udd0c\n\nConnectors",
+    "href": "http://localhost:8502/Connectors"
+  },
+  {
+    "text": "\u23f1\ufe0f\n\nLead-Time Survival",
+    "href": "http://localhost:8502/Lead_Time_Survival"
+  }
+]

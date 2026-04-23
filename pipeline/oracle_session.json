@@ -1,7 +1,7 @@
 [
   {
     "name": "JSESSIONID",
-    "value": "PtS6q3REC_UollW9Gr3pKTOMWBkBVyU-acpQtzhwg9x0dnm54nxW!-1205927042!NONE",
+    "value": "-b-7YSa9PNOc4jPvNIBNdFeseBelC1PdVaOxxtB7uXZDnh3C10XF!-1205927042!NONE",
     "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
     "path": "/fscmUI",
     "expires": -1,
@@ -10,54 +10,54 @@
     "sameSite": "None"
   },
   {
+    "name": "_WL_AUTHCOOKIE_JSESSIONID",
+    "value": "sLhuGxhyZ7N0oQBV.A9z",
+    "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/fscmUI",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "JSESSIONID",
+    "value": "E7C7YS52yOhe0fGFzXJ1m2BhOyqdBm1R5ReZwNeYAc3pSRvz1cUe!-1205927042!NONE",
+    "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/hcmUI",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "_WL_AUTHCOOKIE_JSESSIONID",
+    "value": "xjQK1ePuak5oi1BcvdqA",
+    "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/hcmUI",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
     "name": "OAMAuthnHintCookie",
     "value": "0@1776953291",
-    "domain": ".oraclecloud.com",
+    "domain": "oraclecloud.com",
     "path": "/",
     "expires": -1,
     "httpOnly": true,
     "secure": true,
-    "sameSite": "None"
-  },
-  {
-    "name": "ak_bmsc",
-    "value": "C023FDEC1B6E46EE5437525F004BD897~000000000000000000000000000000~YAAQmSABF0++UHKdAQAA6nKruh9oQcHiTHHf132qsSRb5NvgQuzC1MQGXmKnpJftAQY3HnjMG//RMt0YXVPffZwZHh9FjQiE0ELJC8uLkKVYVHJnKrD8WN6GkJHKlsLNiwXEfEuxWFP87hEuM5a/Ef2S8mpFXWKRgseah/Vc7jPLbuIq38yM0/zBax9f49zQ8iB36ojLBFXAsJySU79p1N8iXIsLuRT7mmYnmVYnV3A/jHjNyKGbt8Nso95YWOhIPzdI/NyZ8Td5KJAvU1ryf8vR0eQyPJIWKTg/eHyEejqNHjeJT4mJzpfigStGpkTpEXnJwR03y65BCZt1NBA77+C7b66LaWlqMlvIngvEWkcVVlViITW5qJ/5Y+2tX4aBcdoSAaW8yni3x2Y9zkEgaeY+uFRiIl2f",
-    "domain": ".fa.ocs.oraclecloud.com",
-    "path": "/",
-    "expires": 1776960491.452774,
-    "httpOnly": true,
-    "secure": false,
     "sameSite": "Lax"
-  },
-  {
-    "name": "OAM_ID",
-    "value": "VERSION_5~qN8pIKxClVnhkV33cG1KNg==~W167lGzrwUDBbHhDjv/ppOi3o/vw8FwuIsv10rYUOND4cdO+9qkbIcs76i0jxxxyskW7vZCfnMUDlMmIr3sXDsOBkdGz4nPtUUqJniuqy1hlNaiThwzhq47fOF7pfziBuprCVBIBGOW0gowCPbt/rrzvqpK5sKcWbpwTmPQQfLkcVeNIFeF1RJITeRnQr26uAccTmJfIWraQ4Z9qfvbQ9m9cVnT7Yi4lihpsT2HS4/ZjsP61uAQkm9J3EtRkUXBa26Sz+yDSiyMscxI6bp4uAvSQm10V0HdOEqFhtUNC2DHr3nhs/IyhbWtKu3Swt+sZWh1SHfysyQvWYTrC/oVrkJVILqjN93e/BvGoPyXUQHp78vGucCPEq5l8UGoverht+h1is7/f1QAglnVMWq01Ag==",
-    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
-    "path": "/",
-    "expires": -1,
-    "httpOnly": true,
-    "secure": true,
-    "sameSite": "None"
-  },
-  {
-    "name": "OAMAuthnCookie_fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com_443",
-    "value": "3318c5964355595e572fb2dfae08d658bcaa0333%7Exw3%2BNRXZChTv1TsuenyiHCdKb%2FO9vXP2CNfkpXTCyya8rUosysieJt3s18n0q3G2lwzMR5yCBIQwcNBQn15SKhwvyZY6PP99oPM2wHWs8TBc3YB739KXa%2BweCP48Sx7vJjPdSAnNyhTIAZ002UARPZPc%2FXeLGXoTa1rhSB%2FdZpcnJ3py%2BI4WRj34qoqdjWr0iPfpO9eUhVHHw65%2B1cOTcbasiA8nXW1xD9vURzE6kTmyHrc%2Fpr0SJOqJ784j7cjm%2BHeSZoW95aHxoFGan2e7f7UtAbAr7tQCI93QCWfZ3kkOecE5pZEKz%2FCM%2Fj4IqkPx%2FgYzcqoWVY7wHpsg34NhYx%2BrptRmzUexJIg11Ygn974arLXQ3LHJb%2Fu1aIADXFPBkCv5iVRW65dUEK%2BiwfVvVQ%3D%3D",
-    "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
-    "path": "/",
-    "expires": -1,
-    "httpOnly": true,
-    "secure": true,
-    "sameSite": "None"
   },
   {
     "name": "ORA_FND_SESSION_USASDOUH_F",
     "value": "DEFAULT_PILLAR:Ue4bxw6lArWrrTIcASOc1vfc3c3sEkxZOrcPDkC3G4rqReMQrpg/YjLM9eR+86F8:1776953291884",
-    "domain": ".oraclecloud.com",
+    "domain": "oraclecloud.com",
     "path": "/",
     "expires": -1,
     "httpOnly": true,
     "secure": true,
-    "sameSite": "None"
+    "sameSite": "Lax"
   },
   {
     "name": "OAMCancelUrlCookie",
@@ -67,51 +67,17 @@
     "expires": -1,
     "httpOnly": true,
     "secure": true,
-    "sameSite": "None",
-    "partitionKey": "https://oraclecloud.com",
-    "_crHasCrossSiteAncestor": false
+    "sameSite": "Lax"
   },
   {
     "name": "OAMCancelUrlCookie",
     "value": "https%3A%2F%2Ffa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com%3A443%2FfscmUI%2Ffaces%2FFuseWelcome",
-    "domain": ".fa.ocs.oraclecloud.com",
+    "domain": "fa.ocs.oraclecloud.com",
     "path": "/",
     "expires": -1,
     "httpOnly": true,
-    "secure": true,
-    "sameSite": "None",
-    "partitionKey": "https://oraclecloud.com",
-    "_crHasCrossSiteAncestor": false
-  },
-  {
-    "name": "bm_sv",
-    "value": "71AFCFF274D03E3393CAA1C3B20F54E0~YAAQmSABF8S+UHKdAQAAyXWruh9FHfcwn55dFuRt7/HiIn3WBXYlJI8xYuwGipg49Q1JlKpNurLB1j+QfuhJ6KVXTbocDDRmawy2l+4S6Wv04ljoT4RVK7DyDbIoR75zWiAXEWrtc3u5/Ey/g4T488gb7f8r/mprOutoDnGU7luCjByqHvYXBt63+cMhxVIzj63w2/yyYifSmFgqF5AqIIEaUVSFYlKXbKK7UiM9tXUtedbz19rZgGvk8KfeRvPcEgCR0B0rYU3De+2U~1",
-    "domain": ".fa.ocs.oraclecloud.com",
-    "path": "/",
-    "expires": 1776960491.1841,
-    "httpOnly": false,
     "secure": true,
     "sameSite": "Lax"
-  },
-  {
-    "name": "OAM_REQ_0",
-    "value": "VERSION_4~ZudHD2SrZ6mzZ1NfDmIVunoyaPkEUMlebFZ3D1Iw%2fjYgqRl0JwEsEDC4nLr6CR1OVDplKuuEgNp88MwLzKq1B8P2W5%2boWd7yZFNQlljPN3kUuUDt6X9C0E2fYkk2zEMfJHYJAe6pYklZVl83Juq2Ex22o48UJA5xP%2bHkWIhF7WvtzMI%2frw3ble65NFlechlgvABlCG38Hqes1HDUpbrN2dco8t43ed0al6O%2fuppawAU6cYejoDrR9EB4TL49ecmDChq2LhbV0ZLx60rLCb71EsUW8uAMXeq%2bx2jJRAtMnvWyATpA9mbMF33Hn715Ked8dfZq3p07HGdelwaDrgH7my4cg1io2sx3pHUhJ49dnAkoHaTTk8CQ3VVcAwS0Rk5YSSih0f5nuHWqem8xuL5R5OQ0na5bs%2fWVVGfcYcgQtVZYWLDuWrvpUTK9YC86ftNQKkHt7O3xLGwFddYDPJXBwpwjqCnKOkrNta3N4v%2bPBIQNn7ypzPxawpGLCaOaEvGUilJrenx23RKPp19BmDzp1rz1j0CE85IMRSuO5W1ddIzS%2f8sesnNGYK9jWTnjb24dMLojf47ONYnWacbDQgQunYzURMMiJ3f0qujUSRbx83KLfGA67ymOE57IFid%2fRjQfGIYp%2bryqDcZVZ3mVY4CvXVeb45aHOOBHx%2fLevzURzkA1AyBUA3Ysahrx%2b7TaNXZzQ3AGGvZXcpvCAKTOElN0FguDxgsVQeYUYF%2byVV691JhQjX2lIWjh88Z1XM8PX3lHBpiy232lYKVJZn2U7td7IrEytEzpqbZwUnlmvnYnGvEho4hE%2b737scK0maaEs3ZSr%2bfU49rVAPTVvZvk1CwRQ07EzakvzjSpg44PsYwc3th1iDTepX775dd1AlOFlqnRubqR%2fykLwXMS8eDeb0dUa0m0IeR9X8RonQ8Lx1mBKyrRguMCZuCwHuNBH4wScAFCJGBSfHyX0Tyy0nen2L6fUXRBiVggnijjk005IKFD%2fVtor%2flmxslZU545Rn4ZmUzqHrfxokqLrT7%2fPKy0eOpUzpGFuQ6T8FVbd7vXiFNrOmbfTfWzITfCYoEx%2bbUA3Dnu0Oj1AYGUz86rQ0aqkTIdTO2JC4%2fTE9ORlleX1lprHJXarip8rJyA1uQr7H1YB0JhtFKLMHEOJ9n7TWigREl7ptdrsRNCin1%2fck8ML5uNC9bP7qHrxYqQgnuvhVDO3N8fsqSBx5EKqbM3%2faW1WQ6GaEIgZyZJ%2fJPRCus2XQ1%2fmjpxAQ9pPkp5IuKk6UxBYPFMSog%2bO5qp6mOKpsrLwZylNkX98wILXpNx5OvXOrHympSrb7W%2fvtAcwA%2fRK%2fUMmn%2bnnbVritmLoVWs7HvgK6DECaQf0%2fng1SOlmIjfPMBPA5nxjC88tJbaQcgOE4dAGDnqFhueLZcDQKDo1gClgj%2f%2f9PDp9vnGwtGx1%2ba2f6mye45uuHRKfX%2bHF7eHoCiY78ASOdAeKE9c9xqo1QZKsnGzmgOodVX2VhtRsjwFhI2IVK84dq9OApSzsfCWJG%2fnrGr03iOY4tcachau%2bvFwKEy5p%2f8fgnixbxODgg5uhHKedcaIu3MGoGP3bZRew31R2K8lWks3x1XeDTjVLnOIaRq4SumyAVIEUSPqdFhh6T3HO0v1dv7trJlopcNOefTJSzOtpOalugp05CXV30xgV3cO5VwbN6jIIdlbPPVK9bz9eO6mQB%2bjLXNajgSTI9UuqRJVv0TJwggjWUUU8VGW6zO1F5a2u%2fE0ofpMDonB5xgeV5p%2fe9PvRLqE%2b2oNKVqM%2b6RNRQaSeXi1AGwVWl1JXydJN%2bxHZSNMftYjRHwWhY%2b55wRh7JnXRtCCjLF%2bptMKzb0EPAHBvWaK3lAZuw0kbITlyRaTDD9n58RGCDumQTeD0OEcrkjt%2fY%2fDYUCkI38opKDUXlEl4cE1KeLH8h59MgCvShoa0L4OAuH6NECw%2bXMuczgYVyK0PWMQHM2ilgrbHIYeMlDMbixon1QApHjN8W%2bZn2mUcjH6sJ3jKZuJbBYKxWv4W5rFi4jSBbG8nhlXzxYRFZw4qK33BMbKAeUJwV8sd79FtUSz1tQbR8lE414G8Vj5Zszol7sLtE0xFK0VsNWXt%2bs7qiYY5n4TKxa%2fmN8VZOGGweUqW%2fx8jl3bCEAS1Al8fjRqCSMR6YYnqT4EKPzOX%2fpRGuvPKz2agvsB0HNquuInPkAZ9jdR3GT7%2fm0KmDdIWtMdNBz59fYA%2bjFpkImfcfnmt2JAoGN%2f4rQE%2fUfzYiyMTWTUp5rOjxDnmm5X5hIq9NRjL2S1Cl5ePfWG2ryIp2Pu%2fD9JuRq9KZX4X0g%2faMDSaVDfVai%2bLk3eC%2bpaywsjsK37tSVVL8B12Ikm4vQflPPer61qew73GGHY9aaJMDAnyZj4aYADocb1nHkXIT2j2li6Is2x24xFssJtyrU4R6Vpb4yRLR7Z3gz9hGh8m71%2bG1kk%2fP9BBksSeJN2voN%2fegeqFbH88T77euRy2Qbf%2bU%2bJdQpcd05PtyYysNKNMJewE9bNcWcZhzk2lfeEFlM6AnlWp2X56fQ8ZcnbqmuSVK7ulV8KdRydaWDCgKQPPo%2b08GqbqMrNgqR1Z29BwXGk5aQntHc%2fqPHtDCU%2bEJKOyDqVFo%2fng6%2bj6FkQwjQEjK177edbhcTBlXLBf6u50B3naK8kXYXeLZu1SY2SFJ%2bR9JE%2bR6MJ3DSOvZrHbT3SHAHXMNBJj8GZdQloJmwQplI8uIj9gvRXQXeBv%2fSj3Yj7dypb6h7a5rpY3qrRjAUbc5iW5svhuHnGwUNTn2%2fIAHg51VqGO1enAoF8NAz4LnrNZsS6KYET%2fBO9ZVmzyAJrZCDrW%2fL6OOwNm1%2bMDxcNmN5NuydBfOZB%2bD2CJf4J8OVk8UkFTO0wYv%2fhF5kiFZjrdrBjm5MGvzK0hrNVcpFOQxnfYGkjmjj1e9OSPjOdmTxyjUhMU7HskdWfGFIPoenMSxoWADSmLrxktEoWpiMajmj4K2btWt3NAplbY2bBGPuOiQgELG9jY9IiAmIcOmircp8Si5qZddN%2fqXj1xLx0%2bHVfwppNinWE2tWmXB6o07PVTCXmXn6yerh3YR91bhZ%2fDx5k%2bBgJqJByu2LEEcBMnu%2baGE2M2dhq5HaoDr2ftNx4zLKUQJv8A2LRU3CpUEbdRKKJhHjYPX%2bAfJtkFwH%2bMBAO%2fZFWE9594cLYC45BuWy%2b5djjI6wedXOjGxTdE19d34IJ1Ki4BQVznX8jIugio0TiP2N7VdekgVCcV9NnhIjvOVQG62gQR7hQjxCJPPFMbYX2qDeQOtLe%2bqBuzOfpjpVsXwEUkWoQQIYf4f9%2fHrmyJ6xHfPyPuuzB0FN5hI1LJ%2b2apENO5eNoDb9BxKOqVZbmrv5hd%2bcMk72d4dbZSZIxk%2bcOV8zeRs22QqJwhF4G1vFJPjSjdvm0bwtPli8niV7Gl9jcmo21RcNLHfBkT%2fkdcMqazZZ8aAeSF0%2fttVG2Ea03Nxq9py99n7MolQ3cJP9iMIwe2WNMfUa8U%2buHGrhZfSSWmhlyKanjl6%2f26akXBsXbeeTJKSJPYbNJ0QgrCCAYgufBQ6GlJaa%2ffz6cOTZlnHs7VEhLLWXVoUCGjRtwlgFMNPb4h3Y9HixKouTkvyvm%2ber7B8OvImv5YJoaG21yOcDaD1pLQzc0MRYfE1rCGY57dv5QKz5bQyKwAG%2bfXzXHF%2b0o6TJzZI6uj7LvdqCFq5B%2f%2fl7P0rPY2Cobda8wq7Csf3otvcXSf0bKPAeanwHcp4HBovKl2NCEv3nOupINxNonoqP1evib",
-    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
-    "path": "/",
-    "expires": -1,
-    "httpOnly": true,
-    "secure": true,
-    "sameSite": "None"
-  },
-  {
-    "name": "OAM_REQ_1",
-    "value": "VERSION_4~Eg%2b%2bfVhLXEKKing7xdfAn3NqJ2EgyXg5McAEPraYDlT3ttPywvry2GXO2CkTUpoPxRg4e1RrbLRMeYyA3ZsF4nNeZPRF%2f3RIGFRWKv6jB6YYLponMx2O6uXVd0Q%2ffZvGHFu8xIU02Ds%2boUfwdL3aM4EGivLKJTkoZMj4ZBK%2b23KfM4E2G4rOTVTz5pHA%2fKPNfasMza5WCPD%2fDrcPNHoBsB1CJPqN6K%2fKypuVaW5ZWHaoLe7Y6xtQtB9AsXARL34jzCLeZvEYdymLchWthTGZHvqWyZ2xd%2bHgroMISnE2tjcZMCQOkZf9H%2f8au8JTflmQeTDkcfuXhJzQPU96z4Ln1IHK0fz%2fuYSz%2b%2f%2bGMLYK4Tfp8SLcVkSTOFDziNt1%2ftgjJtg0m1RjpfmlgTTpQt99F9Lo3d7vUnZuYhBH5Mn7jn4FlExkF86cstTOUDAt8FQJtUjz%2b5In4EW3Bz16DQZOnBgxiNA0byGOUJWsKqIOuBc%2bwbQ4ElAp%2bZGc9EBv23lKzupDYccw4mQkiXxlF2bVST5prSy%2fnvw3GURz5t2jsjYMMNoFEEdfbr0qRA2uZ0C6o80SHiPQZLpCH2hVhC8qEjemKw1YbxUVc%2buJR8srIk7moocG0jXDolK4SX%2fRSsR8DssUVGT3Ef3rDOt6goH%2fU3feCDdCJTZbx3Ddhnk5mGu7iTCYffRuFjLGiKg87wexTFkYopdusnZzDpiZBsBnuEODjMQK7itxnlUssNsXDn1Jb7aEGAwhZ7bWdenb2JxDVbke85e9VJpVYxNMBctEzflrmGEF9TsmAHrdf99ZGEXcsLc1QmEWgSHZIKh6%2bSZ0RK6wPXtlYx9otGYXXZcH%2bdKSYz%2fTo0hFbD9ey8tXb3uxW8R3KKvYr%2bawe0iIZs519y2um4vNZY%2bu0008R%2f32ePNy2Nbi5St4aS1fJf1i6qBruJPSAV2cmL2vPcfGmqO7ZVB8BqkEj4Jil4PyH6cqxdfRVprc3xKnwSPb2%2bwJi%2fXlN91vm0gxIejZ5FW8N39UmrJo6RMXjnE%2foOkHUOqZu%2bqt5753IY6y%2bsUZmyauATcBBkCGmg17n8b52Uyfgz1XTwxw%2bJSkc9lEN9IWoUDY2R2AZgctsM2Mc6%2bUBG%2bhRc0FDqQcPPPe6AgHFQD0T9xDqR1TdJP59Uvfow49Xm4cL8mQ3vGu97mlhkFY%2bFd1iWjFhA%2bggl99AytULleiRz9PqAaOCqnWsvHcrZTIwGqZvuzxttWETiK1DX9Fvlnigchdj78o8R2zgbkfuwMIWCJV5veJeqTLIJJAzQecuUZCTkaVs%2bmcLsjzL4sVkpnLJwF14l8r3Ojylq1rTpdYNLqox5I3Tovlux8%2bN8lansc4JMhoR1%2bB1Vycf2rPiMDu4Xa3agWQyYYf7CzzWmdwNpqH5AxrV769YLKFN3E9Kw2YPoN%2bCDzLmTB6yQ%2fT%2fTaIvtH11zwicnjzPoybNc8NDCh8UfpLmJ8L%2f8yk1E0LpS1t71nJbbS82rTV7FzL%2bI%2fMGs0gtTD1Epivt5Pii0hJGRtGjfRDiEbODv8HGRtgqnSf7bRTAbXnt7A%2fVacwI%2bjGRIExldR3lXS1whQxwx4QphALf9Jo5Oy633vrg9KssxQzUL3KUS3%2baHwyYBM%2fzYILJoDT1C5swqyGBTkkwQxgr0jJ3iak8hik5MmohUmltXRNnu4ikIRvGHuIrD9I3v21P0iP%2bkg1slU1N36sbI%2bY9r%2f1WQFpGJqnG5FAcUw87%2bMs2Y%2bUy%2fvSKEj8M0VKUje%2bGnPEYmE%2bqKubeclQfAOK65Yn%2fEWAEVi2MOoOEerEOA%2bPWK9YBfv6lgCRhtk4sDMhgB9tRrDgFW8tga6Xt5x%2fX1GIpbVpw9MvkvHZmCV8wDXbhY66wUO7%2fdWHEZ3JaL5AmJt0o1Sh5oqoZgNpGu3NZ5Rs84%2fmf9Wdp9Xofb2jn7ZEuaM9FnTYhSiq7eouabYZExnKHCtS3ueSMEfVRuFdjG%2bnvHlzniDzWHzUvwyHFELd%2fJcF79oiNIWYkVoIQ6YcXDnFpHHGOQEyuR5%2f603G2PlQXJm9MpgH7C%2b2bVHJRGWISq6P5sUdih7ldbxk8pJ0Lj9pVW7UbKKE8Quu69tRuveWhDn2BKUOJ7yVQsFOm%2f9yVmtv6KU%2bA5tzhERMtQFh8Iinx6CuVd9knHqZY%2bLhXyQ0IOoizE7xCTmzG7zD5P31du9cNFjpf7RZG3a0dSmQT06WnGWYNxwmnUUCX6kVZ7fpTtkhEdLDLN%2bHzoMglqjueuJ4%2bOnyNabA7lrxj7MCqyNal6a6uv71bEZ%2bfg%2f%2blVjF%2fgic9yTqDiUqBnrN%2bEpmO4cHtu%2bv9gAaOGtXuJ05v28F838Sq4IfGuZX9bEWLF1UCGx3MRKjPY2JYFTroPCAd%2fskYzasEj4RWSBpYMaHDmcX77N3JTAyRXBr7gvzJU489Qq394WwYQ%3d%3d",
-    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
-    "path": "/",
-    "expires": -1,
-    "httpOnly": true,
-    "secure": true,
-    "sameSite": "None"
   },
   {
     "name": "OAM_REQ_COUNT",
@@ -124,18 +90,52 @@
     "sameSite": "None"
   },
   {
-    "name": "ECID-Context",
-    "value": "1.006K24hkyF2BT8K6yVJb6G0082mX0005sG@kXhhlfCW3JOTsLKS^HOT_JLSgKCTmLTP",
-    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "name": "ORA_FUSION_PREFS",
+    "value": "v1.0~bG9jYWxlPWVuLXVzfmRlZmF1bHRMYW5ndWFnZU1hcmtlcj10cnVlfnByZWZlcnJlZExhbmd1YWdlPWVuLXVz",
+    "domain": "oraclecloud.com",
     "path": "/",
     "expires": -1,
     "httpOnly": true,
     "secure": true,
-    "sameSite": "None"
+    "sameSite": "Lax"
+  },
+  {
+    "name": "ak_bmsc",
+    "value": "2CFD6E1F5F626F2BCC26D2E121E3B783~000000000000000000000000000000~YAAQpgo1F2XU3XCdAQAATgthux+W0rUHxVawTo5/xNRV/VBkRq3YELFzg+g8YawInFzKLe7r/7z+tQHJYBC+t3WivKdxh38Y0n/8/qW5Rm0rYQB+JpjHk448k6cGnEtfWoFsNKBkxdrveJip4i+LShWW5grQHmnFurHYu+lN4D9vHCn00+/WiZijT6lrt3eLIBogRJFaYP5lpsLF6ohHxB3QVvjn/0UDScsq6z9SssB9jQ71Hqmmz7qInLnzs2ZleDcw3wi9E407NWRx7G46xemjZwlO1dCfnK2sm0TQwqRwe6w6KQmxT+R7Yfxh8nqwVEoOd0MNh3GqEmrrWXcjhvQ43x/iVdqFz/f8iSl5iC4AbCncV6g/9s90Iy2pLEzPz7TqBi1VpEZhVFcDEO+qCvnR5GIY6bIm",
+    "domain": ".fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": 1776972392.476899,
+    "httpOnly": true,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "OAMCancelUrlCookie",
+    "value": "https%3A%2F%2Ffa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com%3A443%2FfscmUI%2Ffaces%2FFuseWelcome",
+    "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None",
+    "partitionKey": "https://oraclecloud.com",
+    "_crHasCrossSiteAncestor": false
+  },
+  {
+    "name": "OAMCancelUrlCookie",
+    "value": "https%3A%2F%2Ffa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com%3A443%2FfscmUI%2Ffaces%2FFuseWelcome",
+    "domain": ".fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None",
+    "partitionKey": "https://oraclecloud.com",
+    "_crHasCrossSiteAncestor": false
   },
   {
     "name": "JSESSIONID",
-    "value": "RzG6q3X4jzfPJY1aafuC1hVeykwjsLi1xMNkjR5VF8RALnyjMEzS!-153924152",
+    "value": "7oq7YQ-fjYN-vBBr5vx1hD_2VxIiPwdWR08hO8KOyHZ2VBNHhNBQ!-153924152",
     "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
     "path": "/",
     "expires": -1,
@@ -144,13 +144,323 @@
     "sameSite": "Lax"
   },
   {
-    "name": "ORA_FUSION_PREFS",
-    "value": "v1.0~bG9jYWxlPWVuLXVzfmRlZmF1bHRMYW5ndWFnZU1hcmtlcj10cnVlfnByZWZlcnJlZExhbmd1YWdlPWVuLXVz",
+    "name": "OAM_JSESSIONID",
+    "value": "hb67YRpNHlQW8gy6v8w6dvtBF-Lv8EV-7a2bFRe3MaHd6TgWRNJf!-153924152",
+    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "esctx-aykcWYt9Ud4",
+    "value": "AQABCQEAAACvnsHKEvvRQb3Bz3Qc7wnaRXZvU3RzQXJ0aWZhY3RzDQAAAAAAs3YD3Ex29FzEtuX8dJeWW8hYLAa_uWQEAWtFhioHJq1uNNrQM-A7frzoa3rKZNHl6y3Wk3tlyPuIgj6DLOMTIG8b7HeSlneSek3iiZbZ2TEv52PODfvg4olCBBXUdKJNAU0tPRFwDAZgzSLcpNuHrCAA",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "x-ms-gateway-slice",
+    "value": "estsfd",
+    "domain": "login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "stsservicecookie",
+    "value": "estsfd",
+    "domain": "login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "AADSSO",
+    "value": "NA|NoExtension",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "SSOCOOKIEPULLED",
+    "value": "1",
+    "domain": "login.microsoftonline.com",
+    "path": "/",
+    "expires": 1776965256,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "esctx",
+    "value": "PAQABBwEAAACvnsHKEvvRQb3Bz3Qc7wnaRXZvU3RzQXJ0aWZhY3RzDQAAAAAABW1agVoLFM78PjoN55ZrLhlmXDkWEdHJFmGvPIoiwWkyomGoSUDPnSudFVT8I-Bk2wTG1JbKLfGGJZB9J24nejxUUKE2__7SMxXEIPRoONkE3-uWuirsnrdDBaZWXhzOhUYYITz7FaTNhwXKlhoGbun_28BtwOHmJQfcJr-ZVBwgAA",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "esctx-Vzhx1iLsos",
+    "value": "AQABCQEAAACvnsHKEvvRQb3Bz3Qc7wnaRXZvU3RzQXJ0aWZhY3RzDQAAAAAAlhBN888lTidm6P69M9rd1OG1EqT_K968PN3cstxmOkuzbCdkTTQNlWqdLBXG_WtweYgD_POGWPEfU0Phpe77wsYBTc54B8IVd2_oXlKxPPs0W58ohbkOUg5VL_POjFXuEaJaQQlceAcvhTgOmRGVfiAA",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "uaid",
+    "value": "dcf33f9f77a04a27abcf0e88c5d5d4f6",
+    "domain": ".login.live.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "MSPRequ",
+    "value": "id=N&lt=1776965197&co=1",
+    "domain": ".login.live.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "brcap",
+    "value": "0",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": 1810661197,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "x-ms-gateway-slice",
+    "value": "estsfd",
+    "domain": "autologon.microsoftazuread-sso.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "stsservicecookie",
+    "value": "estsfd",
+    "domain": "autologon.microsoftazuread-sso.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "fpc",
+    "value": "Alx5S0ZtKrNErWvfwXIk7Rq3Ovd1AQAAAE1NfOEOAAAA",
+    "domain": "autologon.microsoftazuread-sso.com",
+    "path": "/",
+    "expires": 1779557199.359127,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "esctx",
+    "value": "PAQABBwEAAACvnsHKEvvRQb3Bz3Qc7wnaRXZvU3RzQXJ0aWZhY3RzDQAAAAAAkBdHyXny5shZCdS1Mk0okv3sPc5eKksd33YPou9tZZl2K2R9RF0OYB9_Hs1WMP-127OvvQnfcSb5UNrvauIvevSafAoWqX-Km_L_CjzPLnmFJXs-QOR1khRci4C5O5FF1tszmeC-eMbmZWriUzwPsFdoKtydqqoF7jIj05Wu3sUgAA",
+    "domain": ".autologon.microsoftazuread-sso.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "wlidperf",
+    "value": "FR=L&ST=1776965198368",
+    "domain": ".microsoftonline.com",
+    "path": "/",
+    "expires": 1810661198,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "ESTSAUTHPERSISTENT",
+    "value": "1.AXYAzdQaQg3q_Eanvkbn7mUdJC3Fkfw5ueVDgzRZkEfFT_EAAP92AA.BQABFwQAAAADAOz_BQD0_0V2b1N0c0FydGlmYWN0cxAAAAAAADAuBt_mPKIqLtYft_kUACxyPdRYufCEciyZrL7toodzthOzoo8mbqIWht5R7k8_Pz3ykVxSnRmYj6IbGrkepUmUuWzRFYw00CPm5wrKqF4SKvB7G69ekuouFnaFtm2-1LycV70qDy-Qe_tKSCT14YS8kfidAOdenc7c7JrKX5vCFPN0U6ZMJ3We26ADy-1CnWrYDw0BU3TbAa9ZeHBMqCALSarPEjnof2qe0QL8ZNq6rYZLl9I7UBCp7i2ZdvavZic833xOkMsiRpB7LnakzlKUF8eZ9xPes9Wj8oKRMD9l3TB0vWkBHyt0rgPJqe6jtYb65kONoDC5zfirUWLvmz4cZom2BdLqLcO9bTE-87nEPaguHyMm4k6311Gn_NigrCgZh83qv4ytHJy5ssHnQcWbsTrNjdlDp3W3ec3BvmLWvlK36HyfrLFhjYNJqCHUHzdGx6b-li_qtWIWTBPA_7DEbtly1zUiQ5Bj5GOwGVCwYxgwNn_9OemMHoQixatRFfiSd6p6iUTyQ1mKeQyQ1w8Vg0RJyZAYKaDVahMd-4otIHksdTP9cgZ6H2htDGReQ4N2UW7mSJrd91FwJ4OGULfjh5Eur_dDryh0nCM4B1H4N2OAuUQU14is72HAJm2lG_tACneGGq5u7E5gXxDSPchQWF0U1oYuaGCUGQYq9Du4A_Nvf0nCko7FjJsz76WV4WsGOWcV5M1_0hsq4VT4_fcb98oOXTCHHJAaN4mQaqGrfMeLTZnGKsIr4mv3k87bWXdOa_7A_pPgtDJ1asMyTIlZl9vccczR4N9qWQmaGbceZzv7Jln0o-SPKGx0yAk6qoFBdKvgKcR0L65iImF74NWdyNNicw-Oa5-Ccd30SGqcBYaDLeoZ-KzocL_NbY6jG0GZx_dyi4JWrBwaKib9Qm6ZUMU68PUI0mgvH_D6HnUXGU76YG4AS5MwfVXkNjb51_lmPifeTmZ-AQHZaU7r6lQeMJcxt9jZg5ut7lSN5DQUcY0RqoxG3QI",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": 1784741198.58692,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "ESTSAUTH",
+    "value": "1.AXYAzdQaQg3q_Eanvkbn7mUdJC3Fkfw5ueVDgzRZkEfFT_EAAP92AA.BQABFwQAAAADAOz_BQD0_0V2b1N0c0FydGlmYWN0cw8AAAAAAGaar-LDUi-r1nzErxxRbe9eVrIr2y7xsQ4fF17jLWwx8d-kHAxsQzUUWRfa3izTvLksgbYWqJrpVbLMS56QkVrM5qemFaj90sIyzVVmNc6-YELu1k6tdslsPIWJDLcW5_izyAuRppln8da7gNDZ4cbB8_5MiYXnOoqPCAdpTqtrn8tVeKvNJwpilhOhDYIqigK9gbEOy5KtQpDb-2TVdiAh1sCOOTPnGczYXN7iD5JjyjXoVjIquk1nZdNr_1YtuPpLrKUcyCd5LYy9uuM-VtGFA7jzDZTrn_AahV51C7q5Czw5zKdU-VM2coNNywkzNhFAs_v0gIwJb3DPOnY39tiqdQ-n5x2cWoOfJX3swbmp2sGDUd66M0bfSOx4BO1z35bZ8sOEjVVu4n7HL48R8ZNsuusG-sDtVjmzNRWt27h_8sYKNnp8ZRIZ-EPwB92178nuLPq9xU9-DFHu6z-8_d35uT5UrVvqcH4MsSfk_BWxxnK8idkEyRQ0Lq3uynHZIPLLLGCeFFfkeFkdULXwO3NXU90KTXwUp0CKovLtv9wjBOdc5osRbL_W2-h018_sPxAvXoHjVUHfl6LgRRWzowCf9sKptut0imQ66z1e3WzttR_x6ssrM8k5D4uy-pJAY4LwttK8TFPCXxfvllpiEaIGgrCxXHq4hFu7fEJnNKDkBxpAX9A1zTmgcDECL_Zb-Vy7vAXWWrAiJVwmYqLxi_5qd90vjTmIZUqY2_0fzvuOi1S-LGrymlrmUgX-b_jago9thfdBkaX_zZPP0gQU8Hrp8oJaZtdWr52xtYyjGsBrCh4oQKSEJkbgyNOWalEq8QdUA2Rz70BM_P0beLgNUqgfQnqu0ksSUykygsRpU5etCprlgoBJbh_FnqGtlkkgpsYgCxkXZG5VBPsUX__TnO6PfmG0MSil2FNSaep2fB0gf4Q4hkLNzFrxnkv_bFlsGUcfLApGb8kR5B_-ASNeHpTr6eN4Yw-pQVHypW6uyZx2JiMfdqcgE54bGgcZVyYKS-izy0O5KwxyIqcjcwOGaBvK-_3c4dC5BmyFebQk9PR2c2mMcjTG903jdRZNEO3HCTJtTjGbjOM9EWVauqoNhdqMdf6B3DpdS1iIru8WMdZXGPsY-umRLMlSsPLXnlAq1-lK6yUiAxXy8chuh5eMWPRfd4EAkeLvx3UK8tkc9hH5394rZ4J1uyb30WQf1eUBuYYkfC8Oz9KH",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "ESTSAUTHLIGHT",
+    "value": "+0040935a-7766-5005-3511-313ce12c8deb",
+    "domain": "login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "buid",
+    "value": "1.AXYAzdQaQg3q_Eanvkbn7mUdJC3Fkfw5ueVDgzRZkEfFT_EAAP92AA.AQABGgEAAACvnsHKEvvRQb3Bz3Qc7wnaRXZvU3RzQXJ0aWZhY3RzAwAAAAAAPMFf3vmGBCPLuY-LVs6ufrJ0dGONhOTmYi5pvj3W3eMv3m0XzNmZ8ufIFYafqKncULqH2WuSXz49OJXrQj8H-XYwybWw6Gsu_bntUefObQJtZUUpzElrcMNTOXvewFsb0bclv894ynjff290WNavZWGzjvOlWD3P2FHCSuIkDuAgAA",
+    "domain": "login.microsoftonline.com",
+    "path": "/",
+    "expires": 1779557198.587504,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "CCState",
+    "value": "RWhJS0VBbElVa1FVK3dOTGdxYVlxWlRaWEhjPQ==",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": 1777829198.587749,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "SignInStateCookie",
+    "value": "CAgABFgIAAACvnsHKEvvRQb3Bz3Qc7wnaAwDs_wUA9P9Fdm9TdHNBcnRpZmFjdHMGAAAAAAAlMMZTzcpDl2gsTyawukavog8Ivq50CEWnELarFL6SU2WfHrARGhKaLAxY2f44CjEn6J0ee3Ud6OY9Pub0fru2CRfxH_Z0bqK3LhehCRpWJwaRU2elUWD8lmsbv-JHmV3QuoyzobUkSEyx_lDwQkAoPhXmlTlcwXyNukgabkXPfNJex_pDiOaQG8EEI8iluBqA81qVsdJKp9daPJHnxQk0poa_HWmvXrUe_NbT3C5IAowAR-R6F5ZyECbsAMbd6O3E8AAvHsfkKgGh7WcKBcGvH5Yi6BLw4Ezy0dEJ4CHt6lA8-51I6Q",
+    "domain": ".login.microsoftonline.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "fpc",
+    "value": "AnjfZijhNZhIt2qj4FDW7kkrXawcAQAAAExNfOEOAAAA9B8bfAEAAABOTXzhDgAAAA",
+    "domain": "login.microsoftonline.com",
+    "path": "/",
+    "expires": 1779557198.58803,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "ORA_OSFS_SESSION",
+    "value": "id-RzERK9VJbZ4HrlcB-WJ66ehcGuB-XwN9F8eaXK6f",
+    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "OAM_ID",
+    "value": "VERSION_5~taBhhTO/S5ZgYkqjN++zsw==~6yLkrBLVLJjIAdoYQsLva8MACUbrus7Yh22q+bTVHSNu8ATfwklMwo0SNE+acM0Pxa2absh2i1T5uNx7LfFcYhqD2K1vwl2e6YuRJHfprBVniUozXwFFbOw+Zt3rpza4GSMvS5E8B1pECSJJjMnLkAK0TgRMVxYueJNvpGD1vemyqZBUT/n8ImT+5BntkeLaZS/G4O/R9duJWYK54XrtTmpx8z0efQsuwmNJl0W0pZY71a/mJSmACoG2o4YhQs9N9kmRoOEzFduQqkCBPtzdrD6YbbYe9kd7RagXy+aywu3hIRJJy8tlQJAVfadVKV15KbZaFbOCPk9JW4HUgGoSE6QrvwF6QJffJThIjLaJkyMxK9UgHV/DMpxheuicyNyKFw9okHWy4wmBY0vvFN7/PFLEI2E2NxgGLTPS2UIDHRbxUo5pQgVRyrgPj/VIencb/AOlP49XqVQBYoO13VZZrW9EYHZd4iSJMoyJIqSuWx0glDzXUInnHtldpSLxnYNqqIQw5CJrGEa7kiknejoesXCO9/gsbIomvqilzwHcLQMt1bodIyVy6WRDkPSLJDIqPf5i4HOUD8kzUOoGnIWucpxp8HrE0dtAdxhDVRXmPOkBNGGbLhIJVrtbplyMYxLn9vvWwrcn2jXTobGNTYnR8AQBTzZPNJb/TtdA+lsRB5s=",
+    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "OAM_REQ_0",
+    "value": "invalid",
+    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "OAM_REQ_1",
+    "value": "invalid",
+    "domain": "login-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "OAMAuthnCookie_fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com_443",
+    "value": "08a7895bc79c0e40da057c59b8c30f56331bd8e9%7EQbX%2BA382kwH8hBTritTcnt5u3YVK0mNioMHeyJfFKwJqN5CQIl6%2FLABtYoYkjDDUIWJv8kyR0WEPIuO%2F9lucrL3fMeKj2it%2Fsbc9TLa4VblLrFEyU%2BREQO7X1BBmBVRXHmh%2FX8OZrT%2FXD2Du4D4YVhsVAO1UzMXouQ7JifZoKsfEY1x93lS%2FEbnVlXVGavEzGIIut2eJFv%2Be7z1caWwuC84hRjqDsxvTEJTRDUvgkVb161mhvlFdsNX7%2BiOGQUktbS1jl3YAC%2F3DN3LsoLMexv31TKTNGoqLwqtPYSzwmgDTTuiPEZAQPNPzKxXCF9LAMSR076kZ46%2BVo24ju2Yf1Yi8nqwhjvX3IKu2OO9lworu63jcUU1Fs6l6RYjOmZeQ8jmGNiSYIjXYNLzTqN3alkRnyM3S8BCBD3NhK26tiKnwaTZ36tGz2oGYHkpLBx1UBpLT4YXDARXOWWU4gLAIn4b6KqApnAobvqUrv%2B33eBjZMvIzEOG9lFieocpAJ2EBPLMHzyez2Pj7h3ugVY1NtjQLqzCasZajvRiRyUaYKV4QTbuNjWsEYJKwYQ0fBCzggWOwTScgAzc9EPYIG25Ifg3KtHcwx%2FRbXl5PI%2F%2FDpZiQrqTnaIgmlaw8m3nQPZsVR2cGai8fXnij27vcxLoFbPl1%2FrW52XiAqSpcb25DPOY%3D",
+    "domain": "fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "OAMAuthnHintCookie",
+    "value": "1",
     "domain": ".oraclecloud.com",
     "path": "/",
     "expires": -1,
     "httpOnly": true,
     "secure": true,
     "sameSite": "None"
+  },
+  {
+    "name": "ORA_FUSION_PREFS",
+    "value": "v1.0~bG9jYWxlPWVufmRlZmF1bHRMYW5ndWFnZU1hcmtlcj1mYWxzZX5wcmVmZXJyZWRMYW5ndWFnZT1lbi11cw==",
+    "domain": ".oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "ORA_FND_SESSION_USASDOUH_F",
+    "value": "DEFAULT_PILLAR:NxMhHeIX4l9GAz0dUzQxHaOB7zeee5mKSqixRc5FFxJX7lpZ3odPmrJmcOd1TTXm:1776965199998",
+    "domain": ".oraclecloud.com",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "bm_sv",
+    "value": "680B67EEE5BF48D6A4DB0A7FB40A0B2F~YAAQpgo1FxLf3XCdAQAAcS1hux/CY0azQva7AQ2ak7+Y8guVy+ukADJvUfkPHBo3U3AdBXKTsp8xUCR2vqvaD6h0wZqopiJF/ZlNA6/eZKj6MwTrz2KZ0KlHcg+7wZNFR6+furafDLJTT1kloW224mkkIFdet5D61UPtT9Niyt3hc9YVOYbXo0JaKj4u0KP2UKLwKOIi77u4A8LFFBAIvYK8tHMbCIc4Inknxq1nxGKHyJ0C+VQwvoeRwkJM2ME+NXBj+wMpw7Vcgd+A~1",
+    "domain": ".fa.ocs.oraclecloud.com",
+    "path": "/",
+    "expires": 1776972393.21266,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
   }
 ]
