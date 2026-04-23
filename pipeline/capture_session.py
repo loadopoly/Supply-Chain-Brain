@@ -32,11 +32,22 @@ def main():
         print(f"Opening Oracle Fusion login page...")
         page.goto(f"{HOST}/fscmUI/faces/FuseWelcome",
                   wait_until="domcontentloaded", timeout=60_000)
+        page.bring_to_front()
 
         print(f"\nCurrent page: {page.title()}")
         print("\n>>> Log in manually in the browser window.")
-        print(">>> Once you see the Oracle Fusion home page, press ENTER here.")
-        input()
+        print(">>> Waiting for Oracle Fusion home page to load (up to 5 minutes)...")
+
+        # Poll until the home page loads (title changes from "Sign In")
+        import time
+        deadline = time.time() + 600  # 10 minutes
+        while time.time() < deadline:
+            title = page.title()
+            url = page.url
+            if "FuseWelcome" in url or ("Sign In" not in title and title.strip()):
+                break
+            print(f"  Waiting... ({title[:50]})")
+            time.sleep(5)
 
         print(f"Page after login: {page.title()}")
 

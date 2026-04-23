@@ -1638,6 +1638,79 @@ def stop_continuous_synaptic_agents(timeout: float = 5.0) -> None:
     logging.info("Continuous synaptic agents stopped.")
 
 
+def orient_from_session_memory() -> dict:
+    """Orient the Brain from recent Copilot session context.
+
+    Calls the Brain's ``session_memory`` module, which runs ``session-recall``
+    to pull recently touched files and session summaries, then writes each as
+    a ``session_recall`` entry in ``learning_log``.  This gives the Brain
+    awareness of what the developer and AI have been working on so the corpus
+    naturally reflects active development context.
+
+    Fails silently — if ``session-recall`` is unavailable (database not found
+    or CLI not installed) the function returns an empty result and the agent
+    loop continues normally.
+    """
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from src.brain.session_memory import orient_agent
+        result = orient_agent(file_limit=10, session_limit=5)
+        health = result.get("health", "unavailable")
+        written = result.get("learnings_written", 0)
+        if health == "ok":
+            logging.info(
+                f"Session memory orient: "
+                f"files={len(result.get('files', []))}, "
+                f"sessions={len(result.get('sessions', []))}, "
+                f"learnings_written={written}"
+            )
+        else:
+            logging.debug("Session memory: no session-recall data available (normal if gh copilot CLI unused).")
+        return result
+    except Exception as e:
+        logging.warning(f"orient_from_session_memory failed: {e}")
+        return {}
+
+
+def index_new_documents() -> dict:
+    """Incrementally re-index documents in the Brain's doc RAG service.
+
+    Runs at most once every 6 hours (enforced via ``brain_kv``).  Picks up
+    any new or changed ``.md`` files placed in ``pipeline/data/documents/``
+    and updates the FAISS vector index so ``dbi_rag.py`` can retrieve them
+    as a third retrieval source in every LLM insight generation call.
+
+    Fails silently — if ``GOOGLE_API_KEY`` is absent, no documents exist, or
+    the Proxy-Pointer-RAG library is unavailable, the function returns a
+    descriptive result dict and the agent loop continues normally.
+    """
+    DOC_INDEX_COOLDOWN_S = 6 * 3600   # 6 hours between full index passes
+    kv_key = "doc_rag_last_index"
+    try:
+        last_run = float(_kv_read(kv_key, "0") or "0")
+        if time.time() - last_run < DOC_INDEX_COOLDOWN_S:
+            logging.debug("doc_rag: index is fresh, skipping re-index.")
+            return {"ok": True, "message": "cooldown active — skipped"}
+    except Exception:
+        pass
+
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from src.brain.doc_rag import index_documents
+        result = index_documents(fresh=False)
+        if result.get("ok"):
+            _kv_write(kv_key, str(time.time()))
+            logging.info(f"doc_rag index pass complete: {result.get('message', '')}")
+        else:
+            logging.debug(f"doc_rag index pass skipped: {result.get('message', '')}")
+        return result
+    except Exception as e:
+        logging.warning(f"index_new_documents failed: {e}")
+        return {"ok": False, "error": str(e)}
+
+
 def adaptive_cycle_sleep(velocity: int) -> None:
     """Sleep between cycles with duration scaled to learning velocity.
 
@@ -1725,6 +1798,14 @@ def autonomous_loop():
             logging.info("=== STARTING NEW AUTONOMOUS CYCLE ===")
             cycle_velocity = 0  # updated after corpus refresh; drives adaptive sleep
 
+            # Step 0a: Orient from session memory — ingest recent Copilot
+            # session context (recently touched files, session summaries) as
+            # learning_log entries so the Brain reflects active development.
+            try:
+                orient_from_session_memory()
+            except Exception as e:
+                logging.warning(f"Session memory orient step failed: {e}")
+
             # Step 0: Ensure local VPN is active on the hosting laptop
             trigger_remote_vpn()
 
@@ -1753,6 +1834,16 @@ def autonomous_loop():
                 )
             except Exception as e:
                 logging.warning(f"Data source sweep step failed: {e}")
+
+            # Step 3a.5: Document RAG index refresh. Picks up any new .md files
+            # placed in pipeline/data/documents/ and updates the FAISS vector
+            # index so the Brain's DBI insight engine has fresh document context
+            # as a third retrieval source on every LLM insight generation call.
+            # Runs at most once every 6 hours (cooldown enforced via brain_kv).
+            try:
+                index_new_documents()
+            except Exception as e:
+                logging.warning(f"Document RAG index step failed: {e}")
 
             # Step 3b: Periodic open-weight LLM scout — keeps the Brain's
             # router aware of newly released models (Gemma/GLM/Qwen/DeepSeek/

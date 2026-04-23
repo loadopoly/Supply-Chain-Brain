@@ -1,129 +1,96 @@
 """
-17_Document_RAG.py — Proxy-Pointer Document Analysis
-Structural RAG over supply chain documents using hierarchical pointer-based retrieval.
-Requires GOOGLE_API_KEY in Proxy-Pointer-RAG/.env
+17_Document_RAG.py — Document Analysis page.
+
+All RAG logic is delegated to the Brain's ``src.brain.doc_rag`` module.
+The page provides the Streamlit UI; the Brain module owns the data directories,
+the FAISS index, and the Proxy-Pointer-RAG integration.
 """
 import sys
-import os
 from pathlib import Path
 import streamlit as st
 
 st.set_page_config(page_title="Document Analysis", page_icon="📄", layout="wide")
 
-# ── Path setup ─────────────────────────────────────────────────────────────────
-_WORKSPACE = Path(__file__).parent.parent.parent   # VS Code root
-_RAG_ROOT  = _WORKSPACE / "Proxy-Pointer-RAG"
+# ── Path setup — ensure pipeline root is importable ───────────────────────────
+_PIPELINE = Path(__file__).resolve().parents[1]
+if str(_PIPELINE) not in sys.path:
+    sys.path.insert(0, str(_PIPELINE))
 
-if not _RAG_ROOT.exists():
-    st.error("Proxy-Pointer-RAG not found. Expected at: " + str(_RAG_ROOT))
-    st.stop()
-
-sys.path.insert(0, str(_RAG_ROOT))
-
-# ── Load .env for this sub-project ─────────────────────────────────────────────
-from dotenv import load_dotenv
-load_dotenv(_RAG_ROOT / ".env")
-
-_api_key = os.getenv("GOOGLE_API_KEY", "")
+from src.brain.doc_rag import (   # noqa: E402
+    is_ready, retrieve_doc_context, index_documents, query_documents,
+    _DOCS_DIR, _INDEX_DIR,
+)
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
-st.title("📄 Document Analysis (Proxy-Pointer RAG)")
-st.caption("Structural hierarchy-aware retrieval — indexes full document sections, not truncated chunks.")
-
-if not _api_key or _api_key == "your_gemini_api_key_here":
-    st.warning(
-        "**GOOGLE_API_KEY not set.** "
-        "Add your Gemini API key to `Proxy-Pointer-RAG/.env` to use this page.\n\n"
-        "Get a free key at https://aistudio.google.com/app/apikey"
-    )
-    st.code("GOOGLE_API_KEY=your_key_here", language="bash")
-    st.stop()
-
-# ── Lazy imports after env is validated ────────────────────────────────────────
-try:
-    import google.generativeai as genai
-    from src.indexing.build_pp_index import build_proxy_index
-    from src import config as pp_config
-except Exception as e:
-    st.error(f"Failed to import Proxy-Pointer-RAG modules: {e}")
-    st.stop()
+st.title("📄 Document Analysis")
+st.caption("Structural hierarchy-aware retrieval powered by the Brain's doc RAG service.")
 
 # ── Sidebar: index management ──────────────────────────────────────────────────
 with st.sidebar:
     st.header("Index Management")
 
-    data_dir = pp_config.DATA_DIR
-    index_dir = pp_config.INDEX_DIR
+    docs = list(_DOCS_DIR.glob("*.md")) if _DOCS_DIR.exists() else []
+    st.metric("Documents", len(docs))
+    st.caption(f"`{_DOCS_DIR}`")
 
-    docs = list(data_dir.glob("*.md")) if data_dir.exists() else []
-    st.metric("Indexed documents", len(docs))
-    st.caption(f"Source: `{data_dir.relative_to(_RAG_ROOT)}`")
-
-    index_exists = (index_dir / "index.faiss").exists() if index_dir.exists() else False
-    st.caption(f"Index: {'✅ built' if index_exists else '❌ not built yet'}")
+    index_exists = (_INDEX_DIR / "index.faiss").exists() if _INDEX_DIR.exists() else False
+    st.caption(f"Index: {'✅ ready' if index_exists else '❌ not built yet'}")
 
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Build index", use_container_width=True, type="primary"):
-            with st.spinner("Building index…"):
-                try:
-                    _orig_cwd = os.getcwd()
-                    os.chdir(_RAG_ROOT)
-                    build_proxy_index(incremental=True)
-                    os.chdir(_orig_cwd)
-                    st.success("Index built.")
+        if st.button("Update index", use_container_width=True, type="primary"):
+            with st.spinner("Indexing new documents…"):
+                result = index_documents(fresh=False)
+                if result.get("ok"):
+                    st.success(result.get("message", "Done."))
                     st.rerun()
-                except Exception as e:
-                    st.error(f"Build failed: {e}")
+                else:
+                    st.error(result.get("message", "Index failed. Check GOOGLE_API_KEY."))
     with col2:
         if st.button("Rebuild fresh", use_container_width=True):
             with st.spinner("Rebuilding from scratch…"):
-                try:
-                    _orig_cwd = os.getcwd()
-                    os.chdir(_RAG_ROOT)
-                    build_proxy_index(incremental=False)
-                    os.chdir(_orig_cwd)
-                    st.success("Index rebuilt.")
+                result = index_documents(fresh=True)
+                if result.get("ok"):
+                    st.success(result.get("message", "Done."))
                     st.rerun()
-                except Exception as e:
-                    st.error(f"Rebuild failed: {e}")
+                else:
+                    st.error(result.get("message", "Rebuild failed. Check GOOGLE_API_KEY."))
 
     st.divider()
     st.markdown("**Add documents**")
-    st.caption(f"Drop `.md` files into `{data_dir.relative_to(_RAG_ROOT)}` then rebuild the index.")
+    st.caption(f"Drop `.md` files into `pipeline/data/documents/` then rebuild.")
 
     uploaded = st.file_uploader("Upload .md file", type=["md"], label_visibility="collapsed")
     if uploaded:
-        data_dir.mkdir(parents=True, exist_ok=True)
-        dest = data_dir / uploaded.name
+        _DOCS_DIR.mkdir(parents=True, exist_ok=True)
+        dest = _DOCS_DIR / uploaded.name
         dest.write_bytes(uploaded.getvalue())
         st.success(f"Saved `{uploaded.name}`. Rebuild index to include it.")
 
-# ── Main: query interface ───────────────────────────────────────────────────────
-if not index_exists:
-    st.info("No index found. Upload documents and click **Build index** in the sidebar to get started.")
-    st.stop()
+# ── Query area ─────────────────────────────────────────────────────────────────
+if not is_ready():
+    st.info(
+        "No documents indexed yet. "
+        "Upload `.md` files using the sidebar, then click **Update index**."
+    )
+else:
+    query = st.text_input(
+        "Ask a question about your documents",
+        placeholder="e.g. What are the lead time terms for supplier XYZ?",
+    )
 
-try:
-    from src.agent.pp_rag_bot import ProxyPointerRAG
-    @st.cache_resource
-    def get_bot():
-        return ProxyPointerRAG()
-    bot = get_bot()
-except Exception as e:
-    st.error(f"Failed to load RAG bot: {e}")
-    st.stop()
+    if query:
+        with st.spinner("Retrieving and synthesizing…"):
+            answer = query_documents(query)
+        st.markdown("### Answer")
+        st.markdown(answer)
 
-query = st.text_input(
-    "Ask a question about your documents",
-    placeholder="e.g. What are the lead time terms for supplier XYZ?",
-)
-
-if query:
-    with st.spinner("Retrieving and synthesizing…"):
-        try:
-            answer = bot.chat(query)
-            st.markdown("### Answer")
-            st.markdown(answer)
-        except Exception as e:
-            st.error(f"Query failed: {e}")
+        with st.expander("Source passages", expanded=False):
+            passages = retrieve_doc_context(query, k=5)
+            if passages:
+                for p in passages:
+                    st.markdown(f"**{p['breadcrumb']}**")
+                    st.text(p["text"][:600])
+                    st.divider()
+            else:
+                st.caption("No source passages returned.")

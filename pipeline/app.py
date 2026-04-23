@@ -18,6 +18,11 @@ st.set_page_config(
 # ── Global CSS: allow Plotly hover tooltips to escape Streamlit's overflow:hidden containers ──
 st.markdown("""
 <style>
+div.block-container,
+div[data-testid="stAppViewContainer"],
+div[data-testid="stMainBlockContainer"],
+div[data-testid="stElementContainer"],
+.element-container,
 div[data-testid="stVerticalBlock"],
 div[data-testid="stVerticalBlockBorderWrapper"],
 div[data-testid="stHorizontalBlock"],
@@ -25,6 +30,17 @@ div[data-testid="column"],
 div[data-testid="stPlotlyChart"],
 div[data-testid="stPlotlyChart"] > div {
     overflow: visible !important;
+}
+
+div[data-testid="stPlotlyChart"] .js-plotly-plot,
+div[data-testid="stPlotlyChart"] .plot-container,
+div[data-testid="stPlotlyChart"] .svg-container,
+div[data-testid="stPlotlyChart"] .hoverlayer {
+    overflow: visible !important;
+}
+
+div[data-testid="stPlotlyChart"] .hoverlayer {
+    pointer-events: none !important;
 }
 </style>
 """, unsafe_allow_html=True)

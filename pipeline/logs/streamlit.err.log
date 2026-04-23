@@ -1,0 +1,7 @@
+OpenRouter call failed (brain_id=openrouter/pareto-code or_model=deepseek/deepseek-chat-v3-0324:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
+OpenRouter call failed (brain_id=qwen3.5-397b-a17b or_model=qwen/qwen3-235b-a22b:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
+OpenRouter call failed (brain_id=openrouter/auto or_model=deepseek/deepseek-chat-v3-0324:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
+OpenRouter call failed (brain_id=openrouter/bodybuilder or_model=deepseek/deepseek-chat-v3-0324:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
+OpenRouter call failed (brain_id=mimo-v2-flash or_model=google/gemma-3-4b-it:free): 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions
+OpenRouter call failed (brain_id=mimo-v2-flash or_model=google/gemma-3-4b-it:free): 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions
+DBI routed OpenRouter call failed for page=Query Console: 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions

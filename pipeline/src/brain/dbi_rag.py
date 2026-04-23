@@ -5,8 +5,8 @@ Pipeline per filter-change:
                  + recent learnings from knowledge_corpus
   2. AUGMENT   — build a structured system + user prompt with the retrieved
                  context, live graph metrics, date window, and page name
-  3. GENERATE  — call llm_ensemble.dispatch_parallel() on the best task
-                 profile, extract the winning text answer
+    3. GENERATE  — pick the best model with llm_router.select_llm(), then call
+                                 OpenRouter directly for a single fast response
   4. FALLBACK  — if the ensemble has no real caller (no OPENROUTER_API_KEY,
                  no compute peers) or returns a placeholder echo, return None
                  so dynamic_insight.py can render the template instead
@@ -112,6 +112,21 @@ def _retrieve_learnings(limit: int = 3) -> list[dict]:
         return []
 
 
+def _retrieve_doc_context(query: str, k: int = 3) -> list[dict]:
+    """Retrieve grounded document context from the Brain's doc RAG service.
+
+    Returns a list of ``{breadcrumb, text}`` dicts or an empty list when the
+    index is not ready, the API key is absent, or any other error occurs.
+    Failures are silent — the caller always gets a valid (possibly empty) list.
+    """
+    try:
+        from .doc_rag import retrieve_doc_context
+        return retrieve_doc_context(query, k=k)
+    except Exception as exc:
+        log.debug("doc_rag.retrieve_doc_context failed: %s", exc)
+        return []
+
+
 # ── Prompt construction ──────────────────────────────────────────────────────
 
 def _build_messages(
@@ -121,6 +136,7 @@ def _build_messages(
     metrics: dict[str, Any],
     findings: list[dict],
     learnings: list[dict],
+    doc_context: list[dict] | None = None,
 ) -> list[dict]:
     """Compose the OpenAI-compatible messages list for the ensemble call."""
 
@@ -178,6 +194,14 @@ def _build_messages(
             if isinstance(detail, dict):
                 detail = json.dumps(detail)
             lines.append(f"  • {title}: {str(detail)[:150]}")
+
+    # Document context from Brain's doc RAG
+    if doc_context:
+        lines.append("\nRelevant document sections:")
+        for dc in doc_context:
+            breadcrumb = dc.get("breadcrumb", "")
+            text = str(dc.get("text", ""))[:300]
+            lines.append(f"  [{breadcrumb}] {text}")
 
     lines.append(
         f"\nTask: write a 3–5 sentence supply chain insight for the analyst "
@@ -271,11 +295,15 @@ def generate_insight(page: str, context_dict: dict) -> str | None:
     }
 
     # ── Retrieve ─────────────────────────────────────────────────────────────
-    findings  = _retrieve_findings(site, limit=6)
-    learnings = _retrieve_learnings(limit=3)
+    findings    = _retrieve_findings(site, limit=6)
+    learnings   = _retrieve_learnings(limit=3)
+    doc_query   = f"{page} supply chain {site}"
+    doc_context = _retrieve_doc_context(doc_query, k=3)
 
     # ── Augment ──────────────────────────────────────────────────────────────
-    messages = _build_messages(page, site, window_str, metrics, findings, learnings)
+    messages = _build_messages(
+        page, site, window_str, metrics, findings, learnings, doc_context
+    )
 
     # ── Generate ─────────────────────────────────────────────────────────────
     task = next(
@@ -284,19 +312,25 @@ def generate_insight(page: str, context_dict: dict) -> str | None:
     )
 
     try:
-        from . import llm_ensemble
-        result = llm_ensemble.dispatch_parallel(
-            task, {"messages": messages, "kind": "text"}
-        )
-        text = _extract_text(result)
+        from .llm_router import select_llm
+        from .llm_caller_openrouter import openrouter_caller
+
+        decision = select_llm(task)
+        response = openrouter_caller(decision, {"messages": messages, "kind": "text"}, {})
+        text = None
+        if isinstance(response, dict):
+            text = str(response.get("text") or "").strip() or None
+        elif isinstance(response, str):
+            text = response.strip() or None
+
         if text and not _is_placeholder(text):
             log.info(
-                "DBI RAG generated %d chars for page=%s site=%s elapsed_ms=%s",
-                len(text), page, site, getattr(result, "elapsed_ms", "?"),
+                "DBI RAG generated %d chars for page=%s site=%s model=%s",
+                len(text), page, site, decision.model_id,
             )
             return text
         log.debug("DBI RAG returned placeholder/empty for page=%s — using template", page)
     except Exception as exc:
-        log.warning("DBI ensemble dispatch failed for page=%s: %s", page, exc)
+        log.warning("DBI routed OpenRouter call failed for page=%s: %s", page, exc)
 
     return None

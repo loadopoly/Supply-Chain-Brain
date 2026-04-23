@@ -25,17 +25,22 @@ log = logging.getLogger(__name__)
 
 # ── Model ID → OpenRouter :free slug ────────────────────────────────────────
 # brain.yaml uses canonical internal IDs; OpenRouter uses vendor/name:free slugs.
-# Update this table as new models are released / slugs change.
+# These slugs are grounded to the current OpenRouter catalog as of 2026-04-23.
 _OR_MODEL_MAP: dict[str, str] = {
-    "gemma-4":              "google/gemma-3-27b-it:free",
-    "glm-5.1":              "thudm/glm-4-9b:free",
-    "qwen3.5-397b-a17b":    "qwen/qwen3-235b-a22b:free",
-    "deepseek-v3.2":        "deepseek/deepseek-chat-v3-0324:free",
-    "kimi-k2.5":            "moonshotai/kimi-vl-a3b-thinking:free",
-    "minimax-m2.7":         "minimax/minimax-m1:free",
-    "mimo-v2-flash":        "google/gemma-3-4b-it:free",
+    "gemma-4":              "google/gemma-4-31b-it:free",
+    "glm-5.1":              "z-ai/glm-4.5-air:free",
+    "qwen3.5-397b-a17b":    "qwen/qwen3-next-80b-a3b-instruct:free",
+    "deepseek-v3.2":        "openai/gpt-oss-120b:free",
+    "kimi-k2.5":            "openai/gpt-oss-20b:free",
+    "minimax-m2.7":         "minimax/minimax-m2.5:free",
+    "mimo-v2-flash":        "google/gemma-3n-e4b-it:free",
 }
-_OR_DEFAULT = "deepseek/deepseek-chat-v3-0324:free"
+_OR_DEFAULT = "openai/gpt-oss-20b:free"
+_OR_FALLBACKS = [
+    "openai/gpt-oss-20b:free",
+    "google/gemma-3n-e4b-it:free",
+    "google/gemma-3-4b-it:free",
+]
 _OR_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 _key: str | None = None
@@ -67,7 +72,7 @@ def openrouter_caller(decision: Any, payload: Any, _cfg: dict) -> Any:
         return {"text": f"[{decision.model_id} offline — no OPENROUTER_API_KEY]",
                 "confidence": 0.0}
 
-    or_model = _OR_MODEL_MAP.get(decision.model_id, _OR_DEFAULT)
+    requested_model = _OR_MODEL_MAP.get(decision.model_id, _OR_DEFAULT)
 
     if isinstance(payload, dict) and "messages" in payload:
         messages = payload["messages"]
@@ -82,24 +87,37 @@ def openrouter_caller(decision: Any, payload: Any, _cfg: dict) -> Any:
         "HTTP-Referer": "https://supply-chain-brain.local",
         "X-Title": "Supply Chain Brain DBI",
     }
-    body = {
-        "model": or_model,
-        "messages": messages,
-        "max_tokens": 350,
-        "temperature": 0.35,
-    }
+    candidate_models = [requested_model] + [
+        model for model in _OR_FALLBACKS if model != requested_model
+    ]
 
-    try:
-        r = requests.post(_OR_BASE_URL, headers=headers, json=body, timeout=40)
-        r.raise_for_status()
-        data = r.json()
-        text = data["choices"][0]["message"]["content"].strip()
-        log.debug("OpenRouter OK model=%s chars=%d", or_model, len(text))
-        return {"text": text, "confidence": 0.9, "model": or_model}
-    except Exception as exc:
-        log.warning("OpenRouter call failed (brain_id=%s or_model=%s): %s",
-                    decision.model_id, or_model, exc)
-        raise
+    last_exc: Exception | None = None
+    for or_model in candidate_models:
+        body = {
+            "model": or_model,
+            "messages": messages,
+            "max_tokens": 350,
+            "temperature": 0.35,
+        }
+        try:
+            r = requests.post(_OR_BASE_URL, headers=headers, json=body, timeout=40)
+            r.raise_for_status()
+            data = r.json()
+            text = data["choices"][0]["message"]["content"].strip()
+            log.debug("OpenRouter OK model=%s chars=%d", or_model, len(text))
+            return {"text": text, "confidence": 0.9, "model": or_model}
+        except Exception as exc:
+            last_exc = exc
+            log.warning(
+                "OpenRouter call failed (brain_id=%s or_model=%s): %s",
+                decision.model_id,
+                or_model,
+                exc,
+            )
+
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("OpenRouter caller exhausted all candidate models.")
 
 
 def register() -> bool:

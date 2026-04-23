@@ -207,3 +207,121 @@ Install the latest PowerShell for new features and improvements! https://aka.ms/
 
 2026-04-23 09:44:05,175 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
 2026-04-23 09:44:05,297 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-23 09:44:05,297 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-23 09:44:07,895 - [AUTONOMOUS AGENT] - Changes committed successfully.
+2026-04-23 09:44:07,896 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE (high-velocity: 1303 new signal units). SLEEPING 1 HOUR ===
+2026-04-23 09:50:47,962 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 09:50:47,963 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 09:50:47,975 - [AUTONOMOUS AGENT] - RAG deepdive[builder_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 09:50:47,987 - [AUTONOMOUS AGENT] - [synapse:builder] edges=0 paths=0 elapsed=0.1s
+2026-04-23 09:57:05,044 - [AUTONOMOUS AGENT] - RAG deepdive[lookahead_30d]: corpus too sparse — skipping.
+2026-04-23 09:57:05,059 - [AUTONOMOUS AGENT] - [synapse:lookahead/lookahead_30d] edges=0 paths=0 elapsed=0.0s
+2026-04-23 10:00:11,068 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 10:00:11,068 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 10:00:11,081 - [AUTONOMOUS AGENT] - RAG deepdive[builder_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 10:00:11,095 - [AUTONOMOUS AGENT] - [synapse:builder] edges=0 paths=0 elapsed=0.1s
+2026-04-23 10:04:29,174 - [AUTONOMOUS AGENT] - [synapse:sweeper] iteration failed: Epicor config missing 'server' and env var 'EPICOR_JEROME_AVE_SERVER' is not set. Add it to connections.yaml or set the environment variable.
+2026-04-23 10:09:23,222 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 10:09:23,223 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 10:09:23,237 - [AUTONOMOUS AGENT] - RAG deepdive[builder_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 10:09:23,263 - [AUTONOMOUS AGENT] - [synapse:builder] edges=0 paths=0 elapsed=0.2s
+2026-04-23 10:10:36,087 - [AUTONOMOUS AGENT] - RAG deepdive[lookahead_90d]: corpus too sparse — skipping.
+2026-04-23 10:10:36,115 - [AUTONOMOUS AGENT] - [synapse:lookahead/lookahead_90d] edges=0 paths=0 elapsed=0.0s
+2026-04-23 10:11:43,272 - [AUTONOMOUS AGENT] - [synapse:convergence] +1 entities, +5 edges, projected 5000n/3338e elapsed=0.5s
+2026-04-23 10:19:20,351 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 10:19:20,351 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 10:19:20,373 - [AUTONOMOUS AGENT] - RAG deepdive[builder_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 10:19:20,400 - [AUTONOMOUS AGENT] - [synapse:builder] edges=0 paths=0 elapsed=0.1s
+2026-04-23 10:24:28,148 - [AUTONOMOUS AGENT] - RAG deepdive[lookahead_7d]: corpus too sparse — skipping.
+2026-04-23 10:24:28,168 - [AUTONOMOUS AGENT] - [synapse:lookahead/lookahead_7d] edges=0 paths=0 elapsed=0.0s
+2026-04-23 10:30:20,483 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 10:30:20,484 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 10:30:20,505 - [AUTONOMOUS AGENT] - RAG deepdive[builder_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 10:30:20,527 - [AUTONOMOUS AGENT] - [synapse:builder] edges=0 paths=0 elapsed=0.1s
+2026-04-23 10:38:35,189 - [AUTONOMOUS AGENT] - RAG deepdive[lookahead_30d]: corpus too sparse — skipping.
+2026-04-23 10:38:35,205 - [AUTONOMOUS AGENT] - [synapse:lookahead/lookahead_30d] edges=0 paths=0 elapsed=0.0s
+2026-04-23 10:40:07,666 - [AUTONOMOUS AGENT] - [synapse:convergence] +0 entities, +0 edges, projected 5000n/3338e elapsed=0.4s
+2026-04-23 10:41:19,615 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 10:41:19,616 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 10:41:19,634 - [AUTONOMOUS AGENT] - RAG deepdive[builder_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 10:41:19,658 - [AUTONOMOUS AGENT] - [synapse:builder] edges=0 paths=0 elapsed=0.1s
+2026-04-23 10:44:08,241 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-23 10:44:08,242 - [AUTONOMOUS AGENT] - Checking bridge tunnel health (v0.7.3 — TCP probe + watchdog trigger)...
+2026-04-23 10:44:11,246 - [AUTONOMOUS AGENT] - TCP probe failed on 192.168.250.200:33890 — requesting bridge recovery.
+2026-04-23 10:44:11,253 - [AUTONOMOUS AGENT] - Trigger dropped: req_1776955451.trigger (desktop=172.16.4.76)
+2026-04-23 10:45:06,239 - [AUTONOMOUS AGENT] - [synapse:sweeper] iteration failed: Epicor config missing 'server' and env var 'EPICOR_MANUFACTURERS_RD_SERVER' is not set. Add it to connections.yaml or set the environment variable.
+2026-04-23 10:45:41,286 - [AUTONOMOUS AGENT] - Timed out after 90s. Laptop watcher may not be installed.
+2026-04-23 10:45:41,288 - [AUTONOMOUS AGENT] - Bridge could not be confirmed — laptop may be offline or VPN not connected.
+2026-04-23 10:45:41,288 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-23 10:45:41,430 - [AUTONOMOUS AGENT] - Benchmark issues detected: python: can't open file 'C:\\Users\\agard\\OneDrive - astecindustries.com\\VS Code\\pipeline.py': [Errno 2] No such file or directory
+
+2026-04-23 10:45:41,431 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-23 10:45:41,555 - [AUTONOMOUS AGENT] - Schema mapping issues: python: can't open file 'C:\\Users\\agard\\OneDrive - astecindustries.com\\VS Code\\pipeline.py': [Errno 2] No such file or directory
+
+2026-04-23 10:45:41,556 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-23 10:45:41,557 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-23 10:45:41,869 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'epicor_abcsql' failed: table part_category has no column named part_key
+2026-04-23 10:45:47,899 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'epicor_ccmerger' failed: table part_category has no column named part_key
+2026-04-23 10:45:48,192 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'epicor_cycle_analysis' failed: table part_category has no column named part_key
+2026-04-23 10:45:48,876 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'epicor_count_data' failed: table part_category has no column named part_key
+2026-04-23 10:45:49,255 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'oracle_on_hand' failed: table part_category has no column named part_key
+2026-04-23 10:45:49,562 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'oracle_cc_metrics' failed: table part_category has no column named part_key
+2026-04-23 10:45:49,869 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'oracle_cycle_analysis' failed: table part_category has no column named part_key
+2026-04-23 10:45:50,307 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'oracle_count_data' failed: table part_category has no column named part_key
+2026-04-23 10:45:50,586 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'syteline_item_abc' failed: table part_category has no column named part_key
+2026-04-23 10:45:51,048 - [AUTONOMOUS AGENT] - OneDrive xlsx [syteline_item_count]: 44 rows \u2192 0 categories, 0 OTD owners
+2026-04-23 10:45:51,414 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'syteline_cycle_analysis' failed: table part_category has no column named part_key
+2026-04-23 10:45:51,714 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'syteline_count_data' failed: table part_category has no column named part_key
+2026-04-23 10:45:52,022 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'ax_item_abc' failed: table part_category has no column named part_key
+2026-04-23 10:45:52,467 - [AUTONOMOUS AGENT] - OneDrive xlsx [ax_cc_journal]: 65 rows \u2192 0 categories, 0 OTD owners
+2026-04-23 10:45:52,732 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'ax_cycle_analysis' failed: table part_category has no column named part_key
+2026-04-23 10:45:53,127 - [AUTONOMOUS AGENT] - OneDrive xlsx alias 'ax_count_data' failed: table part_category has no column named part_key
+2026-04-23 10:46:04,329 - [AUTONOMOUS AGENT] - eDAP [parts]: 5000 rows, dim_part \u2192 NLP categorize \u2192 500 written
+2026-04-23 10:46:09,298 - [AUTONOMOUS AGENT] - eDAP [suppliers]: 3000 rows indexed \u2192 dim_supplier \u2192 corpus entities
+2026-04-23 10:46:23,560 - [AUTONOMOUS AGENT] - eDAP [po_receipts]: 5000 rows, fact_po_receipt \u2192 OTD owners \u2192 0 written
+2026-04-23 10:46:23,692 - [AUTONOMOUS AGENT] - eDAP [on_hand]: skipped — no rows
+2026-04-23 10:46:37,445 - [AUTONOMOUS AGENT] - eDAP [open_purchase]: 3000 rows, open POs \u2192 OTD owners \u2192 0 written
+2026-04-23 10:46:47,439 - [AUTONOMOUS AGENT] - eDAP [sales_order_lines]: 3000 rows indexed \u2192 sales \u2192 corpus
+2026-04-23 10:47:01,581 - [AUTONOMOUS AGENT] - eDAP [ap_invoice_lines]: 3000 rows indexed \u2192 AP invoices \u2192 corpus
+2026-04-23 10:47:10,936 - [AUTONOMOUS AGENT] - eDAP [part_cost]: 3000 rows indexed \u2192 part cost \u2192 corpus
+2026-04-23 10:47:11,853 - [AUTONOMOUS AGENT] - Oracle Fusion: session active — running BIP sweeps.
+2026-04-23 10:47:14,371 - [AUTONOMOUS AGENT] - Oracle BIP query 'oracle_parts' failed: Oracle BIP queryResults returned non-JSON content; Oracle session is likely expired or redirected to login. HTTP 200. Response preview: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" l...
+2026-04-23 10:47:14,623 - [AUTONOMOUS AGENT] - Oracle BIP query 'oracle_open_po' failed: Oracle BIP queryResults returned non-JSON content; Oracle session is likely expired or redirected to login. HTTP 200. Response preview: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" l...
+2026-04-23 10:47:14,940 - [AUTONOMOUS AGENT] - Oracle BIP query 'oracle_onhand' failed: Oracle BIP queryResults returned non-JSON content; Oracle session is likely expired or redirected to login. HTTP 200. Response preview: <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" l...
+2026-04-23 10:47:14,967 - [AUTONOMOUS AGENT] - Dynamic sweep [epicor_jerome_ave]: table discovery failed — Epicor config missing 'server' and env var 'EPICOR_JEROME_AVE_SERVER' is not set. Add it to connections.yaml or set the environment variable.
+2026-04-23 10:47:14,987 - [AUTONOMOUS AGENT] - Dynamic sweep [epicor_manufacturers_rd]: table discovery failed — Epicor config missing 'server' and env var 'EPICOR_MANUFACTURERS_RD_SERVER' is not set. Add it to connections.yaml or set the environment variable.
+2026-04-23 10:47:15,005 - [AUTONOMOUS AGENT] - Dynamic sweep [epicor_wilson_rd]: table discovery failed — Epicor config missing 'server' and env var 'EPICOR_WILSON_RD_SERVER' is not set. Add it to connections.yaml or set the environment variable.
+2026-04-23 10:47:15,032 - [AUTONOMOUS AGENT] - Dynamic sweep [syteline_parsons]: table discovery failed — SyteLine config missing 'server' and env var 'SYTELINE_PARSONS_SERVER' is not set. Add it to connections.yaml or set the environment variable.
+2026-04-23 10:47:15,051 - [AUTONOMOUS AGENT] - Dynamic sweep [ax_airport_rd]: table discovery failed — AX site 'airport_rd': no server configured. Set connections.yaml ax_airport_rd.server or env var AX_AIRPORT_RD_SERVER.
+2026-04-23 10:47:15,051 - [AUTONOMOUS AGENT] - Data sweep complete: sources=23, rows=50,364, categories_written=500, otd_owners_written=0
+2026-04-23 10:47:15,055 - [AUTONOMOUS AGENT] - Data sweep: sources=23, rows=50,364, categories=500, otd_owners=0
+2026-04-23 10:47:15,055 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-23 10:47:15,106 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-23 10:47:15,108 - [AUTONOMOUS AGENT] - RDT: no dispatch history yet — depth stats available after first ensemble call.
+2026-04-23 10:47:15,347 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_cc_jerome_ave: no such table: epicor_cc_jerome_ave
+2026-04-23 10:47:15,348 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for syteline_cc_parsons: no such table: syteline_cc_parsons
+2026-04-23 10:47:15,349 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_dim_part: no such table: epicor_dim_part
+2026-04-23 10:47:17,266 - [AUTONOMOUS AGENT] - LLM self-train round: vendor_consolidation:25/55, otd_classify:0/0, cc_reason_classify:0/0, cc_reason_classify_syteline:0/0, abc_classify:0/0
+2026-04-23 10:47:17,979 - [AUTONOMOUS AGENT] - NLP taxonomy: categorized 500 new parts \u2192 abc_classify ground truth expanded to ~500 entries.
+2026-04-23 10:47:31,284 - [AUTONOMOUS AGENT] - OTD seeding: wrote 4053 ownership rows from bundle -> otd_classify ground truth.
+2026-04-23 10:47:41,033 - [AUTONOMOUS AGENT] - Network learner: 7/8 live, protocols=['sqlserver', 'https', 'smtp', 'smb', 'tcp'], promoted=0
+2026-04-23 10:47:41,552 - [AUTONOMOUS AGENT] - Corpus: +0 entities (touched 1742), +0 edges (touched 1338), +5 learnings; projected 5000 nodes / 3338 edges into graph; cycle velocity=5
+2026-04-23 10:47:41,768 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=50, new_edges=50, total_discovered=50
+2026-04-23 10:47:41,967 - [AUTONOMOUS AGENT] - RAG deepdive iter 2: gaps=50, new_edges=50, total_discovered=100
+2026-04-23 10:47:42,160 - [AUTONOMOUS AGENT] - RAG deepdive iter 3: gaps=50, new_edges=50, total_discovered=150
+2026-04-23 10:47:42,364 - [AUTONOMOUS AGENT] - RAG deepdive iter 4: gaps=50, new_edges=50, total_discovered=200
+2026-04-23 10:47:42,524 - [AUTONOMOUS AGENT] - RAG deepdive iter 5: gaps=50, new_edges=50, total_discovered=250
+2026-04-23 10:47:42,693 - [AUTONOMOUS AGENT] - RAG deepdive iter 6: gaps=50, new_edges=50, total_discovered=300
+2026-04-23 10:47:42,854 - [AUTONOMOUS AGENT] - RAG deepdive iter 7: gaps=50, new_edges=50, total_discovered=350
+2026-04-23 10:47:43,025 - [AUTONOMOUS AGENT] - RAG deepdive iter 8: gaps=50, new_edges=50, total_discovered=400
+2026-04-23 10:47:43,047 - [AUTONOMOUS AGENT] - RAG deepdive[all] complete: iterations=8, edges_discovered=400, pathways_explored=400
+2026-04-23 10:47:43,051 - [AUTONOMOUS AGENT] - RAG deepdive: iters=8, edges=400, pathways=400
+2026-04-23 10:47:43,403 - [AUTONOMOUS AGENT] - Brain\u2192Body: emitted=5 deduped=5 top_priority=0.88
+2026-04-23 10:48:02,195 - [AUTONOMOUS AGENT] - Quest missions: refreshed 25/25 open
+2026-04-23 10:48:02,196 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-23 10:48:02,196 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-23 10:48:02,197 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-23 10:48:02,264 - [AUTONOMOUS AGENT] - Data sync issue: python: can't open file 'C:\\Users\\agard\\OneDrive - astecindustries.com\\VS Code\\pipeline.py': [Errno 2] No such file or directory
+
+2026-04-23 10:48:02,265 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-23 10:48:02,359 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
