@@ -4,6 +4,11 @@
 All RAG logic is delegated to the Brain's ``src.brain.doc_rag`` module.
 The page provides the Streamlit UI; the Brain module owns the data directories,
 the FAISS index, and the Proxy-Pointer-RAG integration.
+
+Attribution
+-----------
+Structural RAG architecture adapted from **Proxy-Pointer** by the
+Proxy-Pointer organisation: https://github.com/Proxy-Pointer/Proxy-Pointer-RAG
 """
 import sys
 from pathlib import Path
@@ -23,7 +28,11 @@ from src.brain.doc_rag import (   # noqa: E402
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
 st.title("📄 Document Analysis")
-st.caption("Structural hierarchy-aware retrieval powered by the Brain's doc RAG service.")
+st.caption(
+    "Structural hierarchy-aware retrieval powered by the Brain's doc RAG service. "
+    "RAG architecture adapted from [Proxy-Pointer](https://github.com/Proxy-Pointer/Proxy-Pointer-RAG) "
+    "by the Proxy-Pointer organisation."
+)
 
 # ── Sidebar: index management ──────────────────────────────────────────────────
 with st.sidebar:

@@ -26,16 +26,48 @@ def _conn():
         cn.close()
 
 
+def _migrate_part_category(cn: sqlite3.Connection) -> None:
+    """Bring part_category up to current schema without dropping data.
+
+    Handles:
+    * Rename ``part_id`` → ``part_key`` (legacy column name).
+    * Add ``confidence``, ``source``, ``updated_at`` if missing.
+    * Add ``provisional``, ``refinement_count``, ``description_cache`` if missing.
+    """
+    existing = {row[1] for row in cn.execute("PRAGMA table_info(part_category)").fetchall()}
+
+    # Legacy rename: part_id → part_key
+    if "part_id" in existing and "part_key" not in existing:
+        cn.execute("ALTER TABLE part_category RENAME COLUMN part_id TO part_key")
+        existing.discard("part_id")
+        existing.add("part_key")
+
+    migrations = [
+        ("confidence",       "ALTER TABLE part_category ADD COLUMN confidence REAL DEFAULT 0.0"),
+        ("source",           "ALTER TABLE part_category ADD COLUMN source TEXT DEFAULT 'legacy'"),
+        ("updated_at",       "ALTER TABLE part_category ADD COLUMN updated_at TIMESTAMP DEFAULT NULL"),
+        ("provisional",      "ALTER TABLE part_category ADD COLUMN provisional INTEGER DEFAULT 0"),
+        ("refinement_count", "ALTER TABLE part_category ADD COLUMN refinement_count INTEGER DEFAULT 0"),
+        ("description_cache","ALTER TABLE part_category ADD COLUMN description_cache TEXT"),
+    ]
+    for col, sql in migrations:
+        if col not in existing:
+            cn.execute(sql)
+
+
 def init_schema() -> None:
     with _conn() as cn:
         cn.executescript(
             """
             CREATE TABLE IF NOT EXISTS part_category (
-                part_key      TEXT PRIMARY KEY,
-                category      TEXT,
-                confidence    REAL,
-                source        TEXT,
-                updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                part_key          TEXT PRIMARY KEY,
+                category          TEXT,
+                confidence        REAL,
+                source            TEXT,
+                provisional       INTEGER DEFAULT 0,
+                refinement_count  INTEGER DEFAULT 0,
+                description_cache TEXT,
+                updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS ix_part_category_cat ON part_category(category);
 
@@ -62,40 +94,137 @@ def init_schema() -> None:
             );
             """
         )
+        _migrate_part_category(cn)
 
 
 # ---------------------------------------------------------------- categories
+# Confidence threshold below which a classification is held as provisional
+# (test corpus — eligible for future refinement).
+_PROV_THRESHOLD: float = 0.15
+
+
 def upsert_category(part_key: str, category: str, confidence: float = 1.0,
                     source: str = "nlp") -> None:
+    """Single-row upsert — always overwrites (used for authoritative external data)."""
     init_schema()
+    prov = 0 if confidence >= _PROV_THRESHOLD and category != "Uncategorized" else 1
     with _conn() as cn:
         cn.execute(
-            "INSERT INTO part_category(part_key, category, confidence, source) "
-            "VALUES (?, ?, ?, ?) "
+            "INSERT INTO part_category"
+            "(part_key, category, confidence, source, provisional) "
+            "VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT(part_key) DO UPDATE SET category=excluded.category, "
             "confidence=excluded.confidence, source=excluded.source, "
-            "updated_at=CURRENT_TIMESTAMP",
-            (str(part_key), str(category), float(confidence), str(source)),
+            "provisional=excluded.provisional, updated_at=CURRENT_TIMESTAMP",
+            (str(part_key), str(category), float(confidence), str(source), prov),
         )
 
 
 def upsert_categories(rows: Iterable[tuple]) -> None:
+    """Batch upsert — always overwrites (backward-compatible 4-tuple path)."""
     init_schema()
     with _conn() as cn:
         cn.executemany(
-            "INSERT INTO part_category(part_key, category, confidence, source) "
-            "VALUES (?, ?, ?, ?) "
+            "INSERT INTO part_category(part_key, category, confidence, source, provisional) "
+            "VALUES (?, ?, ?, ?, ?) "
             "ON CONFLICT(part_key) DO UPDATE SET category=excluded.category, "
             "confidence=excluded.confidence, source=excluded.source, "
-            "updated_at=CURRENT_TIMESTAMP",
-            list(rows),
+            "provisional=excluded.provisional, updated_at=CURRENT_TIMESTAMP",
+            [
+                (str(r[0]), str(r[1]), float(r[2]), str(r[3]),
+                 0 if float(r[2]) >= _PROV_THRESHOLD and str(r[1]) != "Uncategorized" else 1)
+                for r in rows
+            ],
+        )
+
+
+def upsert_categories_ext(rows: Iterable[tuple]) -> None:
+    """Batch upsert with full 6-tuple: (part_key, category, confidence, source,
+    provisional, description_cache).
+
+    Uses a *confidence-wins* ON CONFLICT strategy — existing record is updated
+    only when the incoming confidence is strictly higher.  This preserves
+    hard-won confident classifications against weaker NLP re-runs.
+    ``refinement_count`` is incremented on every conflict (not on INSERT).
+    """
+    init_schema()
+    _rows = []
+    for r in rows:
+        pk, cat, conf, src = str(r[0]), str(r[1]), float(r[2]), str(r[3])
+        prov = int(r[4]) if len(r) > 4 else (
+            0 if conf >= _PROV_THRESHOLD and cat != "Uncategorized" else 1
+        )
+        desc = str(r[5]) if len(r) > 5 else ""
+        _rows.append((pk, cat, conf, src, prov, desc))
+
+    with _conn() as cn:
+        cn.executemany(
+            "INSERT INTO part_category"
+            "(part_key, category, confidence, source, provisional, description_cache) "
+            "VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(part_key) DO UPDATE SET "
+            # Keep whichever classification has higher confidence
+            "  category        = CASE WHEN excluded.confidence > part_category.confidence "
+            "                         THEN excluded.category ELSE part_category.category END, "
+            "  confidence      = MAX(excluded.confidence, part_category.confidence), "
+            # Promote from provisional when combined confidence crosses threshold
+            "  provisional     = CASE "
+            "                      WHEN MAX(excluded.confidence, part_category.confidence) >= "
+            f"                          {_PROV_THRESHOLD} "
+            "                           AND (CASE WHEN excluded.confidence > part_category.confidence "
+            "                                     THEN excluded.category ELSE part_category.category END) "
+            "                               != 'Uncategorized' "
+            "                      THEN 0 ELSE 1 END, "
+            "  refinement_count = part_category.refinement_count + 1, "
+            # Cache description if not already stored
+            "  description_cache = COALESCE(part_category.description_cache, excluded.description_cache), "
+            "  source          = excluded.source, "
+            "  updated_at      = CURRENT_TIMESTAMP",
+            _rows,
         )
 
 
 def fetch_categories() -> pd.DataFrame:
+    """Return all part_category rows (provisional + confirmed) for DBI use."""
     init_schema()
     with _conn() as cn:
         return pd.read_sql_query("SELECT * FROM part_category", cn)
+
+
+def fetch_provisional(limit: int = 500) -> pd.DataFrame:
+    """Return provisional (low-confidence test-corpus) parts for refinement."""
+    init_schema()
+    with _conn() as cn:
+        return pd.read_sql_query(
+            f"SELECT * FROM part_category WHERE provisional=1 "
+            f"ORDER BY refinement_count ASC, confidence ASC LIMIT {int(limit)}",
+            cn,
+        )
+
+
+def delete_categories(part_keys: Iterable[str]) -> int:
+    """Hard-delete rows from part_category by key.
+
+    Used to cull 'Uncategorized' entries after the test corpus has reached
+    statistical certainty that they cannot be classified with the current
+    taxonomy.  Returns the number of rows deleted.
+    """
+    keys = [str(k) for k in part_keys]
+    if not keys:
+        return 0
+    init_schema()
+    with _conn() as cn:
+        # SQLite allows up to 999 host parameters — chunk for safety
+        deleted = 0
+        for i in range(0, len(keys), 900):
+            chunk = keys[i : i + 900]
+            placeholders = ",".join(["?"] * len(chunk))
+            cur = cn.execute(
+                f"DELETE FROM part_category WHERE part_key IN ({placeholders})",
+                chunk,
+            )
+            deleted += cur.rowcount
+    return deleted
 
 
 # ---------------------------------------------------------------- OTD owners

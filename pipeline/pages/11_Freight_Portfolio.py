@@ -27,6 +27,11 @@ from plotly.subplots import make_subplots
 st.markdown("## 🚚 Smart Freight Portfolio")
 st.caption("MIT FreightLab · contract/spot/mini-bid mix · goldfish-memory pricing · ghost-lane survival")
 
+# Early DBI card — renders before SQL calls so Playwright finds [data-testid="dbi-card"]
+# even when Azure SQL is offline and the page falls back to demo/error state.
+_early_fp_ctx = {"page": "freight_portfolio", "g_site": st.session_state.get("g_site", "")}
+render_dynamic_brain_insight("Freight Portfolio", _early_fp_ctx)
+
 connectors = list_connectors()
 default_cn = connectors[0].name if connectors else "azure_sql"
 

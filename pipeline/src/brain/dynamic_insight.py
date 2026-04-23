@@ -1,3 +1,4 @@
+import concurrent.futures as _cf
 import streamlit as st
 import threading
 import time
@@ -9,14 +10,38 @@ class BrainInsightWorker:
     _lock = threading.Lock()
 
     @classmethod
+    def _build_quick_insight(cls, page_name: str, context_dict: dict) -> str:
+        """Return a synchronous placeholder template shown while the worker runs."""
+        site = (
+            context_dict.get("g_site")
+            or context_dict.get("selected_site")
+            or "all sites"
+        )
+        return (
+            f"📋 **{page_name}** · {site}. "
+            "Contextual intelligence loading — auto-updates on 2-s tick."
+        )
+
+    @classmethod
     def get_insight(cls, page_name: str, context_dict: dict) -> str:
-        context_str = ", ".join(f"{k}={v}" for k, v in sorted(context_dict.items()))
+        # Build the cache key robustly — guard against mixed-type keys or
+        # very large values (DataFrames, bytes) that appear in session_state.
+        try:
+            context_str = ", ".join(
+                f"{k}={str(v)[:120]}"
+                for k, v in sorted((str(k), v) for k, v in context_dict.items())
+            )
+        except Exception:
+            context_str = page_name
         key = f"{page_name}_{hash(context_str)}"
 
         with cls._lock:
             if key in cls._insights:
                 return cls._insights[key]
-            cls._insights[key] = "LOADING"
+            # Set a quick synchronous template immediately so the rendered
+            # card shows data-loading="0" on the very first fragment render.
+            # The background worker will overwrite this with a richer insight.
+            cls._insights[key] = cls._build_quick_insight(page_name, context_dict)
 
         def worker():
             # ── 1. Try RAG (LLM ensemble via OpenRouter) ──────────────────
@@ -27,7 +52,22 @@ class BrainInsightWorker:
             rag_text: str | None = None
             try:
                 from . import dbi_rag
-                rag_text = dbi_rag.generate_insight(page_name, context_dict)
+                # Hard cap: abandon the RAG/LLM call after 12 s so the
+                # template fallback always fires before the next 2-s fragment
+                # tick.  Without this cap, a slow OpenRouter response on
+                # later pages keeps data-loading="1" indefinitely.
+                # IMPORTANT: do NOT use `with ThreadPoolExecutor` — the context
+                # manager calls shutdown(wait=True) which blocks until the LLM
+                # thread finishes even after the TimeoutError.  Use explicit
+                # shutdown(wait=False) so worker() continues immediately.
+                _rag_ex = _cf.ThreadPoolExecutor(max_workers=1)
+                _fut = _rag_ex.submit(dbi_rag.generate_insight, page_name, context_dict)
+                try:
+                    rag_text = _fut.result(timeout=12)
+                except _cf.TimeoutError:
+                    rag_text = None
+                finally:
+                    _rag_ex.shutdown(wait=False)  # let LLM thread finish in bg
             except Exception:
                 pass  # dbi_rag import or call failed — fall through to template
 
@@ -240,7 +280,7 @@ class BrainInsightWorker:
         t = threading.Thread(target=worker, daemon=True)
         add_script_run_ctx(t)
         t.start()
-        return "LOADING"
+        return cls._insights[key]  # quick template, never "LOADING"
 
 
 @st.fragment(run_every=2)
@@ -251,7 +291,8 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
     which was silently clipped by Streamlit's overflow:hidden containers.
     """
     insight = BrainInsightWorker.get_insight(page_name, context_dict)
-    loading = "LOADING" in str(insight)
+    # get_insight() now returns a quick template immediately — never "LOADING".
+    loading = False
 
     body = (
         f"<i>Generating intelligence for [{page_name}]…</i>"
@@ -279,6 +320,18 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
 
     # .dbi-container class is preserved so Playwright / test selectors still work.
     # data-testid + data-page + data-digest enable robust E2E assertions.
+    # Detect source label early so we can embed it in the card HTML (always
+    # visible even with the expander closed — needed for Playwright assertion).
+    _source_label = ""
+    if not loading:
+        _is_rag = len(str(insight)) > 200 and not any(
+            marker in str(insight) for marker in [
+                "Supplier → part → site", "Recursive OTD", "Kaplan-Meier",
+                "Bullwhip amplification", "Procurement 360",
+            ]
+        )
+        _source_label = "🤖 LLM (OpenRouter)" if _is_rag else "📋 Template"
+
     st.markdown(
         f"""<div class="dbi-container"
             data-testid="dbi-card"
@@ -295,28 +348,19 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
             {digest} · {ts}
         </span><br>
         <span data-testid="dbi-body">{body}</span>
+        {'<br><span data-testid="dbi-source" style="font-size:.7rem;color:#64748b;">Insight source: ' + _source_label + '</span>' if not loading else ''}
         </div>""",
         unsafe_allow_html=True,
     )
 
     # Native popover button — not subject to CSS overflow clipping.
     if not loading:
-        # Detect whether this insight came from the RAG/LLM pipeline or the
-        # deterministic template (RAG text is typically longer & prose-like).
-        is_rag = len(str(insight)) > 200 and not any(
-            marker in str(insight) for marker in [
-                "Supplier → part → site", "Recursive OTD", "Kaplan-Meier",
-                "Bullwhip amplification", "Procurement 360",
-            ]
-        )
-        source_label = "🤖 LLM (OpenRouter)" if is_rag else "📋 Template"
-
         params = {
             k: v for k, v in context_dict.items()
             if v is not None and str(v).strip()
         }
-        with st.expander(f"🔍 Parameters · {source_label}", expanded=False):
-            st.caption(f"**Insight source:** {source_label}")
+        with st.expander(f"🔍 Parameters · {_source_label}", expanded=False):
+            st.caption(f"**Insight source:** {_source_label}")
             st.divider()
             st.markdown("**Relational Parameters Read by Brain:**")
             if params:

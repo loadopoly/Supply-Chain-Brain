@@ -183,6 +183,11 @@ st.caption(
     "F-code root-cause classification | Brain recursive clustering"
 )
 
+# Early DBI card — renders before data load / clustering so Playwright finds it quickly.
+_early_otd_ctx = {k: v for k, v in st.session_state.items()
+                  if not str(k).startswith('_') and not callable(v)}
+render_dynamic_brain_insight("OTD Recursive", _early_otd_ctx)
+
 _default_otd_file = Path(__file__).resolve().parents[1] / "docs" / "OTD file.xlsx"
 
 with st.expander("Source & query settings", expanded=False):
@@ -264,6 +269,7 @@ df = _clean_otd_df(df)
 
 if source_mode != "Live Replica":
     s_dt, e_dt = get_global_window()
+    _df_all = df.copy()   # preserve full bundled data before date filter
     _date_mask = pd.Series(False, index=df.index)
     _found_date_col = False
     for _dcol in ["Ship Date", "Promised Date", "Adjusted Promise Date", "Order Date"]:
@@ -273,6 +279,15 @@ if source_mode != "Live Replica":
             _found_date_col = True
     if _found_date_col:
         df = df[_date_mask].copy()
+
+    # When the global date window excludes all bundled rows, use the full
+    # bundled dataset so the page always renders in demo/preview mode.
+    if df.empty and not _df_all.empty:
+        st.warning(
+            "⚠️ **Demo mode** — Global Timeline window doesn't overlap with "
+            "bundled OTD data. Showing all bundled rows for preview."
+        )
+        df = _df_all
 
     if not df.empty:
         with st.spinner("Running Brain clustering..."):

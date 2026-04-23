@@ -1,0 +1,16 @@
+ORACLE FUSION NAVIGATION TEST REPORT
+======================================================================
+
+Timestamp: 2026-04-23T17:51:54.395766
+Host: https://fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com
+
+SUMMARY
+----------------------------------------------------------------------
+Total Modules Tested: 13
+Passed: 0 (0.0%)
+Partial: 0
+Failed: 13
+Success Rate: 0.0%
+
+DETAILED RESULTS
+----------------------------------------------------------------------

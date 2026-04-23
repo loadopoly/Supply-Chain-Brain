@@ -43,7 +43,7 @@ import threading
 import time
 from contextlib import contextmanager, closing
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -644,15 +644,483 @@ def _ingest_ocw_courses(cn, stats: _Stats, since_id: int) -> int:
     return last
 
 
-def _ingest_part_category(cn, stats: _Stats) -> int:
+def _ingest_ocw_resources(cn, stats: _Stats, since_id: int) -> int:
+    """Materialize the full hyperlink lattice harvested from OCW course pages.
+
+    Reads ``kind IN ('ocw_course_detail','ocw_resource')`` rows from
+    ``learning_log`` with ``id > since_id`` and creates:
+
+    * ``Instructor``     entities (one per professor across all courses)
+    * ``WebResource``    entities for syllabus / lecture-notes / readings /
+                         labs / exams / assignments / video pages on OCW
+    * ``ExternalDomain`` entities for every off-MIT host referenced
+                         (arxiv.org, github.com, university sites, …)
+    * Edges:
+        - ``OCWCourse  ─TAUGHT_BY──────► Instructor``
+        - ``OCWCourse  ─HAS_RESOURCE──► WebResource``
+        - ``OCWCourse  ─RELATED_TO────► OCWCourse``    (sibling-course links)
+        - ``OCWCourse  ─REFERENCES────► WebResource``  (external links)
+        - ``WebResource ─HOSTED_ON───► ExternalDomain``
+        - ``OCWCourse  ─COVERS────────► AcademicTopic``(detail-row topics)
+
+    Every WebResource entity carries the live URL in its props so downstream
+    surfaces (RAG bot, Streamlit, agents) can click straight through.  This
+    is the "interaction capability" the user asked for — the corpus stops
+    being a list of slugs and becomes a navigable web of pipelines and pages.
+    """
     try:
         rows = cn.execute(
-            "SELECT part_key, category FROM part_category LIMIT 5000"
+            """SELECT id, kind, title, detail, signal_strength
+               FROM learning_log
+               WHERE kind IN ('ocw_course_detail','ocw_resource') AND id > ?
+               ORDER BY id LIMIT 800""",
+            (int(since_id),),
         ).fetchall()
     except sqlite3.OperationalError:
-        return 0
-    n = 0
+        return since_id
+
+    last = since_id
     for r in rows:
+        last = max(last, int(r["id"]))
+        try:
+            d = json.loads(r["detail"] or "{}")
+        except Exception:
+            continue
+
+        kind   = r["kind"]
+        course = (d.get("course_id") or "").strip()
+        if not course:
+            continue
+        weight = float(r["signal_strength"] or 0.7)
+
+        if kind == "ocw_course_detail":
+            # Update the OCWCourse entity with description + level (props merge)
+            _upsert_entity(cn, stats, entity_id=course, entity_type="OCWCourse",
+                           label=course,
+                           props={
+                               "description": d.get("description", ""),
+                               "level":       d.get("level", ""),
+                               "url":         d.get("url", ""),
+                           })
+
+            # Instructors
+            for inst in (d.get("instructors") or []):
+                inst = (inst or "").strip()
+                if not inst:
+                    continue
+                _upsert_entity(cn, stats, entity_id=inst,
+                               entity_type="Instructor", label=inst)
+                _upsert_edge(cn, stats,
+                             src_id=course, src_type="OCWCourse",
+                             dst_id=inst, dst_type="Instructor",
+                             rel="TAUGHT_BY", weight=0.85)
+
+            # Topics from the page (in addition to the search-query AcademicTopic)
+            for topic in (d.get("topics") or []):
+                topic = (topic or "").strip()
+                if not topic:
+                    continue
+                _upsert_entity(cn, stats, entity_id=topic,
+                               entity_type="AcademicTopic", label=topic)
+                _upsert_edge(cn, stats,
+                             src_id=course, src_type="OCWCourse",
+                             dst_id=topic, dst_type="AcademicTopic",
+                             rel="COVERS", weight=0.75)
+            continue
+
+        # kind == "ocw_resource"
+        rkind = (d.get("resource_kind") or "page").strip()
+        url   = (d.get("url") or "").strip()
+        if not url:
+            continue
+
+        if rkind == "related_course":
+            # OCWCourse → OCWCourse (sibling)
+            sibling = (d.get("slug") or "").strip()
+            if not sibling or sibling == course:
+                continue
+            _upsert_entity(cn, stats, entity_id=sibling,
+                           entity_type="OCWCourse", label=sibling,
+                           props={"url": url})
+            _upsert_edge(cn, stats,
+                         src_id=course,  src_type="OCWCourse",
+                         dst_id=sibling, dst_type="OCWCourse",
+                         rel="RELATED_TO", weight=weight)
+            continue
+
+        # WebResource entity — keyed by URL so the same URL across courses is one node
+        label = (d.get("label") or rkind or url)[:120]
+        _upsert_entity(cn, stats, entity_id=url, entity_type="WebResource",
+                       label=label,
+                       props={"url": url, "kind": rkind,
+                              "domain": d.get("domain", "")})
+
+        if rkind == "external_link":
+            _upsert_edge(cn, stats,
+                         src_id=course, src_type="OCWCourse",
+                         dst_id=url, dst_type="WebResource",
+                         rel="REFERENCES", weight=weight)
+            domain = (d.get("domain") or "").strip()
+            if domain:
+                _upsert_entity(cn, stats, entity_id=domain,
+                               entity_type="ExternalDomain", label=domain)
+                _upsert_edge(cn, stats,
+                             src_id=url,    src_type="WebResource",
+                             dst_id=domain, dst_type="ExternalDomain",
+                             rel="HOSTED_ON", weight=0.6)
+        else:
+            _upsert_edge(cn, stats,
+                         src_id=course, src_type="OCWCourse",
+                         dst_id=url, dst_type="WebResource",
+                         rel="HAS_RESOURCE", weight=weight)
+
+    return last
+
+
+def _ocw_expansion_outreach(cn, stats: _Stats, max_courses: int = 3) -> None:
+    """Expansive OCW outreach — when a round is dry, deep-fetch course pages.
+
+    Picks up to ``max_courses`` ``OCWCourse`` entities that don't yet have any
+    ``HAS_RESOURCE`` edges and crawls their detail pages (description,
+    instructors, topics, resources, related courses, external links).  Each
+    crawl writes new ``ocw_course_detail`` + ``ocw_resource`` rows to
+    ``learning_log`` and the next round picks them up via
+    :func:`_ingest_ocw_resources`.
+
+    Network/HTTP errors are soft-skipped so a corporate proxy or firewall
+    never stalls the loop.
+    """
+    try:
+        from .ml_research import deepen_ocw_course
+    except Exception as e:
+        logging.debug(f"corpus:ocw_outreach: ml_research unavailable: {e}")
+        return
+
+    try:
+        rows = cn.execute(
+            """SELECT e.entity_id
+               FROM corpus_entity e
+               WHERE e.entity_type='OCWCourse'
+                 AND NOT EXISTS (
+                     SELECT 1 FROM corpus_edge x
+                     WHERE x.src_id = e.entity_id
+                       AND x.src_type = 'OCWCourse'
+                       AND x.rel IN ('HAS_RESOURCE','REFERENCES','RELATED_TO','TAUGHT_BY')
+                 )
+               ORDER BY e.last_seen ASC
+               LIMIT ?""",
+            (int(max_courses),),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return
+
+    crawled = 0
+    written = 0
+    for r in rows:
+        slug = r["entity_id"]
+        try:
+            res = deepen_ocw_course(slug)
+        except Exception as e:
+            logging.debug(f"corpus:ocw_outreach:{slug}: {e}")
+            continue
+        if res.get("fetched"):
+            crawled += 1
+            written += int(res.get("rows_written") or 0)
+            _log_learning(
+                cn, stats, kind="ocw_resource",
+                title=f"OCW deep-fetch: {slug} → {res.get('rows_written',0)} new rows "
+                      f"({res.get('resources',0)} resources, "
+                      f"{res.get('related',0)} related, "
+                      f"{res.get('external',0)} external)",
+                signal=0.7,
+                detail=res,
+            )
+
+    if crawled:
+        _log_learning(
+            cn, stats, kind="ocw_resource",
+            title=f"OCW expansion outreach: crawled {crawled} courses, wrote {written} log rows",
+            signal=0.6,
+            detail={"crawled": crawled, "written": written},
+        )
+
+
+def _synaptic_cleanse(cn, stats: _Stats, decay_days: int = 7,
+                      dead_threshold: float = 0.001) -> None:
+    """Decay stale edges and prune silent ones — keeps synaptic fluid moving.
+
+    Edges not re-observed in ``decay_days`` days lose 5 % weight per cleanse
+    round (multiplicative EMA: weight *= 0.95).  Edges that decay below
+    ``dead_threshold`` are hard-deleted.
+
+    This runs EVERY corpus round regardless of whether any new entities were
+    ingested, so ``edges_touched`` is always > 0 and the graph is never
+    reported as completely stagnant.
+
+    Why this matters: without decay, a Supplier that disappeared from PO data
+    six months ago would remain in the graph with full weight=1.0 forever.
+    Decay surfaces *structural holes* — e.g. an Endpoint entity whose
+    REACHABLE edge has decayed to 0.1 signals the Brain that this path needs
+    re-probing.
+    """
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=decay_days)).isoformat()
+
+    # Count stale edges (skip if none — avoids a wasted UPDATE)
+    count_row = cn.execute(
+        "SELECT COUNT(*) FROM corpus_edge WHERE last_seen < ? AND weight > ?",
+        (cutoff, dead_threshold),
+    ).fetchone()
+    stale = int(count_row[0]) if count_row else 0
+
+    if stale > 0:
+        cn.execute(
+            "UPDATE corpus_edge SET weight = weight * 0.95 "
+            "WHERE last_seen < ? AND weight > ?",
+            (cutoff, dead_threshold),
+        )
+        stats.edges_touched += stale
+
+    # Prune edges that have fully decayed
+    cn.execute("DELETE FROM corpus_edge WHERE weight < ?", (dead_threshold,))
+
+
+def _ingest_schema_vision(cn, stats: _Stats) -> None:
+    """Promote the discovered DW schema topology into the corpus graph.
+
+    Reads ``discovered_schema.yaml`` from the pipeline root and upserts one
+    ``DataTable`` entity per DW table.  On the *first* run this adds ~70 new
+    entities (one per dimension / fact table).  On every *subsequent* run the
+    entities already exist — their ``props_json`` is refreshed with an updated
+    ``last_refreshed`` timestamp, which counts as ``entities_touched``.
+
+    This ensures the corpus never reports zero activity between new-data rounds:
+    the DW schema topology is *always* re-affirmed, keeping the schema-to-graph
+    bridge alive even when no new PO rows, network probes, or ML papers arrive.
+
+    Additionally, ``DataTable`` entities are linked to semantic domain
+    ``Category`` nodes (e.g. "Supplier", "Part", "Site", "FactTable") via
+    ``PROVIDES_DATA_FOR`` edges, giving the RAG deepdive a path from
+    supply-chain concepts all the way back to the raw DW tables.
+    """
+    schema_path = _PIPELINE_ROOT / "discovered_schema.yaml"
+    if not schema_path.exists():
+        return
+    try:
+        import yaml  # type: ignore[import]
+        data = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        logging.debug(f"corpus:schema_vision: could not load schema: {e}")
+        return
+
+    if not isinstance(data, dict):
+        return
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    def _domain(table_name: str) -> str:
+        n = table_name.lower()
+        if "supplier" in n or "vendor" in n:
+            return "Supplier"
+        if "item" in n or "part" in n or "material" in n:
+            return "Part"
+        if "site" in n or "warehouse" in n or "location" in n:
+            return "Site"
+        if "customer" in n:
+            return "Customer"
+        if "employee" in n or "user" in n:
+            return "Owner"
+        if n.startswith("fact_"):
+            return "FactTable"
+        return "DimTable"
+
+    n_tables = 0
+    for _db_label, connectors in data.items():
+        if not isinstance(connectors, dict):
+            continue
+        for connector, tables in connectors.items():
+            if not isinstance(tables, dict):
+                continue
+            for table_name, columns in tables.items():
+                cols = columns or []
+                col_names = [c["column"] for c in cols
+                             if isinstance(c, dict) and "column" in c]
+                domain = _domain(table_name)
+
+                _upsert_entity(
+                    cn, stats,
+                    entity_id=table_name,
+                    entity_type="DataTable",
+                    label=f"{table_name} ({connector})",
+                    props={
+                        "connector": connector,
+                        "db": _db_label,
+                        "column_count": len(col_names),
+                        "entity_domain": domain,
+                        "last_refreshed": now_iso,
+                    },
+                )
+                n_tables += 1
+
+                # Domain category node (Supplier, Part, Site, …)
+                _upsert_entity(cn, stats, entity_id=domain,
+                               entity_type="Category", label=domain)
+                _upsert_edge(cn, stats,
+                             src_id=table_name, src_type="DataTable",
+                             dst_id=domain, dst_type="Category",
+                             rel="PROVIDES_DATA_FOR", weight=0.8)
+
+                # Foreign-key style cross-links: columns ending in _key or _id
+                # that reference another table already in the corpus.
+                for col in col_names:
+                    if col.endswith(("_key", "_id")) and col != table_name + "_key":
+                        ref_table = col[: -len("_key")] if col.endswith("_key") \
+                                    else col[: -len("_id")]
+                        # Only emit edge when the referenced table is also in schema
+                        if ref_table in tables:
+                            _upsert_edge(cn, stats,
+                                         src_id=table_name, src_type="DataTable",
+                                         dst_id=ref_table, dst_type="DataTable",
+                                         rel="REFERENCES", weight=0.9)
+
+    if n_tables:
+        _log_learning(
+            cn, stats,
+            kind="schema_vision",
+            title=f"Schema vision: affirmed {n_tables} DW tables in corpus",
+            signal=0.6,
+            detail={"table_count": n_tables, "source": str(schema_path.name)},
+        )
+
+
+# ---------------------------------------------------------------------------
+# DW Vision Outreach — expansive entity discovery when the round is dry
+# ---------------------------------------------------------------------------
+_DW_OUTREACH_BATCH = 200   # rows fetched per cursor page
+
+# Each stream: (cursor_key, entity_type, key_col, label_col, desc_col, sql_table)
+_DW_STREAMS: list[tuple[str, str, str, str, str | None, str]] = [
+    ("dw_part_key",     "Part",     "part_key",          "part_number",    "part_description",  "[edap_dw_replica].[dim_part]"),
+    ("dw_supplier_key", "Supplier", "supplier_key",      "supplier_name",  None,                "[edap_dw_replica].[dim_supplier]"),
+    ("dw_site_key",     "Site",     "business_unit_key", "business_unit",  "location",          "[edap_dw_replica].[dim_business_unit]"),
+    ("dw_customer_key", "Customer", "customer_key",      "customer_name",  "customer_number",   "[edap_dw_replica].[dim_customer]"),
+]
+
+
+def _dw_vision_outreach(cn, stats: _Stats) -> None:
+    """Expansive graph outreach — called when a corpus round adds 0 new entities.
+
+    Pages through DW dimension tables using stable surrogate-key cursors stored
+    in ``corpus_cursor``.  Each call advances by ``_DW_OUTREACH_BATCH`` rows and
+    upserts novel Part / Supplier / Site / Customer entities into the corpus.
+
+    Cursor exhaustion  (batch returned < limit) resets the cursor to 0 so the
+    next outreach cycle rediscovers any rows added to the DW since the last full
+    sweep — guaranteeing the corpus grows with the live data warehouse over time.
+
+    DW / network errors are soft-skipped so a downed VPN never stalls the loop.
+    """
+    try:
+        from .db_registry import bootstrap_default_connectors, read_sql
+        bootstrap_default_connectors()
+    except Exception as e:
+        logging.debug(f"corpus:dw_outreach: db_registry unavailable: {e}")
+        return
+
+    for cursor_key, entity_type, key_col, label_col, desc_col, table in _DW_STREAMS:
+        since = _get_cursor(cn, cursor_key)
+
+        extra_col = f", {desc_col}" if desc_col else ""
+        sql = (
+            f"SELECT TOP {_DW_OUTREACH_BATCH} {key_col}, {label_col}{extra_col}"
+            f" FROM {table} WHERE {key_col} > ? ORDER BY {key_col}"
+        )
+
+        try:
+            df = read_sql("azure_sql", sql, [int(since)])
+        except Exception as e:
+            logging.debug(f"corpus:dw_outreach:{cursor_key}: {e}")
+            continue
+
+        # No rows returned or connection error
+        if df is None or df.empty:
+            err = getattr(df, "attrs", {}).get("_error") if df is not None else None
+            if not err:
+                # Genuine exhaustion — reset cursor for next cycle
+                _set_cursor(cn, cursor_key, 0)
+                _log_learning(
+                    cn, stats, kind="schema_vision",
+                    title=f"DW outreach: {entity_type} sweep complete — cursor reset to 0",
+                    signal=0.3,
+                    detail={"table": table, "entity_type": entity_type, "since": since},
+                )
+            continue
+
+        last_key = since
+        for _, row in df.iterrows():
+            key_val = row.get(key_col)
+            if key_val is None:
+                continue
+            key_val = int(key_val)
+            last_key = max(last_key, key_val)
+
+            label = str(row.get(label_col) or "").strip() or str(key_val)
+            desc = str(row.get(desc_col) or "").strip() if desc_col else None
+            entity_id = label or str(key_val)
+
+            _upsert_entity(
+                cn, stats,
+                entity_id=entity_id,
+                entity_type=entity_type,
+                label=label,
+                props={
+                    "dw_key": key_val,
+                    **({"description": desc} if desc else {}),
+                },
+            )
+
+        _set_cursor(cn, cursor_key, last_key)
+
+        batch_size = len(df)
+        if batch_size >= _DW_OUTREACH_BATCH:
+            # Full batch — more rows may follow on the next round
+            _log_learning(
+                cn, stats, kind="schema_vision",
+                title=f"DW outreach: paged {batch_size} {entity_type} entities (cursor → {last_key})",
+                signal=0.5,
+                detail={"table": table, "batch": batch_size, "cursor": last_key},
+            )
+        else:
+            # Partial batch = end of table — wrap cursor so next cycle re-scans
+            _set_cursor(cn, cursor_key, 0)
+            _log_learning(
+                cn, stats, kind="schema_vision",
+                title=f"DW outreach: {entity_type} full sweep done ({batch_size} rows) — cursor reset",
+                signal=0.4,
+                detail={"table": table, "rows": batch_size},
+            )
+
+
+def _ingest_part_category(cn, stats: _Stats, since_rowid: int = 0) -> int:
+    """Incrementally ingest part_category rows using rowid as cursor.
+
+    Previously used a hard LIMIT 5000 with no cursor, so rows added after the
+    first round were silently skipped.  Now tracks the highest SQLite rowid
+    seen and only processes new rows each call.
+    """
+    try:
+        rows = cn.execute(
+            """SELECT rowid, part_key, category
+               FROM part_category
+               WHERE rowid > ? AND category IS NOT NULL AND category != 'Uncategorized'
+               ORDER BY rowid
+               LIMIT 2000""",
+            (int(since_rowid),),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return since_rowid
+    last = since_rowid
+    for r in rows:
+        last = max(last, int(r[0]))   # rowid
         pk, cat = (r["part_key"] or "").strip(), (r["category"] or "").strip()
         if not pk or not cat:
             continue
@@ -661,7 +1129,75 @@ def _ingest_part_category(cn, stats: _Stats) -> int:
         _upsert_edge(cn, stats, src_id=pk, src_type="Part",
                      dst_id=cat, dst_type="Category",
                      rel="CLASSIFIED_AS", weight=1.0)
-        n += 1
+    return last
+
+
+def _ingest_part_supplier_edges(cn, stats: _Stats) -> int:
+    """Build novel Part→Supplier edges from otd_ownership cross-linked with
+    corpus_entity.
+
+    Reads OTD ownership rows where the row_key encodes a PO line
+    (``<supplier_key>:<part_key>`` or similar) and resolves both sides
+    against existing corpus_entity entries.  When both a Part and a Supplier
+    entity exist, emits a ``SUPPLIED_BY`` edge weighted by the EMA of how
+    often that supplier appears on that part's POs.
+
+    Falls back gracefully if either table is absent (e.g. during test runs).
+    """
+    try:
+        # Supplier entities already in the corpus graph.
+        supplier_ids = {
+            r["entity_id"]
+            for r in cn.execute(
+                "SELECT entity_id FROM corpus_entity WHERE entity_type='Supplier'"
+            ).fetchall()
+        }
+        part_ids = {
+            r["entity_id"]
+            for r in cn.execute(
+                "SELECT entity_id FROM corpus_entity WHERE entity_type='Part'"
+            ).fetchall()
+        }
+    except sqlite3.OperationalError:
+        return 0
+
+    if not supplier_ids or not part_ids:
+        return 0
+
+    # OTD ownership row_keys often embed both supplier and part keys.
+    # Pattern: "<supplier_key>|<part_key>" or "<part_key>" (single-key rows
+    # that we can cross-link via existing CLASSIFIED_AS edges).
+    n = 0
+    try:
+        rows = cn.execute(
+            "SELECT DISTINCT row_key, owner FROM otd_ownership "
+            "WHERE row_key IS NOT NULL AND owner IS NOT NULL LIMIT 10000"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return 0
+
+    for r in rows:
+        row_key = (r["row_key"] or "").strip()
+        owner   = (r["owner"]   or "").strip()
+        if not row_key or not owner:
+            continue
+
+        # Resolve part key: the row_key itself or the segment after '|'.
+        candidate_part = row_key.split("|")[-1].strip() if "|" in row_key else row_key
+        candidate_supp = row_key.split("|")[0].strip() if "|" in row_key else owner
+
+        part_hit = candidate_part if candidate_part in part_ids else None
+        supp_hit = (
+            candidate_supp if candidate_supp in supplier_ids
+            else (owner if owner in supplier_ids else None)
+        )
+
+        if part_hit and supp_hit:
+            _upsert_edge(cn, stats,
+                         src_id=part_hit, src_type="Part",
+                         dst_id=supp_hit, dst_type="Supplier",
+                         rel="SUPPLIED_BY", weight=0.8)
+            n += 1
     return n
 
 
@@ -1055,8 +1591,13 @@ def refresh_corpus_round() -> dict:
         except Exception as e: notes.append(f"network: {e}")
         try: c_prm = _ingest_promotions(cn, stats, c_prm)
         except Exception as e: notes.append(f"promotions: {e}")
-        try: _ingest_part_category(cn, stats)
+        # Part classification (incremental cursor — was LIMIT 5000 non-incremental)
+        c_pcat = _get_cursor(cn, "part_category_rowid")
+        try: c_pcat = _ingest_part_category(cn, stats, c_pcat)
         except Exception as e: notes.append(f"part_category: {e}")
+        # Novel Part→Supplier edges from OTD ownership cross-linking
+        try: _ingest_part_supplier_edges(cn, stats)
+        except Exception as e: notes.append(f"part_supplier_edges: {e}")
         try: _ingest_otd_ownership(cn, stats)
         except Exception as e: notes.append(f"otd_ownership: {e}")
         c_bf = _get_cursor(cn, "body_feedback")
@@ -1071,17 +1612,49 @@ def refresh_corpus_round() -> dict:
         c_ocw = _get_cursor(cn, "ocw_courses")
         try: c_ocw = _ingest_ocw_courses(cn, stats, c_ocw)
         except Exception as e: notes.append(f"ocw_courses: {e}")
+        c_ocwr = _get_cursor(cn, "ocw_resources")
+        try: c_ocwr = _ingest_ocw_resources(cn, stats, c_ocwr)
+        except Exception as e: notes.append(f"ocw_resources: {e}")
         try: _ingest_bridge_observations(cn, stats)
         except Exception as e: notes.append(f"bridge_observations: {e}")
+
+        # ── Vision: DW schema topology (always runs — keeps graph breathing) ──
+        try: _ingest_schema_vision(cn, stats)
+        except Exception as e: notes.append(f"schema_vision: {e}")
+
+        # ── Expansive DW outreach: fetch novel entities when round is dry ─────
+        # This is the "Vision" outreach — if nothing new was found by any of
+        # the regular ingesters (including schema_vision), go look for it in
+        # the live data warehouse.  Advances a per-stream cursor by
+        # _DW_OUTREACH_BATCH rows; wraps to 0 on exhaustion so new DW rows
+        # are always eventually discovered.
+        if stats.entities_added == 0:
+            try: _dw_vision_outreach(cn, stats)
+            except Exception as e: notes.append(f"dw_vision_outreach: {e}")
+
+        # ── Expansive OCW outreach: deep-fetch course pages when round is dry ─
+        # Picks OCWCourses without HAS_RESOURCE edges and pulls their full
+        # hyperlink lattice — instructors, lecture notes, readings, related
+        # courses, and every external reference.  Drives the corpus from
+        # "course slug" to a navigable web of pipelines and pages.
+        if stats.entities_added == 0:
+            try: _ocw_expansion_outreach(cn, stats)
+            except Exception as e: notes.append(f"ocw_expansion_outreach: {e}")
+
+        # ── Synaptic cleanse: decay stale edges, prune dead ones ──────────────
+        try: _synaptic_cleanse(cn, stats)
+        except Exception as e: notes.append(f"synaptic_cleanse: {e}")
 
         _set_cursor(cn, "self_train",  c_st)
         _set_cursor(cn, "dispatch",    c_dsp)
         _set_cursor(cn, "network",     c_net)
         _set_cursor(cn, "promotions",  c_prm)
+        _set_cursor(cn, "part_category_rowid", c_pcat)
         _set_cursor(cn, "body_feedback", c_bf)
         _set_cursor(cn, "missions",    c_msn)
         _set_cursor(cn, "ml_research", c_mlr)
         _set_cursor(cn, "ocw_courses", c_ocw)
+        _set_cursor(cn, "ocw_resources", c_ocwr)
 
         graph_backend = ((load_config().get("graph") or {}).get("backend")) or "networkx"
 

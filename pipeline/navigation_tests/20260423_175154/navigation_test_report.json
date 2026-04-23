@@ -1,0 +1,154 @@
+{
+  "timestamp": "2026-04-23T17:51:54.395766",
+  "host": "https://fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+  "total_modules": 13,
+  "passed": 0,
+  "failed": 13,
+  "partial": 0,
+  "details": [
+    {
+      "index": 1,
+      "module_tab": "Order Management",
+      "tile_name": "Orders",
+      "task_name": "Manage Orders",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Order Management'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 2,
+      "module_tab": "Supply Chain Execution",
+      "tile_name": "Inventory Management (Classic)",
+      "task_name": "Manage Cycle Counts",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Execution'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 3,
+      "module_tab": "Supply Chain Execution",
+      "tile_name": "Work Definition",
+      "task_name": "Manage Work Orders",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Execution'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 4,
+      "module_tab": "Supply Chain Execution",
+      "tile_name": "Work Execution",
+      "task_name": "Manage Work Queue",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Execution'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 5,
+      "module_tab": "Supply Chain Execution",
+      "tile_name": "Quality Management",
+      "task_name": "Manage Inspections",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Execution'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 6,
+      "module_tab": "Supply Chain Execution",
+      "tile_name": "Cost Accounting",
+      "task_name": "Manage Costs",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Execution'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 7,
+      "module_tab": "Supply Chain Execution",
+      "tile_name": "Receipt Accounting",
+      "task_name": "Manage Receipts",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Execution'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 8,
+      "module_tab": "Supply Chain Planning",
+      "tile_name": "Plan Inputs",
+      "task_name": "Manage Demand",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Planning'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 9,
+      "module_tab": "Supply Chain Planning",
+      "tile_name": "Demand Management",
+      "task_name": "Manage Demand",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Planning'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 10,
+      "module_tab": "Supply Chain Planning",
+      "tile_name": "Supply Planning",
+      "task_name": "Manage Supply Plan",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Planning'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 11,
+      "module_tab": "Supply Chain Planning",
+      "tile_name": "Replenishment Planning",
+      "task_name": "Manage Reorder Points",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Supply Chain Planning'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 12,
+      "module_tab": "Product Management",
+      "tile_name": "Product Development",
+      "task_name": "Manage Products",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Product Management'",
+      "page_title": null,
+      "page_url": null
+    },
+    {
+      "index": 13,
+      "module_tab": "Product Management",
+      "tile_name": "Product Information Management",
+      "task_name": "Manage Products",
+      "status": "FAILED",
+      "steps_passed": 1,
+      "error": "Failed to click tab 'Product Management'",
+      "page_title": null,
+      "page_url": null
+    }
+  ],
+  "success_rate": 0.0
+}

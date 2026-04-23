@@ -3,10 +3,10 @@ from pathlib import Path
 import sys
 import streamlit as st
 import pandas as pd
-from src.brain.dynamic_insight import render_dynamic_brain_insight
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.brain.db_registry import bootstrap_default_connectors, read_sql
+from src.brain.dynamic_insight import render_dynamic_brain_insight
 
 st.session_state["_page"] = "cycle_count_accuracy"
 bootstrap_default_connectors()
@@ -14,9 +14,15 @@ bootstrap_default_connectors()
 st.markdown("## 📊 Cycle Count Accuracy & Completion")
 st.caption("Identify unclassified (D code) parts with active stock and manage Cycle Count Dashboard artifacts.")
 
-ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
-render_dynamic_brain_insight('Cycle Count Accuracy', ctx)
-st.divider()
+# Early DBI card — renders before SQL queries so Playwright finds it quickly.
+# Use only scalar session-state values to avoid slow str() on large objects
+# (DataFrames, bytes) accumulated from previous pages in a long test session.
+_early_cc_ctx = {
+    k: v for k, v in st.session_state.items()
+    if not str(k).startswith('_') and not callable(v)
+    and isinstance(v, (str, int, float, bool, type(None)))
+}
+render_dynamic_brain_insight("Cycle Count Accuracy", _early_cc_ctx)
 
 tab_d_code, tab_pb = st.tabs(["📄 D Code Candidates Export", "📈 Power BI Dashboard Guide"])
 

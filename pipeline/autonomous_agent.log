@@ -71,3 +71,38 @@
 2026-04-23 08:17:36,093 - [AUTONOMOUS AGENT] - [synapse:convergence] started — interval=30min
 2026-04-23 08:17:36,101 - [AUTONOMOUS AGENT] - Continuous synaptic agents started: synapse-builder, synapse-lookahead, synapse-sweeper, synapse-convergence (4 threads, all daemon).
 2026-04-23 08:17:36,107 - [AUTONOMOUS AGENT] - Continuous synaptic agents stopped.
+2026-04-23 15:38:07,793 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=0, new_edges=0, total_discovered=0
+2026-04-23 15:38:07,793 - [AUTONOMOUS AGENT] - RAG deepdive: converged after 1 iterations (< 3 new edges this pass).
+2026-04-23 15:38:07,800 - [AUTONOMOUS AGENT] - RAG deepdive[manual_24h] complete: iterations=1, edges_discovered=0, pathways_explored=0
+2026-04-23 15:38:07,810 - [AUTONOMOUS AGENT] - RAG deepdive[manual_7d]: corpus too sparse — skipping.
+2026-04-23 15:41:28,431 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=50, new_edges=50, total_discovered=50
+2026-04-23 15:41:28,621 - [AUTONOMOUS AGENT] - RAG deepdive iter 2: gaps=50, new_edges=50, total_discovered=100
+2026-04-23 15:41:28,764 - [AUTONOMOUS AGENT] - RAG deepdive iter 3: gaps=50, new_edges=50, total_discovered=150
+2026-04-23 15:41:28,912 - [AUTONOMOUS AGENT] - RAG deepdive iter 4: gaps=50, new_edges=50, total_discovered=200
+2026-04-23 15:41:29,066 - [AUTONOMOUS AGENT] - RAG deepdive iter 5: gaps=50, new_edges=50, total_discovered=250
+2026-04-23 15:41:29,224 - [AUTONOMOUS AGENT] - RAG deepdive iter 6: gaps=50, new_edges=50, total_discovered=300
+2026-04-23 15:41:29,389 - [AUTONOMOUS AGENT] - RAG deepdive iter 7: gaps=50, new_edges=50, total_discovered=350
+2026-04-23 15:41:29,563 - [AUTONOMOUS AGENT] - RAG deepdive iter 8: gaps=50, new_edges=50, total_discovered=400
+2026-04-23 15:41:29,573 - [AUTONOMOUS AGENT] - RAG deepdive[ocw_bridge] complete: iterations=8, edges_discovered=400, pathways_explored=400
+2026-04-23 15:44:53,026 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=50, new_edges=50, total_discovered=50
+2026-04-23 15:44:53,162 - [AUTONOMOUS AGENT] - RAG deepdive iter 2: gaps=50, new_edges=50, total_discovered=100
+2026-04-23 15:44:53,287 - [AUTONOMOUS AGENT] - RAG deepdive iter 3: gaps=50, new_edges=50, total_discovered=150
+2026-04-23 15:44:53,430 - [AUTONOMOUS AGENT] - RAG deepdive iter 4: gaps=50, new_edges=50, total_discovered=200
+2026-04-23 15:44:53,584 - [AUTONOMOUS AGENT] - RAG deepdive iter 5: gaps=50, new_edges=50, total_discovered=250
+2026-04-23 15:44:53,724 - [AUTONOMOUS AGENT] - RAG deepdive iter 6: gaps=50, new_edges=50, total_discovered=300
+2026-04-23 15:44:53,870 - [AUTONOMOUS AGENT] - RAG deepdive iter 7: gaps=50, new_edges=50, total_discovered=350
+2026-04-23 15:44:53,995 - [AUTONOMOUS AGENT] - RAG deepdive iter 8: gaps=50, new_edges=50, total_discovered=400
+2026-04-23 15:44:54,004 - [AUTONOMOUS AGENT] - RAG deepdive[ocw_bridge_v2] complete: iterations=8, edges_discovered=400, pathways_explored=400
+2026-04-23 15:49:21,808 - [AUTONOMOUS AGENT] - RAG deepdive iter 1: gaps=50, new_edges=50, total_discovered=50
+2026-04-23 15:49:21,953 - [AUTONOMOUS AGENT] - RAG deepdive iter 2: gaps=50, new_edges=50, total_discovered=100
+2026-04-23 15:49:22,129 - [AUTONOMOUS AGENT] - RAG deepdive iter 3: gaps=50, new_edges=50, total_discovered=150
+2026-04-23 15:49:22,267 - [AUTONOMOUS AGENT] - RAG deepdive iter 4: gaps=50, new_edges=50, total_discovered=200
+2026-04-23 15:49:22,413 - [AUTONOMOUS AGENT] - RAG deepdive iter 5: gaps=50, new_edges=50, total_discovered=250
+2026-04-23 15:49:22,619 - [AUTONOMOUS AGENT] - RAG deepdive iter 6: gaps=50, new_edges=50, total_discovered=300
+2026-04-23 15:49:22,798 - [AUTONOMOUS AGENT] - RAG deepdive iter 7: gaps=50, new_edges=50, total_discovered=350
+2026-04-23 15:49:22,957 - [AUTONOMOUS AGENT] - RAG deepdive iter 8: gaps=50, new_edges=50, total_discovered=400
+2026-04-23 15:49:23,119 - [AUTONOMOUS AGENT] - RAG deepdive iter 9: gaps=50, new_edges=50, total_discovered=450
+2026-04-23 15:49:23,243 - [AUTONOMOUS AGENT] - RAG deepdive iter 10: gaps=50, new_edges=50, total_discovered=500
+2026-04-23 15:49:23,361 - [AUTONOMOUS AGENT] - RAG deepdive iter 11: gaps=50, new_edges=50, total_discovered=550
+2026-04-23 15:49:23,480 - [AUTONOMOUS AGENT] - RAG deepdive iter 12: gaps=50, new_edges=50, total_discovered=600
+2026-04-23 15:49:23,490 - [AUTONOMOUS AGENT] - RAG deepdive[ocw_bridge_v3] complete: iterations=12, edges_discovered=600, pathways_explored=600

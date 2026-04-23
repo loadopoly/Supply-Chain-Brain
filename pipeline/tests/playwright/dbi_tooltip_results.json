@@ -1,5 +1,7 @@
 {
-  "passed": 11,
+  "passed": 19,
+  "failed": 0,
+  "skipped": 0,
   "total": 19,
   "pages": [
     {
@@ -19,6 +21,7 @@
       "metrics_with_help": 0,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -38,6 +41,7 @@
       "metrics_with_help": 0,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -57,6 +61,7 @@
       "metrics_with_help": 5,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -76,45 +81,48 @@
       "metrics_with_help": 2,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
       "url": "/EOQ_Deviation",
       "name": "EOQ Deviation",
       "nav_ok": true,
-      "card_present": false,
-      "card_visible": false,
-      "card_in_viewport": false,
-      "not_clipped": false,
+      "card_present": true,
+      "card_visible": true,
+      "card_in_viewport": true,
+      "not_clipped": true,
       "z_above_plotly": true,
-      "popover_opens": false,
-      "popover_shows_source": false,
+      "popover_opens": true,
+      "popover_shows_source": true,
       "digest_updates": false,
-      "timestamp_advances": false,
+      "timestamp_advances": true,
       "metrics_total": 0,
       "metrics_with_help": 0,
       "metrics_missing_help": [],
-      "error": "dbi-card never appeared",
-      "passed": false
+      "error": "",
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/OTD_Recursive",
       "name": "OTD Recursive",
       "nav_ok": true,
-      "card_present": false,
-      "card_visible": false,
-      "card_in_viewport": false,
-      "not_clipped": false,
+      "card_present": true,
+      "card_visible": true,
+      "card_in_viewport": true,
+      "not_clipped": true,
       "z_above_plotly": true,
-      "popover_opens": false,
-      "popover_shows_source": false,
+      "popover_opens": true,
+      "popover_shows_source": true,
       "digest_updates": false,
-      "timestamp_advances": false,
+      "timestamp_advances": true,
       "metrics_total": 0,
       "metrics_with_help": 0,
       "metrics_missing_help": [],
-      "error": "dbi-card never appeared",
-      "passed": false
+      "error": "",
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/Procurement_360",
@@ -126,14 +134,15 @@
       "not_clipped": true,
       "z_above_plotly": true,
       "popover_opens": true,
-      "popover_shows_source": false,
+      "popover_shows_source": true,
       "digest_updates": false,
       "timestamp_advances": true,
       "metrics_total": 7,
       "metrics_with_help": 7,
       "metrics_missing_help": [],
       "error": "",
-      "passed": false
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/Data_Quality",
@@ -144,15 +153,16 @@
       "card_in_viewport": true,
       "not_clipped": true,
       "z_above_plotly": true,
-      "popover_opens": false,
-      "popover_shows_source": false,
+      "popover_opens": true,
+      "popover_shows_source": true,
       "digest_updates": false,
       "timestamp_advances": true,
       "metrics_total": 4,
       "metrics_with_help": 4,
       "metrics_missing_help": [],
-      "error": "card stayed in LOADING state",
-      "passed": false
+      "error": "",
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/Connectors",
@@ -171,6 +181,7 @@
       "metrics_with_help": 0,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -190,26 +201,28 @@
       "metrics_with_help": 4,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
       "url": "/Bullwhip",
       "name": "Bullwhip Effect",
       "nav_ok": true,
-      "card_present": false,
-      "card_visible": false,
-      "card_in_viewport": false,
-      "not_clipped": false,
+      "card_present": true,
+      "card_visible": true,
+      "card_in_viewport": true,
+      "not_clipped": true,
       "z_above_plotly": true,
-      "popover_opens": false,
-      "popover_shows_source": false,
+      "popover_opens": true,
+      "popover_shows_source": true,
       "digest_updates": false,
-      "timestamp_advances": false,
+      "timestamp_advances": true,
       "metrics_total": 0,
       "metrics_with_help": 0,
       "metrics_missing_help": [],
-      "error": "dbi-card never appeared",
-      "passed": false
+      "error": "",
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/Multi_Echelon",
@@ -228,6 +241,7 @@
       "metrics_with_help": 4,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -247,6 +261,7 @@
       "metrics_with_help": 4,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -258,15 +273,16 @@
       "card_in_viewport": true,
       "not_clipped": true,
       "z_above_plotly": true,
-      "popover_opens": false,
-      "popover_shows_source": false,
+      "popover_opens": true,
+      "popover_shows_source": true,
       "digest_updates": false,
       "timestamp_advances": true,
       "metrics_total": 3,
       "metrics_with_help": 3,
       "metrics_missing_help": [],
-      "error": "card stayed in LOADING state",
-      "passed": false
+      "error": "",
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/What_If",
@@ -279,12 +295,13 @@
       "z_above_plotly": true,
       "popover_opens": true,
       "popover_shows_source": true,
-      "digest_updates": false,
+      "digest_updates": true,
       "timestamp_advances": true,
       "metrics_total": 0,
       "metrics_with_help": 0,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -304,6 +321,7 @@
       "metrics_with_help": 4,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -323,6 +341,7 @@
       "metrics_with_help": 5,
       "metrics_missing_help": [],
       "error": "",
+      "skipped": false,
       "passed": true
     },
     {
@@ -335,14 +354,15 @@
       "not_clipped": true,
       "z_above_plotly": true,
       "popover_opens": true,
-      "popover_shows_source": false,
+      "popover_shows_source": true,
       "digest_updates": false,
       "timestamp_advances": true,
       "metrics_total": 0,
       "metrics_with_help": 0,
       "metrics_missing_help": [],
       "error": "",
-      "passed": false
+      "skipped": false,
+      "passed": true
     },
     {
       "url": "/Cycle_Count_Accuracy",
@@ -353,15 +373,16 @@
       "card_in_viewport": true,
       "not_clipped": true,
       "z_above_plotly": true,
-      "popover_opens": false,
-      "popover_shows_source": false,
+      "popover_opens": true,
+      "popover_shows_source": true,
       "digest_updates": false,
       "timestamp_advances": true,
       "metrics_total": 0,
       "metrics_with_help": 0,
       "metrics_missing_help": [],
-      "error": "card stayed in LOADING state",
-      "passed": false
+      "error": "",
+      "skipped": false,
+      "passed": true
     }
   ]
 }

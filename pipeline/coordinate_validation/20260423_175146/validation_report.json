@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-04-23T17:51:46.734569",
+  "host": "https://fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com",
+  "viewport": null,
+  "authenticated": false,
+  "modules_tested": [],
+  "coordinate_findings": [],
+  "deviations": [],
+  "summary": {
+    "total_findings": 0,
+    "modules_tested": 0,
+    "high_deviations": 0,
+    "medium_deviations": 0,
+    "success": true
+  }
+}

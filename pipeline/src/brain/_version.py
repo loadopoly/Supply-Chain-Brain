@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-__version__ = "0.14.9"
+__version__ = "0.15.0"
 __release__ = (
-    "OCW semantic bridge + synaptic worker protection + network vision worker. "
-    "All synaptic workers moved to src/brain/synaptic_workers.py (immune to "
-    "autonomous-agent rewrites). Added _vision_worker: RDP bridge + piggyback "
-    "network probing materialised as Endpoint entities in the corpus graph. "
-    "Sweeper network errors treated as soft skips. OCW→Task/Quest semantic bridges."
+    "4-ERP xlsx pipeline (Epicor/Oracle/SyteLine/AX) · Brain page fixes · "
+    "EOQ query optimisation. Adds OneDrive-based live data flow for all four "
+    "ERP systems without SQL credentials, fixes cache decorator on graph builder, "
+    "moves connector status to Connectors page only, and speeds up EOQ column "
+    "resolution with a 30-min cache."
 )
 __build_date__ = "2026-04-23"
 

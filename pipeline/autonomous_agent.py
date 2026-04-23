@@ -2,6 +2,7 @@
 import subprocess
 import os
 import logging
+import math
 from datetime import datetime
 
 # Configure logging
@@ -176,6 +177,153 @@ def analyze_and_improve(benchmark_data):
     logging.info("Analyzing codebase against benchmarks...")
     logging.info("Applying AI-generated optimizations (Requires LLM API Key)...")
 
+
+# ---------------------------------------------------------------------------
+# Ignorance signal — drives adaptive sleep cadence
+# ---------------------------------------------------------------------------
+_MIN_SLEEP_S  = 1_800   #  30 min  — maximum urgency (high ignorance)
+_MAX_SLEEP_S  = 14_400  #   4 hrs  — fully settled (low ignorance)
+
+def compute_ignorance_score() -> float:
+    """Return a float in [0..1] representing how much the Brain still doesn't know.
+
+    Combines:
+      * fraction of ``part_category`` entries that are 'Uncategorized' (weight 0.5)
+      * pending corpus learnings not yet materialized (weight 0.3)
+      * unprocessed self_train rows (weight 0.2)
+
+    A score of 1.0 means maximum ignorance → shortest sleep interval.
+    A score of 0.0 means fully settled → longest sleep interval.
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from src.brain.local_store import db_path
+        import sqlite3
+
+        db = str(db_path())
+        if not os.path.exists(db):
+            return 1.0   # no DB yet — maximum ignorance
+
+        with sqlite3.connect(db) as cn:
+            # --- unclassified parts fraction ---
+            try:
+                total_parts = cn.execute(
+                    "SELECT COUNT(*) FROM part_category"
+                ).fetchone()[0] or 0
+                uncl = cn.execute(
+                    "SELECT COUNT(*) FROM part_category "
+                    "WHERE category='Uncategorized' OR category IS NULL"
+                ).fetchone()[0] or 0
+            except Exception:
+                total_parts, uncl = 0, 0
+
+            part_ignorance = (uncl / max(1, total_parts)) if total_parts > 0 else 1.0
+
+            # --- pending corpus learnings not yet flushed to graph ---
+            try:
+                last_round = cn.execute(
+                    "SELECT MAX(entities_added + edges_added) FROM corpus_round_log"
+                ).fetchone()[0] or 0
+                pending_ll = cn.execute(
+                    "SELECT COUNT(*) FROM learning_log "
+                    "WHERE logged_at > COALESCE("
+                    "  (SELECT MAX(ran_at) FROM corpus_round_log), '1970-01-01')"
+                ).fetchone()[0] or 0
+            except Exception:
+                last_round, pending_ll = 0, 0
+
+            corpus_ignorance = min(1.0, pending_ll / 500.0)
+
+            # --- unprocessed self_train rows ---
+            try:
+                cursor_val = cn.execute(
+                    "SELECT value FROM corpus_cursor WHERE key='self_train'"
+                ).fetchone()
+                cursor_pos = int(cursor_val[0]) if cursor_val else 0
+                max_st = cn.execute(
+                    "SELECT MAX(id) FROM llm_self_train_log"
+                ).fetchone()[0] or 0
+            except Exception:
+                cursor_pos, max_st = 0, 0
+
+            train_ignorance = min(1.0, max(0, max_st - cursor_pos) / 200.0)
+
+        score = (
+            0.50 * part_ignorance
+            + 0.30 * corpus_ignorance
+            + 0.20 * train_ignorance
+        )
+        logging.info(
+            f"Ignorance score: {score:.3f} "
+            f"(parts={part_ignorance:.2f}, corpus={corpus_ignorance:.2f}, "
+            f"train={train_ignorance:.2f})"
+        )
+        return min(1.0, max(0.0, score))
+    except Exception as e:
+        logging.warning(f"compute_ignorance_score failed: {e}")
+        return 0.5   # default to mid-point
+
+
+def adaptive_sleep_duration(ignorance: float) -> int:
+    """Map ignorance [0..1] → sleep seconds using an exponential decay.
+
+    High ignorance → short sleep; low ignorance → long sleep.
+    Uses an exponential blend so mid-range ignorance (0.5) maps to ~2 hrs.
+    """
+    # sleep = MIN + (MAX - MIN) * (1 - ignorance)^2
+    t = (1.0 - ignorance) ** 2
+    return int(_MIN_SLEEP_S + (_MAX_SLEEP_S - _MIN_SLEEP_S) * t)
+
+
+def drain_corpus_parts():
+    """Run one NLP classification batch on the unclassified parts backlog.
+
+    Delegates to nlp_categorize.drain_unclassified() which pulls the next
+    500 uncategorized parts from the DW replica, classifies them via TF-IDF,
+    and persists the results to local_brain.sqlite.  Called every agent cycle
+    so the backlog drains progressively regardless of sleep cadence.
+    """
+    logging.info("Draining unclassified corpus parts (NLP batch)...")
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from src.brain.nlp_categorize import drain_unclassified
+        n = drain_unclassified(batch_size=500)
+        if n > 0:
+            logging.info(f"NLP drain: classified {n} new parts this cycle.")
+        else:
+            logging.info("NLP drain: nothing new to classify (backlog clear or DW unreachable).")
+        return n
+    except Exception as e:
+        logging.error(f"drain_corpus_parts failed: {e}")
+        return 0
+
+
+def refresh_corpus():
+    """Trigger one incremental corpus refresh + graph materialization."""
+    logging.info("Refreshing knowledge corpus and materializing into graph...")
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from src.brain.knowledge_corpus import refresh_corpus_round, materialize_into_graph
+        result = refresh_corpus_round()
+        if result.get("skipped"):
+            logging.info("Corpus refresh: rate-limited — skipped.")
+        else:
+            logging.info(
+                f"Corpus refresh: +{result.get('entities_added', 0)} entities, "
+                f"+{result.get('edges_added', 0)} edges, "
+                f"{result.get('learnings_logged', 0)} learnings."
+            )
+        mat = materialize_into_graph()
+        if mat.get("ok") is not False:
+            logging.info(
+                f"Graph materialized: {mat.get('nodes', 0)} nodes, {mat.get('edges', 0)} edges."
+            )
+    except Exception as e:
+        logging.error(f"refresh_corpus failed: {e}")
+
 def refresh_llm_registry():
     """Periodic internet sweep for newly released open-weight LLMs.
 
@@ -266,6 +414,12 @@ def autonomous_loop():
             # Kimi/MiniMax/MiMo class). Cadence is enforced inside the scout.
             refresh_llm_registry()
 
+            # Step 3c: Drain NLP classification backlog (500 parts per cycle)
+            drain_corpus_parts()
+
+            # Step 3d: Refresh corpus knowledge graph (incremental, rate-limited)
+            refresh_corpus()
+
                         # Step 4: Self-document the changes
             generate_documentation()
 
@@ -275,10 +429,15 @@ def autonomous_loop():
             # Step 6: Save/commit locally
             commit_and_push()
 
-            logging.info("=== CYCLE COMPLETE. SLEEPING FOR 4 HOURS ===")
-            
+            # Compute adaptive sleep based on current ignorance level.
+            ignorance = compute_ignorance_score()
+            sleep_duration = adaptive_sleep_duration(ignorance)
+            logging.info(
+                f"=== CYCLE COMPLETE. ignorance={ignorance:.3f} → "
+                f"sleeping {sleep_duration // 60} min ==="
+            )
+
             # Sleep in intervals of 60 seconds to maintain a heartbeat
-            sleep_duration = 14400
             interval = 60
             heartbeat_file = os.path.join("logs", "agent_heartbeat.txt")
             os.makedirs("logs", exist_ok=True)

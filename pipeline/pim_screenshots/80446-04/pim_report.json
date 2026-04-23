@@ -1,0 +1,49 @@
+{
+  "part_number": "80446-04",
+  "page_title": "Browse Commercial Items - Product Information Management - Oracle Fusion Cloud Applications",
+  "page_url": "https://fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com/fscmUI/faces/FuseWelcome?_afrLoop=14587660501621026&_afrWindowMode=0&_afrWindowId=null&_adf.ctrl-state=1akum2uhpp_1&_afrFS=16&_afrMT=screen&_afrMFW=1920&_afrMFH=1080&_afrMFDW=1920&_afrMFDH=1080&_afrMFC=8&_afrMFCI=0&_afrMFM=0&_afrMFR=96&_afrMFG=0&_afrMFS=0&_afrMFO=0",
+  "headings": [
+    {
+      "tag": "H1",
+      "text": "Browse Items"
+    },
+    {
+      "tag": "H1",
+      "text": "Item Class Hierarchy"
+    },
+    {
+      "tag": "H1",
+      "text": "Item Class: Root Item Class"
+    },
+    {
+      "tag": "H2",
+      "text": "Advanced Search"
+    },
+    {
+      "tag": "H2",
+      "text": "Search Results"
+    }
+  ],
+  "primary_fields": {
+    "Navigator": "Navigator",
+    "Notifications (0 unread)": "0",
+    "Browse": "Item Class Hierarchy",
+    "FreezeFreeze": "DetachDetach",
+    "SearchSearchClear": "Search",
+    "Columns Hidden4": "Columns Hidden",
+    "Columns Hidden": "4",
+    "Saved Search": "Application Default",
+    "Item": "Starts withEqualsContainsInItem Operator Item",
+    "Starts withEqualsContainsInItem Operator": "Item",
+    "Description": "Starts withEqualsContainsDescription Operator Description",
+    "Starts withEqualsContainsDescription Operator": "Description",
+    "Keyword": "Keyword",
+    "Create": "Delete",
+    "Image": "1",
+    "Show Inactive": "t",
+    "Show Children": "t",
+    "Item Operator": "STARTSWITH",
+    "Description Operator": "STARTSWITH"
+  },
+  "tab_sections": {}
+}

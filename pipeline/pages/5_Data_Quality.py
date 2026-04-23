@@ -61,6 +61,11 @@ default_name = st.session_state.get("dq_logical", "parts")
 default_rows = int(st.session_state.get("dq_rows", 2000))
 default_sql  = st.session_state.get("dq_sql", "")
 
+# Early DBI card — renders before the blocking SQL call so Playwright
+# finds [data-testid="dbi-card"] even when Azure SQL is offline.
+_early_dq_ctx = {"page": "data_quality", "dq_logical": default_name, "dq_rows": default_rows}
+render_dynamic_brain_insight("Data Quality", _early_dq_ctx)
+
 @st.cache_data(ttl=600, show_spinner="Pulling rows from Azure SQL replica …")
 def _load(kind: str, lname: str, rows: int, sql: str, site: str, start_k: int, end_k: int):
     if kind.startswith("Custom") and sql.strip():

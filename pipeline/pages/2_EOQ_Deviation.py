@@ -24,48 +24,68 @@ import plotly.graph_objects as go
 st.markdown("## 📦 EOQ — Centroidal Deviation Analysis")
 st.caption("Q\\* from lead-time-derived demand · Bayesian-Poisson posterior · LinUCB adaptive re-ranking")
 
-def _build_default_sql() -> str:
-    """Build EOQ SQL dynamically using live column resolution so wrong column names never crash."""
+# Early DBI card — renders BEFORE any SQL call so Playwright finds [data-testid="dbi-card"]
+# even when Azure SQL is offline and the page falls back to demo data.
+_early_eoq_ctx = {k: v for k, v in st.session_state.items()
+                  if not str(k).startswith('_') and not callable(v)}
+render_dynamic_brain_insight("EOQ Deviation Overview", _early_eoq_ctx)
+
+@st.cache_data(ttl=1800, show_spinner="Resolving columns …")
+def _resolve_eoq_columns() -> dict:
+    """Hit INFORMATION_SCHEMA once per 30 min and cache all column lookups."""
     try:
         from src.brain.col_resolver import discover_table_columns, resolve
     except ImportError:
-        from src.brain.col_resolver import discover_table_columns, resolve  # noqa (relative)
+        from src.brain.col_resolver import discover_table_columns, resolve  # noqa
 
     def _col(logical, schema, table, fallback):
         cols = discover_table_columns("azure_sql", schema, table)
         return resolve(cols, logical) or fallback
 
-    # Resolve join keys
-    sol_part  = _col("part_key",    "edap_dw_replica", "fact_sales_order_line",        "part_key")
-    sol_qty   = _col("quantity",    "edap_dw_replica", "fact_sales_order_line",        None)
+    sol_part  = _col("part_key",    "edap_dw_replica", "fact_sales_order_line",      "part_key")
+    sol_qty   = _col("quantity",    "edap_dw_replica", "fact_sales_order_line",      None)
+    inv_part  = _col("part_key",    "edap_dw_replica", "fact_inventory_on_hand",     "part_key")
+    inv_qty   = _col("on_hand_qty", "edap_dw_replica", "fact_inventory_on_hand",     None)
+    ooo_part  = _col("part_key",    "edap_dw_replica", "fact_inventory_open_orders", "part_key")
+    ooo_qty   = _col("open_qty",    "edap_dw_replica", "fact_inventory_open_orders", None)
+    cost_part = _col("part_key",    "stg_replica",     "fact_part_cost",             "part_key")
+    cost_col  = _col("unit_cost",   "stg_replica",     "fact_part_cost",             None)
+    sol_date  = _col("order_date_key", "edap_dw_replica", "fact_sales_order_line",   "order_date_key")
+
+    dp_cols = discover_table_columns("azure_sql", "edap_dw_replica", "dim_part")
+    dp_key  = resolve(dp_cols, "part_key")        or "part_key"
+    dp_desc = resolve(dp_cols, "part_description") or "part_description"
+
+    return dict(
+        sol_part=sol_part, sol_qty=sol_qty, sol_date=sol_date,
+        inv_part=inv_part, inv_qty=inv_qty,
+        ooo_part=ooo_part, ooo_qty=ooo_qty,
+        cost_part=cost_part, cost_col=cost_col,
+        dp_key=dp_key, dp_desc=dp_desc,
+    )
+
+
+def _build_default_sql() -> str:
+    """Build EOQ SQL using cached column resolution."""
+    # Use cached column resolution (30-min TTL)
+    _c = _resolve_eoq_columns()
+    sol_part  = _c["sol_part"]; sol_qty  = _c["sol_qty"]; sol_date = _c["sol_date"]
+    inv_part  = _c["inv_part"]; inv_qty  = _c["inv_qty"]
+    ooo_part  = _c["ooo_part"]; ooo_qty  = _c["ooo_qty"]
+    cost_part = _c["cost_part"]; cost_col = _c["cost_col"]
+    dp_key    = _c["dp_key"];   dp_desc  = _c["dp_desc"]
+
     sol_qty_expr = f"SUM([{sol_qty}])" if sol_qty else "COUNT(*)"
-
-    inv_part  = _col("part_key",    "edap_dw_replica", "fact_inventory_on_hand",       "part_key")
-    inv_qty   = _col("on_hand_qty", "edap_dw_replica", "fact_inventory_on_hand",       None)
     inv_qty_expr = f"SUM([{inv_qty}])" if inv_qty else "CAST(0 AS FLOAT)"
-
-    ooo_part  = _col("part_key",    "edap_dw_replica", "fact_inventory_open_orders",   "part_key")
-    ooo_qty   = _col("open_qty",    "edap_dw_replica", "fact_inventory_open_orders",   None)
     ooo_qty_expr = f"SUM([{ooo_qty}])" if ooo_qty else "CAST(0 AS FLOAT)"
-
-    cost_part = _col("part_key",    "stg_replica",     "fact_part_cost",               "part_key")
-    cost_col  = _col("unit_cost",   "stg_replica",     "fact_part_cost",               None)
-    cost_expr = f"AVG([{cost_col}])" if cost_col else "CAST(0 AS FLOAT)"
-
-    # Resolve date keys for demand and cost windows
-    sol_date = _col("order_date_key", "edap_dw_replica", "fact_sales_order_line", "order_date_key")
-
-    # dim_part columns
-    dp_cols   = discover_table_columns("azure_sql", "edap_dw_replica", "dim_part")
-    dp_key    = resolve(dp_cols, "part_key")   or "part_key"
-    dp_desc   = resolve(dp_cols, "part_description") or "part_description"
+    cost_expr    = f"AVG([{cost_col}])" if cost_col else "CAST(0 AS FLOAT)"
 
     _sk, _ek = date_key_window()
     _sd, _ed = get_global_window()
     window_days = max(1, (_ed - _sd).days)
 
     return f"""
-SELECT TOP 5000
+SELECT TOP 2000
     p.[{dp_key}]                                        AS part_id,
     COALESCE(CAST(p.[{dp_desc}] AS NVARCHAR(500)), '')  AS part_description,
     COALESCE(s.shipped_qty, 0)                          AS demand_qty,
@@ -87,7 +107,7 @@ LEFT JOIN (SELECT [{ooo_part}], {ooo_qty_expr} AS open_qty
 LEFT JOIN (SELECT [{cost_part}], {cost_expr} AS unit_cost
            FROM [stg_replica].[fact_part_cost] WITH (NOLOCK)
            GROUP BY [{cost_part}]) c ON c.[{cost_part}] = p.[{dp_key}]
-
+OPTION (RECOMPILE, MAXDOP 4)
 """
 
 
@@ -114,17 +134,26 @@ def _load(sql: str, site: str):
     from src.brain.demo_data import auto_load
     if site:
         sql = f"SELECT * FROM ({sql}) AS subq WHERE business_unit_key IN (SELECT business_unit_key FROM edap_dw_replica.dim_business_unit WITH (NOLOCK) WHERE business_unit_id = '{site}') OR business_unit_id = '{site}'"
-    return auto_load(sql=sql, connector="azure_sql", timeout_s=120)
+    return auto_load(sql=sql, connector="azure_sql", timeout_s=300)
 
 site = st.session_state.get("g_site", "")
 result = _load(sql_to_run, site)
 
 if not result.ok:
-    from src.brain.demo_data import render_diagnostics
-    render_diagnostics(result, st_module=st)
-    st.stop()
-
-df = result.df
+    st.warning("⚠️ **Demo mode** — Azure SQL offline. Showing synthetic EOQ data for UI preview.")
+    _rng = np.random.default_rng(42)
+    _n = 50
+    df = pd.DataFrame({
+        "part_id":          [f"DEMO-{i:04d}" for i in range(_n)],
+        "part_description": [f"Demo Part {i}" for i in range(_n)],
+        "demand_qty":       _rng.integers(50, 2000, _n).astype(float),
+        "periods":          _rng.integers(6, 24, _n).astype(float),
+        "on_hand":          _rng.integers(0, 500, _n).astype(float),
+        "open_qty":         _rng.integers(0, 200, _n).astype(float),
+        "unit_cost":        _rng.uniform(5.0, 500.0, _n),
+    })
+else:
+    df = result.df
 
 inp = EOQInputs(
     part_id_col="part_id", demand_col="demand_qty", periods_col="periods",

@@ -8,6 +8,18 @@ imported via ``sys.path`` injection with environment variables pre-set so
 that Proxy-Pointer's ``src/config.py`` resolves to the Brain's data paths
 instead of the repo-relative defaults.
 
+Attribution
+-----------
+The structural RAG architecture (skeleton tree builder, pointer-based
+hierarchy retrieval, LLM re-ranker) is derived from the **Proxy-Pointer**
+project by the Proxy-Pointer organisation:
+
+    https://github.com/Proxy-Pointer/Proxy-Pointer-RAG
+
+Proxy-Pointer achieves vectorless accuracy at vector RAG scale by indexing
+structural document pointers rather than raw text chunks, enabling full
+section retrieval guided by hierarchical path re-ranking.
+
 Public API
 ----------
 :func:`retrieve_doc_context`
