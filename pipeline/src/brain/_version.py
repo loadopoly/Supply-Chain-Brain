@@ -2,33 +2,27 @@ from __future__ import annotations
 
 
 
-__version__ = "0.14.5"
+__version__ = "0.14.6"
 
 __release__ = (
 
-    "OTD Recursive Hardening & Training Loop Fix. Fixed tuple unpacking for OTD loaders, "
-    "restored offline fallback clustering for bundled files using OTDConfig, enforced "
-    "get_global_window filter on trend charts, rewrote ownership tab to dynamic Daily "
-    "Review worklists natively iterating over Excel worklist sheets. Repaired zero-samples "
-    "bug in seed_otd_direct to seed otd_classify training truth out of bundled Excel "
-    "sheet fallback so training cycle is unblocked offline."
-
-) Four daemon worker threads now run continuously underneath the "
-    "main 1-4hr cycle: _synaptic_builder_worker (10min, 24h window), "
-    "_lookahead_worker (15min, rotating 7d/30d/90d dispersed historical "
-    "windows), _dispersed_sweeper_worker (20min, one-connector-per-tick "
-    "rotation), _convergence_worker (30min, refresh_corpus_round + "
-    "materialize_into_graph). (2) rag_knowledge_deepdive() now accepts "
-    "window_label, window_hours, window_offset_hours, max_iterations, "
-    "max_entities, explored_kv_key parameters so each worker explores its "
-    "own temporal slice with its own persisted explored-pair set. "
-    "(3) start_continuous_synaptic_agents() wired into autonomous_loop() "
-    "startup; threading.Event-based cooperative shutdown via "
-    "stop_continuous_synaptic_agents(). All workers use SQLite "
-    "check_same_thread=False, jittered cadences (±60-120s) to desynchronise, "
-    "and write per-worker last-run heartbeats to brain_kv so operators can "
-    "observe synaptic activity. Result: synapses are pre-built ahead of "
-    "the slower main cycle's reads instead of episodically."
+    "Continuous Multi-Agent Synaptic Extension (rebased on 0.14.5 OTD fixes). "
+    "autonomous_agent.py: (1) Four daemon worker threads now run continuously "
+    "underneath the main 1-4hr cycle: _synaptic_builder_worker (10min, 24h "
+    "window), _lookahead_worker (15min, rotating 7d/30d/90d dispersed historical "
+    "windows), _dispersed_sweeper_worker (20min, one-connector-per-tick rotation), "
+    "_convergence_worker (30min, refresh_corpus_round + materialize_into_graph). "
+    "(2) rag_knowledge_deepdive() parameterised with window_label, window_hours, "
+    "window_offset_hours, max_iterations, max_entities, explored_kv_key so each "
+    "worker explores its own temporal slice with its own persisted explored-pair "
+    "set. Existing Step 3e.5 call site preserved by defaults. "
+    "(3) start_continuous_synaptic_agents() wired into autonomous_loop() startup; "
+    "stop_continuous_synaptic_agents() with threading.Event cooperative shutdown. "
+    "All workers use SQLite check_same_thread=False, jittered cadences (±60-120s) "
+    "to desynchronise organically, and write per-worker last-run heartbeats to "
+    "brain_kv (synapse_*_last) so operators can observe synaptic activity. "
+    "Result: synapses are pre-built ahead of the slower main cycle's reads "
+    "instead of being constructed only episodically. 100/100 pytest passing."
 
 )
 
@@ -82,6 +76,7 @@ PHASES = {
     "0.14.4": "Continuous Multi-Agent Synaptic Extension. Four daemon worker threads (synaptic-builder/10min/24h, lookahead/15min/rotating-7d-30d-90d, dispersed-sweeper/20min/connector-rotation, convergence/30min) run continuously underneath the main cycle, building synapses on relationally dispersed temporal windows so they're ready before the next agent traverses that aspect. rag_knowledge_deepdive() parameterised with window_label/window_hours/window_offset_hours/explored_kv_key for per-worker temporal targeting.",
 
     "0.14.5": "OTD Recursive Hardening & Training Loop Fix. Daily Review worklists, offline fallback clustering, strict TF trending windows, and seed_otd_direct offline ground-truth seeding.",
+    "0.14.6": "Continuous Multi-Agent Synaptic Extension (rebased on 0.14.5). Four daemon worker threads run continuously underneath the main cycle: synaptic-builder (10min, 24h), lookahead (15min, rotating 7d/30d/90d), dispersed-sweeper (20min, connector rotation), convergence (30min). rag_knowledge_deepdive() parameterised for per-worker temporal slicing. start/stop_continuous_synaptic_agents() with threading.Event cooperative shutdown. 100/100 pytest.",
 
 }
 
