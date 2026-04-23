@@ -355,6 +355,11 @@ llms:
       min_ctx: 64000
       lambda_cost: 0.20
       lambda_latency: 0.10
+    insight_narrate:                # DBI card — short, data-grounded plain-prose insight
+      weights: { reasoning: 0.40, structured: 0.35, math: 0.15, long_ctx: 0.10 }
+      min_ctx: 8000
+      lambda_cost: 0.15
+      lambda_latency: 0.25          # prefer low-latency models; DBI has a live spinner
     default:
       weights: { reasoning: 0.30, structured: 0.25, coding: 0.15, math: 0.15, long_ctx: 0.15 }
       min_ctx: 16000

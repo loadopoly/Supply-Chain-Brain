@@ -19,8 +19,27 @@ class BrainInsightWorker:
             cls._insights[key] = "LOADING"
 
         def worker():
-            # Sleep 1s so the thread always finishes before the 2s fragment re-run.
-            time.sleep(1)
+            # ── 1. Try RAG (LLM ensemble via OpenRouter) ──────────────────
+            # dbi_rag.generate_insight() retrieves findings + learnings,
+            # builds a prompt, and dispatches through llm_ensemble.
+            # Returns None when no real LLM caller is configured so we
+            # fall through to the deterministic template below.
+            rag_text: str | None = None
+            try:
+                from . import dbi_rag
+                rag_text = dbi_rag.generate_insight(page_name, context_dict)
+            except Exception:
+                pass  # dbi_rag import or call failed — fall through to template
+
+            if rag_text:
+                with cls._lock:
+                    cls._insights[key] = rag_text
+                return
+
+            # ── 2. Template fallback ───────────────────────────────────────
+            # Produces deterministic, data-aware text from session_state
+            # values (graph metrics, site, date window) when RAG is offline.
+            time.sleep(1)   # ensure thread finishes before the 2 s fragment tick
 
             # ── Extract common filter context ─────────────────────────────
             site = (
@@ -232,11 +251,23 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
 
     # Native popover button — not subject to CSS overflow clipping.
     if not loading:
+        # Detect whether this insight came from the RAG/LLM pipeline or the
+        # deterministic template (RAG text is typically longer & prose-like).
+        is_rag = len(str(insight)) > 200 and not any(
+            marker in str(insight) for marker in [
+                "Supplier → part → site", "Recursive OTD", "Kaplan-Meier",
+                "Bullwhip amplification", "Procurement 360",
+            ]
+        )
+        source_label = "🤖 LLM (OpenRouter)" if is_rag else "📋 Template"
+
         params = {
             k: v for k, v in context_dict.items()
             if v is not None and str(v).strip()
         }
         with st.popover("🔍 Parameters"):
+            st.caption(f"**Insight source:** {source_label}")
+            st.divider()
             st.markdown("**Relational Parameters Read by Brain:**")
             if params:
                 for k, v in params.items():
