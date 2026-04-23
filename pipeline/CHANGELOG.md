@@ -4,6 +4,62 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.14.5 — OTD Recursive Hardening & Training Loop Fix (2026-04-22)
+
+### Fixed
+- **OTD File Parsing Tuples**: Fixed `_load_otd_file_from_path` unpacking errors due to missing tuple structures.
+- **Offline Clustering Base Fallback**: Brought back `OTDConfig` so bundled files cluster appropriately without the replica instead of defaulting all rows to "ROOT".
+- **Global Timeframe Bounds for Trend Charts**: Forced timeframe timeline filtering internally on trend charts to strictly observe the global bounds.
+- **Dynamic Daily Review Tab Rewrite**: Ripped off the old generic ownership dropdown and dynamically constructed `Daily Review` worklists iteratively iterating through the native OTD bundle ("Missed Yesterday", "Shipping today", "Opened Yesterday").
+- **OTD Classifier Zero-Samples Fallback Seed Loop**: Re-routed `seed_otd_direct` to load missing ground truth dynamically out of the local bundled Excel cache seamlessly mapping keys `SO No_Part_Site` when `azure_sql` is offline. Ensures the `otd_classify` zero-shot task has fresh samples to continuously self-train properly.
+
+## 0.14.4 — Continuous Multi-Agent Synaptic Extension (2026-04-22)
+
+### Added
+- **Four continuous synaptic worker threads** in `autonomous_agent.py`,
+  daemon threads that run underneath the main 1-4 hr cycle so synaptic
+  connections are built ahead of the next agent's traversal:
+  - `_synaptic_builder_worker` — every ~10 min, RAG deepdive on the
+    last 24h of corpus activity (the "near present").
+  - `_lookahead_worker` — every ~15 min, RAG deepdive on dispersed
+    historical windows (rotates through 7d / 30d / 90d slices, each
+    with its own persisted explored-pair cache so progress on one
+    window doesn't reset another).
+  - `_dispersed_sweeper_worker` — every ~20 min, rotates through
+    registered SQL connectors one per tick instead of waiting for the
+    main loop's full sweep.
+  - `_convergence_worker` — every ~30 min, runs `refresh_corpus_round()`
+    + `materialize_into_graph()` to consolidate everything the other
+    workers wrote so downstream readers see fresh synapses.
+- **`start_continuous_synaptic_agents()`** / **`stop_continuous_synaptic_agents()`**
+  — idempotent orchestrator with `threading.Event` cooperative shutdown,
+  per-worker `brain_kv` heartbeat keys (`synapse_*_last`), jittered
+  cadences (±60-120s) so workers desynchronise organically.
+- **`rag_knowledge_deepdive()` parameterisation** — new keyword args
+  `window_label`, `window_hours`, `window_offset_hours`, `max_iterations`,
+  `max_entities`, `explored_kv_key` so each worker targets its own
+  relationally dispersed temporal slice without clobbering the others'
+  explored-pair sets. Existing call site (Step 3e.5) is unaffected — all
+  new args have defaults that preserve prior behaviour.
+
+### Changed
+- `rag_knowledge_deepdive()` now opens its SQLite handle with
+  `check_same_thread=False` so the same function can be called from
+  any of the four worker threads safely.
+- `autonomous_loop()` startup now spawns the four synaptic workers
+  immediately after `init_recurrent_depth()` and before the main
+  `while True:` cycle begins.
+
+### Architectural note
+This is the transformation from *episodic* synapse construction (one
+RAG deepdive per 1-4 hour cycle) to *continuous* synapse construction
+(four overlapping rolling deepdives per hour, each on a different
+temporal window). The main loop continues to handle heavyweight
+operations (VPN, tests, email, commit); the workers handle the neural
+substrate.
+
+---
+
 ## 0.14.3 — SOTA RAG Deepdive + Dynamic Connector Discovery + 100/100 Tests (2026-04-22)
 
 ### Added

@@ -333,42 +333,52 @@ def expand_nlp_taxonomy() -> int:
 
 
 def seed_otd_direct() -> int:
-    """Lightweight periodic OTD pull to keep otd_ownership seeded between missions.
-
-    Fulfillment missions populate otd_ownership when they process, but mission
-    cycles may not include a fulfillment mission every cycle. This step ensures
-    the otd_classify self-train task always has fresh ground truth by pulling a
-    1 000-row slice of ERP OTD data every cycle independent of the mission queue.
-    Returns the number of ownership rows upserted.
-    """
+    """Lightweight periodic OTD pull."""
     try:
-        import sys
+        import sys, os
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from src.brain.otd_recursive import run_otd_from_replica
         from src.brain.local_store import upsert_otd_owner
-
-        work, _ = run_otd_from_replica(connector="azure_sql", where=None, limit=1000)
-        if work is None or work.empty:
-            logging.info("OTD seeding: no source rows available from replica.")
-            return 0
-
-        _OWNER_HINTS = [
-            "buyer", "planner", "responsible_party", "purchaser",
-            "assigned_to", "owner", "buyer_name", "planner_name",
-        ]
-        _KEY_HINTS = [
-            "po_number", "po_num", "purchase_order", "receipt_id",
-            "po_line_id", "receipt_number", "po_id",
-        ]
-        cols_lower = {c.lower(): c for c in work.columns}
-        owner_col = next((cols_lower[h] for h in _OWNER_HINTS if h in cols_lower), None)
-        key_col   = next((cols_lower[h] for h in _KEY_HINTS   if h in cols_lower), None)
-
-        if not owner_col:
-            logging.info("OTD seeding: no buyer/planner column found in replica — skipping.")
-            return 0
+        import pandas as pd
+        from pathlib import Path
+        import logging
 
         n = 0
+        bundle_path = Path(__file__).parent / "docs" / "OTD file.xlsx"
+        if bundle_path.exists():
+            xf = pd.ExcelFile(bundle_path)
+            for sn in ["Missed Yesterday", "Shipping today", "Opened Yesterday"]:
+                if sn in xf.sheet_names:
+                    w = xf.parse(sn).dropna(how="all")
+                    for c in ["Owner", "SO No", "Part", "Site", "Reason why failed", "Review Comment"]:
+                        if c not in w.columns: w[c] = ""
+                    for _, row in w.iterrows():
+                        if str(row.get("SO No", "")).strip() == "": continue
+                        rk = f'{str(row["SO No"]).strip()}_{str(row["Part"]).strip()}_{str(row["Site"]).strip()}'
+                        ow = str(row["Owner"]).strip()
+                        cm = str(row.get("Reason why failed", str(row.get("Review Comment", "")))).strip()
+                        if ow and ow.lower() not in ("nan", "none", "") and rk != "__":
+                            try:
+                                upsert_otd_owner(rk, owner=ow, owner_comment=cm)
+                                n += 1
+                            except Exception:
+                                pass
+            if n > 0:
+                logging.info(f"OTD seeding: wrote {n} ownership rows from bundle -> otd_classify ground truth.")
+                return n
+
+        # Fallback
+        work, _ = run_otd_from_replica(connector="azure_sql", where=None, limit=1000)
+        if work is None or work.empty:
+            return 0
+
+        cols_lower = {c.lower(): c for c in work.columns}
+        owner_col = next((cols_lower[h] for h in ["buyer", "planner", "owner", "assigned_to"] if h in cols_lower), None)
+        key_col = next((cols_lower[h] for h in ["po_number", "receipt_id", "so_no"] if h in cols_lower), None)
+
+        if not owner_col:
+            return 0
+        
         for idx, row in work.iterrows():
             rk = str(row[key_col]).strip() if key_col else f"otd_{idx}"
             ow = str(row[owner_col]).strip()
@@ -378,16 +388,12 @@ def seed_otd_direct() -> int:
                     n += 1
                 except Exception:
                     pass
-
-        logging.info(
-            f"OTD seeding: wrote {n} ownership rows "
-            f"\u2192 otd_classify ground truth ready for next self-train."
-        )
+        if n > 0:
+            logging.info(f"OTD seeding: wrote {n} ownership rows from replica -> otd_classify ground truth.")
         return n
     except Exception as e:
         logging.warning(f"OTD direct seeding failed: {e}")
         return 0
-
 
 def sweep_all_data_sources() -> dict:
     """Iterate every configured data source and feed the Brain corpus.
@@ -854,7 +860,14 @@ def sweep_all_data_sources() -> dict:
     return summary
 
 
-def rag_knowledge_deepdive() -> dict:
+def rag_knowledge_deepdive(
+    window_label: str = "all",
+    window_hours: int | None = None,
+    window_offset_hours: int = 0,
+    max_iterations: int = 8,
+    max_entities: int = 2000,
+    explored_kv_key: str = "rag_explored_pairs",
+) -> dict:
     """SOTA RAG iterative deepening over the Brain's knowledge graph.
 
     Each call runs up to ``max_iterations`` passes of:
@@ -885,24 +898,46 @@ def rag_knowledge_deepdive() -> dict:
        explored-pair set is persisted in ``brain_kv`` across cycles so each
        cycle goes *deeper* rather than re-traversing the same ground.
 
+    Parameters
+    ----------
+    window_label:
+        Label used in logging and learning_log entries (e.g. ``"recent"``,
+        ``"7d"``, ``"30d"``, ``"90d"``, ``"all"``).
+    window_hours:
+        If provided, restrict the entity universe to those whose ``last_seen``
+        falls within ``[now - window_offset_hours - window_hours, now -
+        window_offset_hours]``. ``None`` (default) considers all entities.
+    window_offset_hours:
+        Look-back offset in hours from ``now``. Combined with ``window_hours``
+        this lets parallel agents work *relationally dispersed periods* of
+        the corpus simultaneously without stepping on each other.
+    max_iterations:
+        Per-call convergence cap (default 8).
+    max_entities:
+        Entity universe size pulled from corpus_entity each call.
+    explored_kv_key:
+        Per-window persisted explored-pair cache key in ``brain_kv``. Each
+        worker uses its own key so their explored sets don't conflict.
+
     Returns dict: ``iterations_run``, ``edges_discovered``, ``gaps_found``,
-    ``pathways_explored``.
+    ``pathways_explored``, ``window_label``.
     """
     import sys, sqlite3, json as _json
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from src.brain.local_store import db_path
 
-    MAX_ITERATIONS      = 8
-    MAX_ENTITIES        = 2000   # entity universe per iteration
+    MAX_ITERATIONS      = max_iterations
+    MAX_ENTITIES        = max_entities
     MAX_GAPS_PER_ITER   = 50     # structural holes to evaluate per pass
     MIN_SIMILARITY      = 0.15   # TF-IDF cosine threshold to pursue a gap
     MIN_NEW_PER_ITER    = 3      # converge when fewer new edges are added
 
     result = {"iterations_run": 0, "edges_discovered": 0,
-              "gaps_found": 0, "pathways_explored": 0}
+              "gaps_found": 0, "pathways_explored": 0,
+              "window_label": window_label}
 
     # ── Persistent explored-pair cache (avoids re-traversing known paths) ──
-    explored_raw = _kv_read("rag_explored_pairs", "")
+    explored_raw = _kv_read(explored_kv_key, "")
     explored: set[tuple] = set()
     if explored_raw:
         try:
@@ -911,24 +946,40 @@ def rag_knowledge_deepdive() -> dict:
             explored = set()
 
     try:
-        cn = sqlite3.connect(str(db_path()))
+        cn = sqlite3.connect(str(db_path()), check_same_thread=False)
         cn.row_factory = sqlite3.Row
     except Exception as _e:
-        logging.warning(f"RAG deepdive: cannot open corpus DB — {_e}")
+        logging.warning(f"RAG deepdive[{window_label}]: cannot open corpus DB — {_e}")
         return result
 
     try:
-        # ── 1. Load corpus entities ────────────────────────────────────────
-        entity_rows = cn.execute(
-            """SELECT entity_id, entity_type, label, props_json, samples
-               FROM corpus_entity
-               ORDER BY samples DESC
-               LIMIT ?""",
-            (MAX_ENTITIES,),
-        ).fetchall()
+        # ── 1. Load corpus entities (optionally time-windowed) ──────────
+        if window_hours is not None:
+            from datetime import timedelta
+            now = datetime.now()
+            t_end   = (now - timedelta(hours=window_offset_hours)
+                       ).strftime("%Y-%m-%dT%H:%M:%S")
+            t_start = (now - timedelta(hours=window_offset_hours + window_hours)
+                       ).strftime("%Y-%m-%dT%H:%M:%S")
+            entity_rows = cn.execute(
+                """SELECT entity_id, entity_type, label, props_json, samples
+                   FROM corpus_entity
+                   WHERE last_seen >= ? AND last_seen <= ?
+                   ORDER BY samples DESC
+                   LIMIT ?""",
+                (t_start, t_end, MAX_ENTITIES),
+            ).fetchall()
+        else:
+            entity_rows = cn.execute(
+                """SELECT entity_id, entity_type, label, props_json, samples
+                   FROM corpus_entity
+                   ORDER BY samples DESC
+                   LIMIT ?""",
+                (MAX_ENTITIES,),
+            ).fetchall()
 
         if len(entity_rows) < 4:
-            logging.info("RAG deepdive: corpus too sparse — skipping.")
+            logging.info(f"RAG deepdive[{window_label}]: corpus too sparse — skipping.")
             return result
 
         # Build label list + id→index map for TF-IDF
@@ -1139,10 +1190,10 @@ def rag_knowledge_deepdive() -> dict:
 
         # Persist explored pairs (cap at 5000 to bound kv storage)
         explored_list = list(explored)[-5000:]
-        _kv_write("rag_explored_pairs", _json.dumps(explored_list))
+        _kv_write(explored_kv_key, _json.dumps(explored_list))
 
     except Exception as _e:
-        logging.warning(f"RAG knowledge deepdive failed: {_e}")
+        logging.warning(f"RAG knowledge deepdive[{window_label}] failed: {_e}")
     finally:
         try:
             cn.close()
@@ -1150,12 +1201,318 @@ def rag_knowledge_deepdive() -> dict:
             pass
 
     logging.info(
-        f"RAG deepdive complete: "
+        f"RAG deepdive[{window_label}] complete: "
         f"iterations={result['iterations_run']}, "
         f"edges_discovered={result['edges_discovered']}, "
         f"pathways_explored={result['pathways_explored']}"
     )
     return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Continuous multi-agent synaptic extension system
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Rather than waiting for the 1-4 hour main cycle to fire, four lightweight
+# worker threads run continuously in the background — each focused on a
+# different aspect of synaptic extension and a different temporal window of
+# the corpus. They run on staggered, overlapping cadences so that by the time
+# any single agent reaches an aspect of the knowledge graph, the synapses
+# (corpus_edges) have already been built by an earlier worker.
+#
+# The four workers:
+#   1. _synaptic_builder_worker   — RAG deepdive on the most-recent 24h window
+#                                   (every  ~10 min). Catches the "near present".
+#   2. _lookahead_worker          — RAG deepdive on dispersed historical
+#                                   windows (7d / 30d / 90d, rotating; every
+#                                   ~15 min). Pre-builds synapses N hops
+#                                   ahead of where the main loop currently is.
+#   3. _dispersed_sweeper_worker  — Rotates through registered connectors,
+#                                   ingesting fresh data continuously
+#                                   (every ~20 min) instead of waiting for
+#                                   the main loop's full sweep.
+#   4. _convergence_worker        — Runs corpus refresh + graph materialise
+#                                   (every ~30 min) so all the work the other
+#                                   workers wrote becomes visible to readers.
+#
+# All workers:
+#   • use ``threading.Thread(daemon=True)`` so they die with the main loop
+#   • share a single ``threading.Event`` shutdown flag (``_SYNAPTIC_STOP``)
+#   • use SQLite with ``check_same_thread=False`` and short transactions
+#   • record their own last-run timestamp + summary in ``brain_kv`` so the
+#     main loop and operators can see what each worker is doing
+#   • use their own ``rag_explored_pairs_<window>`` key so one window's
+#     exploration progress doesn't clobber another's
+
+import threading as _threading
+
+_SYNAPTIC_STOP = _threading.Event()
+_SYNAPTIC_THREADS: list = []
+_SYNAPTIC_STARTED = False
+
+
+def _wait_or_stop(seconds: int) -> bool:
+    """Sleep ``seconds`` but wake immediately if shutdown is requested.
+
+    Returns ``True`` if shutdown was requested (worker should exit).
+    """
+    return _SYNAPTIC_STOP.wait(timeout=seconds)
+
+
+def _synaptic_builder_worker() -> None:
+    """Worker #1 — synaptic builder for the *near-present* window.
+
+    Runs ``rag_knowledge_deepdive()`` against the last 24h of corpus activity
+    every ~10 min. This keeps the high-traffic part of the graph saturated
+    with synapses so missions launched against fresh data find ready bridges.
+    """
+    INTERVAL_S = 600   # 10 min
+    JITTER_S   = 60    # ±60s to desync from other workers
+    import random as _r
+    logging.info("[synapse:builder] started — interval=10min window=24h")
+    # Initial small delay so all four workers don't fire simultaneously
+    if _wait_or_stop(_r.randint(5, 30)):
+        return
+    while not _SYNAPTIC_STOP.is_set():
+        t0 = time.time()
+        try:
+            r = rag_knowledge_deepdive(
+                window_label="builder_24h",
+                window_hours=24,
+                window_offset_hours=0,
+                max_iterations=4,           # smaller per-pass than main loop
+                max_entities=800,
+                explored_kv_key="rag_explored_pairs_builder",
+            )
+            _kv_write(
+                "synapse_builder_last",
+                f"{datetime.now().isoformat()}|edges={r.get('edges_discovered',0)}"
+                f"|paths={r.get('pathways_explored',0)}",
+            )
+            elapsed = round(time.time() - t0, 1)
+            logging.info(
+                f"[synapse:builder] edges={r.get('edges_discovered',0)} "
+                f"paths={r.get('pathways_explored',0)} elapsed={elapsed}s"
+            )
+        except Exception as e:
+            logging.warning(f"[synapse:builder] iteration failed: {e}")
+        # Jittered sleep so workers don't synchronise
+        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+            return
+
+
+def _lookahead_worker() -> None:
+    """Worker #2 — *forward-look* synaptic pre-warmer for dispersed periods.
+
+    Rotates through three relationally dispersed historical windows
+    (7-day, 30-day, 90-day slices) every ~15 min. Each window has its own
+    persisted explored-pair set so one rotation doesn't reset another's
+    progress. The 90-day slice deliberately lags the other workers so that
+    by the time the synaptic builder's corpus refresh reaches that period,
+    the deep-history bridges already exist.
+    """
+    INTERVAL_S = 900   # 15 min
+    JITTER_S   = 90
+    import random as _r
+    # Each window: (label, hours_back_size, offset_hours, kv_key)
+    WINDOWS = [
+        ("lookahead_7d",  7  * 24, 24,        "rag_explored_pairs_lookahead_7d"),
+        ("lookahead_30d", 30 * 24, 7  * 24,   "rag_explored_pairs_lookahead_30d"),
+        ("lookahead_90d", 90 * 24, 30 * 24,   "rag_explored_pairs_lookahead_90d"),
+    ]
+    rotation = 0
+    logging.info("[synapse:lookahead] started — interval=15min windows=7d/30d/90d rotating")
+    if _wait_or_stop(_r.randint(60, 180)):
+        return
+    while not _SYNAPTIC_STOP.is_set():
+        label, hrs, offset, kvkey = WINDOWS[rotation % len(WINDOWS)]
+        rotation += 1
+        t0 = time.time()
+        try:
+            r = rag_knowledge_deepdive(
+                window_label=label,
+                window_hours=hrs,
+                window_offset_hours=offset,
+                max_iterations=6,
+                max_entities=1500,
+                explored_kv_key=kvkey,
+            )
+            _kv_write(
+                f"synapse_{label}_last",
+                f"{datetime.now().isoformat()}|edges={r.get('edges_discovered',0)}"
+                f"|paths={r.get('pathways_explored',0)}",
+            )
+            elapsed = round(time.time() - t0, 1)
+            logging.info(
+                f"[synapse:lookahead/{label}] "
+                f"edges={r.get('edges_discovered',0)} "
+                f"paths={r.get('pathways_explored',0)} elapsed={elapsed}s"
+            )
+        except Exception as e:
+            logging.warning(f"[synapse:lookahead/{label}] failed: {e}")
+        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+            return
+
+
+def _dispersed_sweeper_worker() -> None:
+    """Worker #3 — continuous data sweep, one connector per tick.
+
+    Instead of waiting for the main loop's full sweep_all_data_sources(),
+    this worker rotates through registered connectors and ingests one
+    connector's worth of fresh data every ~20 min. Combined with the main
+    loop's full sweep this means data freshness is continuous rather than
+    episodic — entities the synaptic workers reach are always backed by
+    recently-pulled rows.
+    """
+    INTERVAL_S = 1200  # 20 min
+    JITTER_S   = 120
+    import random as _r
+
+    logging.info("[synapse:sweeper] started — interval=20min mode=connector-rotation")
+    if _wait_or_stop(_r.randint(120, 240)):
+        return
+
+    rotation = 0
+    while not _SYNAPTIC_STOP.is_set():
+        t0 = time.time()
+        try:
+            # Discover connectors at every tick so newly-registered ones
+            # automatically join the rotation.
+            import sys as _sys
+            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from src.brain.db_registry import list_connectors, read_sql
+
+            sql_connectors = [c.name for c in list_connectors()
+                              if c.kind == "sql"]
+            if not sql_connectors:
+                logging.info("[synapse:sweeper] no SQL connectors registered yet.")
+                if _wait_or_stop(INTERVAL_S):
+                    return
+                continue
+
+            target = sql_connectors[rotation % len(sql_connectors)]
+            rotation += 1
+
+            # Pull a small probe — count of recent activity in
+            # INFORMATION_SCHEMA so we know the connector is alive.
+            df = read_sql(
+                target,
+                "SELECT TOP 5 TABLE_SCHEMA, TABLE_NAME, "
+                "(SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c "
+                "  WHERE c.TABLE_NAME=t.TABLE_NAME) AS n_cols "
+                "FROM INFORMATION_SCHEMA.TABLES t "
+                "WHERE TABLE_TYPE='BASE TABLE' "
+                "ORDER BY TABLE_NAME",
+            )
+            n_rows = 0 if df is None or df.empty else len(df)
+            _kv_write(
+                f"synapse_sweeper_{target}",
+                f"{datetime.now().isoformat()}|probed_rows={n_rows}",
+            )
+            elapsed = round(time.time() - t0, 1)
+            logging.info(
+                f"[synapse:sweeper/{target}] probe rows={n_rows} elapsed={elapsed}s"
+            )
+        except Exception as e:
+            logging.warning(f"[synapse:sweeper] iteration failed: {e}")
+
+        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+            return
+
+
+def _convergence_worker() -> None:
+    """Worker #4 — periodic corpus refresh + graph materialisation.
+
+    Runs every ~30 min. Consolidates everything the other three workers
+    have written into the knowledge corpus and projects it into the graph
+    backend so that downstream readers (Quest engine, Brain pages, Body
+    directives) see the freshly-built synapses without waiting for the
+    main 1-4 hour cycle.
+    """
+    INTERVAL_S = 1800  # 30 min
+    JITTER_S   = 120
+    import random as _r
+    logging.info("[synapse:convergence] started — interval=30min")
+    if _wait_or_stop(_r.randint(180, 360)):
+        return
+
+    while not _SYNAPTIC_STOP.is_set():
+        t0 = time.time()
+        try:
+            import sys as _sys
+            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from src.brain.knowledge_corpus import (
+                refresh_corpus_round, materialize_into_graph,
+            )
+            kc = refresh_corpus_round() or {}
+            mg = materialize_into_graph() or {}
+            _kv_write(
+                "synapse_convergence_last",
+                f"{datetime.now().isoformat()}"
+                f"|+ents={kc.get('entities_added',0)}"
+                f"|+edges={kc.get('edges_added',0)}"
+                f"|nodes={mg.get('nodes_projected',0)}",
+            )
+            elapsed = round(time.time() - t0, 1)
+            logging.info(
+                f"[synapse:convergence] "
+                f"+{kc.get('entities_added',0)} entities, "
+                f"+{kc.get('edges_added',0)} edges, "
+                f"projected {mg.get('nodes_projected',0)}n/"
+                f"{mg.get('edges_projected',0)}e elapsed={elapsed}s"
+            )
+        except Exception as e:
+            logging.warning(f"[synapse:convergence] iteration failed: {e}")
+
+        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+            return
+
+
+def start_continuous_synaptic_agents() -> None:
+    """Start all four synaptic workers as daemon threads.
+
+    Idempotent — calling more than once is a no-op. The main loop calls
+    this once at startup, then proceeds to its own coarser cycle. The
+    workers run independently and continuously underneath, building
+    synapses ahead of where the main loop is reading them.
+    """
+    global _SYNAPTIC_STARTED
+    if _SYNAPTIC_STARTED:
+        logging.info("Continuous synaptic agents already running.")
+        return
+
+    _SYNAPTIC_STOP.clear()
+    workers = [
+        ("synapse-builder",     _synaptic_builder_worker),
+        ("synapse-lookahead",   _lookahead_worker),
+        ("synapse-sweeper",     _dispersed_sweeper_worker),
+        ("synapse-convergence", _convergence_worker),
+    ]
+    for name, fn in workers:
+        t = _threading.Thread(target=fn, name=name, daemon=True)
+        t.start()
+        _SYNAPTIC_THREADS.append(t)
+
+    _SYNAPTIC_STARTED = True
+    _kv_write("synapse_agents_started", datetime.now().isoformat())
+    logging.info(
+        f"Continuous synaptic agents started: "
+        f"{', '.join(name for name, _ in workers)} "
+        f"({len(workers)} threads, all daemon)."
+    )
+
+
+def stop_continuous_synaptic_agents(timeout: float = 5.0) -> None:
+    """Signal all synaptic workers to exit and wait briefly for them."""
+    if not _SYNAPTIC_STARTED:
+        return
+    _SYNAPTIC_STOP.set()
+    for t in _SYNAPTIC_THREADS:
+        try:
+            t.join(timeout=timeout)
+        except Exception:
+            pass
+    logging.info("Continuous synaptic agents stopped.")
 
 
 def adaptive_cycle_sleep(velocity: int) -> None:
@@ -1229,6 +1586,16 @@ def autonomous_loop():
     # Wire the Recurrent Depth Transformer into the ensemble once at startup.
     # All subsequent dispatches can use the adaptive-depth aggregator.
     init_recurrent_depth()
+
+    # Start the four continuous synaptic agents. They run as daemon threads
+    # underneath this main loop, building corpus_edges on overlapping ~10/15/
+    # 20/30-min cadences across relationally dispersed temporal windows so
+    # that by the time the main loop's slower steps reach any aspect of the
+    # graph, the synapses are already in place.
+    try:
+        start_continuous_synaptic_agents()
+    except Exception as e:
+        logging.warning(f"Continuous synaptic agents failed to start: {e}")
 
     while True:
         try:

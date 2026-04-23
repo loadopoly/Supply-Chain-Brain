@@ -2,20 +2,33 @@ from __future__ import annotations
 
 
 
-__version__ = "0.14.3"
+__version__ = "0.14.5"
 
 __release__ = (
 
-    "SOTA RAG Deepdive + Dynamic Connector Discovery + 100/100 Tests. "
-    "autonomous_agent: (1) rag_knowledge_deepdive() — iterative structural-hole "
-    "bridging loop (TF-IDF cosine, data-grounded co-occurrence, 8-iteration "
-    "convergence, brain_kv explored-pair persistence); wired as Step 3e.5. "
-    "(2) sweep_all_data_sources() Section 4 — auto-discovers every SQL connector "
-    "added to db_registry after boot (INFORMATION_SCHEMA table scan, 6h cooldown). "
-    "(3) sweep_all_data_sources() wired as Step 3a. "
-    "bench/bench_quest_engine.py: extracted run_benchmarks() callable API "
-    "(rows, repeats, results_dir, emit_stdout) from main() so test_bench_quest_engine "
-    "can invoke it programmatically. All 100 pytest tests pass (16.2 s)."
+    "OTD Recursive Hardening & Training Loop Fix. Fixed tuple unpacking for OTD loaders, "
+    "restored offline fallback clustering for bundled files using OTDConfig, enforced "
+    "get_global_window filter on trend charts, rewrote ownership tab to dynamic Daily "
+    "Review worklists natively iterating over Excel worklist sheets. Repaired zero-samples "
+    "bug in seed_otd_direct to seed otd_classify training truth out of bundled Excel "
+    "sheet fallback so training cycle is unblocked offline."
+
+) Four daemon worker threads now run continuously underneath the "
+    "main 1-4hr cycle: _synaptic_builder_worker (10min, 24h window), "
+    "_lookahead_worker (15min, rotating 7d/30d/90d dispersed historical "
+    "windows), _dispersed_sweeper_worker (20min, one-connector-per-tick "
+    "rotation), _convergence_worker (30min, refresh_corpus_round + "
+    "materialize_into_graph). (2) rag_knowledge_deepdive() now accepts "
+    "window_label, window_hours, window_offset_hours, max_iterations, "
+    "max_entities, explored_kv_key parameters so each worker explores its "
+    "own temporal slice with its own persisted explored-pair set. "
+    "(3) start_continuous_synaptic_agents() wired into autonomous_loop() "
+    "startup; threading.Event-based cooperative shutdown via "
+    "stop_continuous_synaptic_agents(). All workers use SQLite "
+    "check_same_thread=False, jittered cadences (±60-120s) to desynchronise, "
+    "and write per-worker last-run heartbeats to brain_kv so operators can "
+    "observe synaptic activity. Result: synapses are pre-built ahead of "
+    "the slower main cycle's reads instead of episodically."
 
 )
 
@@ -66,6 +79,9 @@ PHASES = {
     "0.14.2": "Test + Benchmark Infrastructure, Hardening, Docs. 88-test pytest suite, bench_quest_engine.py, orchestrator hardening, intent_parser 2k truncation, mission_runner empty-query guard, README Quest Engine section.",
 
     "0.14.3": "SOTA RAG Deepdive + Dynamic Connector Discovery + 100/100 Tests. rag_knowledge_deepdive() Step 3e.5: structural-hole bridging, TF-IDF cosine, data-grounded co-occurrence, 8-iter convergence. sweep_all_data_sources() Step 3a wired + Section 4 dynamic SQL connector auto-discovery. bench_quest_engine.run_benchmarks() callable API. 100/100 pytest.",
+    "0.14.4": "Continuous Multi-Agent Synaptic Extension. Four daemon worker threads (synaptic-builder/10min/24h, lookahead/15min/rotating-7d-30d-90d, dispersed-sweeper/20min/connector-rotation, convergence/30min) run continuously underneath the main cycle, building synapses on relationally dispersed temporal windows so they're ready before the next agent traverses that aspect. rag_knowledge_deepdive() parameterised with window_label/window_hours/window_offset_hours/explored_kv_key for per-worker temporal targeting.",
+
+    "0.14.5": "OTD Recursive Hardening & Training Loop Fix. Daily Review worklists, offline fallback clustering, strict TF trending windows, and seed_otd_direct offline ground-truth seeding.",
 
 }
 
