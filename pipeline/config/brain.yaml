@@ -5,23 +5,35 @@
 # Schema hints — patterns used by brain.schema_introspect to find columns
 # ---------------------------------------------------------------------------
 column_patterns:
-  part_id:        ['part_key', 'part_number', 'item_number', 'item_id']
-  part_desc:      ['part_description', 'description', 'item_desc']
-  supplier_id:    ['supplier_key', 'supplier_number', 'vendor_id', 'vendor_number']
-  supplier_name:  ['supplier_name', 'vendor_name', 'pre_standardization_supplier_name']
-  site:           ['site', 'plant', 'facility', 'org_id', 'inv_org', 'business_unit_key']
-  on_hand_qty:    ['quantity_on_hand', 'on_hand_qty', 'on_hand', 'qoh']
+  part_id:        ['part_key', 'part_number', 'item_number', 'item_id', 'PartNum', 'item']
+  part_desc:      ['part_description', 'description', 'item_desc', 'PartDescription']
+  supplier_id:    ['supplier_key', 'supplier_number', 'vendor_id', 'vendor_number', 'VendorNum', 'vendor_num']
+  supplier_name:  ['supplier_name', 'vendor_name', 'pre_standardization_supplier_name', 'Name']
+  site:           ['site', 'plant', 'facility', 'org_id', 'inv_org', 'business_unit_key', 'Plant', 'whse']
+  on_hand_qty:    ['quantity_on_hand', 'on_hand_qty', 'on_hand', 'qoh', 'OnhandQty', 'qty_on_hand']
   open_order_qty: ['quantity_not_received', 'demand_order_part_quantity', 'open_qty',
-                   'open_order_qty', 'on_order_qty']
+                   'open_order_qty', 'on_order_qty', 'OpenRelQty']
   demand_qty:     ['shipped_quantity', 'sales_order_quantity', 'demand_order_part_quantity',
-                   'demand_qty', 'usage_qty', 'consumption', 'shipped_qty', 'sales_qty']
+                   'demand_qty', 'usage_qty', 'consumption', 'shipped_qty', 'sales_qty',
+                   'ShipQty', 'qty_shipped']
   lead_time_days: ['lead_time', 'lead_time_days', 'planning_lead_time', 'po_lead_time',
-                   'order_lead_time']
+                   'order_lead_time', 'LeadTime']
   unit_cost:      ['unit_cost', 'standard_cost', 'avg_cost', 'item_cost', 'unit_cost_local',
-                   'unit_cost_usd', 'unit_price']
-  promise_date:   ['due_date_key', 'need_by_date', 'promise_date', 'requested_date']
-  receipt_date:   ['receipt_date_key', 'receipt_date', 'received_date', 'actual_receipt_date']
-  order_date:     ['order_date_key', 'order_date', 'po_date', 'creation_date']
+                   'unit_cost_usd', 'unit_price', 'UnitCost', 'OurUnitCost']
+  promise_date:   ['due_date_key', 'need_by_date', 'promise_date', 'requested_date',
+                   'NeedByDate', 'due_date']
+  receipt_date:   ['receipt_date_key', 'receipt_date', 'received_date', 'actual_receipt_date',
+                   'ReceivedDate', 'rcpt_date']
+  order_date:     ['order_date_key', 'order_date', 'po_date', 'creation_date', 'OrderDate']
+  frozen_qty:     ['frozen_qty', 'TotFrozenQOH', 'FrozenOnHand', 'qty_on_hand_before']
+  count_qty:      ['count_qty', 'TotCountQOH', 'CountedQty', 'qty_counted']
+  discrepancy_reason: ['discrepancy_reason', 'CDRCode', 'DiscrepancyReasonCode', 'reason_code']
+  abc_class:      ['abc_class', 'ABCCode', 'ABC_Class', 'item_abc_code', 'ClassID', 'abc_code']
+  cycle_date:     ['cycle_date_key', 'CycleDate', 'CountDueDate', 'due_date']
+  complete_date:  ['count_date_key', 'CompleteDate', 'CountCompletedDate', 'post_date']
+  warehouse:      ['warehouse_code', 'WareHouseCode', 'SubInventoryCode', 'whse']
+  safety_stock:   ['safety_stock', 'SafetyQty', 'reorder_point']
+  make_or_buy:    ['make_or_buy', 'fabricated_purchased', 'TypeCode', 'make_buy', 'Part Pur/Fab']
 
 # ---------------------------------------------------------------------------
 # Tables of record — first match wins; pages will fall back to introspection
@@ -37,6 +49,70 @@ tables:
   sales_order_lines:   'edap_dw_replica.fact_sales_order_line'
   ap_invoice_lines:    'edap_dw_replica.fact_ap_invoice_lines'
   part_cost:           'stg_replica.fact_part_cost'
+
+  # ── Epicor 9 site staging tables (loaded from epicor_<site_key> connector) ──
+  epicor_parts_jerome_ave:       'stg_replica.epicor_dim_part'
+  epicor_parts_manufacturers_rd: 'stg_replica.epicor_dim_part'
+  epicor_parts_wilson_rd:        'stg_replica.epicor_dim_part'
+  epicor_on_hand_jerome_ave:     'stg_replica.epicor_fact_on_hand'
+  epicor_on_hand_manufacturers_rd: 'stg_replica.epicor_fact_on_hand'
+  epicor_on_hand_wilson_rd:      'stg_replica.epicor_fact_on_hand'
+  epicor_open_po_jerome_ave:     'stg_replica.epicor_fact_open_po'
+  epicor_open_po_manufacturers_rd: 'stg_replica.epicor_fact_open_po'
+  epicor_open_po_wilson_rd:      'stg_replica.epicor_fact_open_po'
+  epicor_po_receipts_jerome_ave: 'stg_replica.epicor_fact_po_receipt'
+  epicor_po_receipts_manufacturers_rd: 'stg_replica.epicor_fact_po_receipt'
+  epicor_po_receipts_wilson_rd:  'stg_replica.epicor_fact_po_receipt'
+  epicor_sales_jerome_ave:       'stg_replica.epicor_fact_sales_order_line'
+  epicor_sales_manufacturers_rd: 'stg_replica.epicor_fact_sales_order_line'
+  epicor_sales_wilson_rd:        'stg_replica.epicor_fact_sales_order_line'
+  epicor_suppliers_jerome_ave:   'stg_replica.epicor_dim_supplier'
+  epicor_cc_jerome_ave:          'stg_replica.epicor_cc_jerome_ave'
+  epicor_cc_manufacturers_rd:    'stg_replica.epicor_cc_manufacturers_rd'
+  epicor_cc_wilson_rd:           'stg_replica.epicor_cc_wilson_rd'
+
+  # ── SyteLine site staging tables (loaded from syteline_<site_key> connector) ─
+  # Source DB: PFI_SLMiscApps_DB  schema: cycle_count  table: item_count
+  syteline_parts_parsons:        'stg_replica.syteline_dim_part'
+  syteline_on_hand_parsons:      'stg_replica.syteline_fact_on_hand'
+  syteline_sales_parsons:        'stg_replica.syteline_fact_sales_order_line'
+  syteline_po_receipts_parsons:  'stg_replica.syteline_fact_po_receipt'
+  syteline_cc_parsons:           'stg_replica.syteline_cc_parsons'
+
+  # ── Microsoft Dynamics AX — Eugene Airport Road ──
+  # Source: AX 2012 MicrosoftDynamicsAX.dbo.InventJournalTrans (IIJ* journals)
+  # xlsx fallback: CycleConsolidated.xlsx tabs MONTH_AX / Assigned Codes EUG_AX
+  ax_item_abc_airport_rd:        'stg_replica.ax_dim_item'
+  ax_cc_journal_airport_rd:      'stg_replica.ax_cc_airport_rd'
+  ax_on_hand_airport_rd:         'stg_replica.ax_fact_on_hand'
+
+# ---------------------------------------------------------------------------
+# xlsx_sources — OneDrive file-backed pipeline (live, no SQL needed)
+# Each alias is passed to src.extract.xlsx_extractor.fetch(alias).
+# The cycle_consolidated file is updated by the ERP owners and synced via OneDrive.
+# ---------------------------------------------------------------------------
+xlsx_sources:
+  # Primary compiled export — refreshed by ERP owners, synced via OneDrive
+  cycle_consolidated: 'C:\Users\agard\OneDrive - astecindustries.com\Data Review\CycleConsolidated.xlsx'
+
+  # Sheet alias → [file_key, sheet_name] — used by fetch_xlsx_source()
+  aliases:
+    epicor_abcsql:           [cycle_consolidated, ABCSQL_Epicor]
+    epicor_ccmerger:         [cycle_consolidated, CCMerger_Epicor]
+    epicor_cycle_analysis:   [cycle_consolidated, CycleCount_Epicor]
+    epicor_count_data:       [cycle_consolidated, Data_Epicor]
+    oracle_on_hand:          [cycle_consolidated, AstecOnHandDetails_Oracle]
+    oracle_cc_metrics:       [cycle_consolidated, AstecCycleCountMetrics_Oracle]
+    oracle_cycle_analysis:   [cycle_consolidated, CycleCount_Oracle]
+    oracle_count_data:       [cycle_consolidated, Data_Oracle]
+    syteline_item_abc:       [cycle_consolidated, item_ABC_Code_Syteline]
+    syteline_item_count:     [cycle_consolidated, Item_Count_Syteline]
+    syteline_cycle_analysis: [cycle_consolidated, CycleCount_Syteline]
+    syteline_count_data:     [cycle_consolidated, Data_Syteline]
+    ax_item_abc:             [cycle_consolidated, 'Assigned Codes EUG_AX']
+    ax_cc_journal:           [cycle_consolidated, MONTH_AX]
+    ax_cycle_analysis:       [cycle_consolidated, CycleCount_AX]
+    ax_count_data:           [cycle_consolidated, Data_AX]
 
 # ---------------------------------------------------------------------------
 # EOQ defaults (per-part overrides land in findings_index over time)
@@ -323,7 +399,25 @@ llms:
     parallel_workers:  7              # one slot per seed model; scales with K
     fanout_k:          5              # how many top-ranked models run in parallel
     request_timeout_s: 45
-    aggregator_default: weighted_softmax_vote
+    aggregator_default: weighted_softmax_vote   # flip to recurrent_depth_vote to enable RDT globally
+    aggregators:
+      # ---------------------------------------------------------------------
+      # Recurrent Depth Transformer aggregator (Geiping et al. 2025 idea
+      # adapted to the discrete vote-distribution simplex). Runs a weight-
+      # tied recurrent block over the K contributors with adaptive halting.
+      # Flip aggregator_default above to "recurrent_depth_vote" to use
+      # globally; otherwise tasks can opt in via task_profiles.<task>.aggregator.
+      # ---------------------------------------------------------------------
+      recurrent_depth_vote:
+        enabled:           true
+        max_depth:         8        # hard cap on recurrent iterations
+        min_depth:         1        # always run at least this many steps
+        kl_epsilon:        0.001    # halt when KL(p_t+1 || p_t) drops below this
+        temp_attention:    0.5      # attention softmax temperature over contributors
+        temp_state_start:  1.0      # state-sharpening temp at depth 1
+        temp_state_end:    0.35     # state-sharpening temp at max_depth (annealed)
+        residual_alpha:    0.6      # blend factor: p_{t+1} = (1-a)*p_t + a*q
+        agreement_lambda:  1.5      # boost contributors that agree with current belief
     learning:
       lr_weight:       0.05           # gradient step on per-model weight
       lr_bias:         0.02           # gradient step on per-model bias
@@ -414,8 +508,25 @@ llms:
         value_column: category
       otd_classify:
         table:        otd_ownership
-        key_column:   po_number
+        key_column:   row_key
         value_column: owner
+      # Epicor cycle-count discrepancy reason classification
+      # Ground truth: reason_code in stg_replica.epicor_cc_* staging tables.
+      # Only fires after epicor CC data has been staged (post-extract round).
+      cc_reason_classify:
+        table:        epicor_cc_jerome_ave
+        key_column:   part_number
+        value_column: discrepancy_reason
+      # SyteLine cycle-count — Parsons site (PFI_App.dbo.cc_trn per spec §3.2)
+      cc_reason_classify_syteline:
+        table:        syteline_cc_parsons
+        key_column:   part_number
+        value_column: discrepancy_reason
+      # ABC class inference — validate LLM ABC assignments against staged item master
+      abc_classify:
+        table:        epicor_dim_part
+        key_column:   part_number
+        value_column: abc_class
 
   # -------------------------------------------------------------------------
   # Network expansion learner: the Brain learns from every connection it
@@ -440,3 +551,42 @@ llms:
     compute_promotion_min_success: 0.70       # EMA success threshold for promotion
     active_probe:                  false      # opt-in for active CIDR scanning
     seeds: []                                  # operator-supplied seeds (host or {host,protocol,port})
+
+  # -------------------------------------------------------------------------
+  # Knowledge corpus & recent-learnings log. Consolidates every signal the
+  # Brain produces (self-train rounds, ensemble dispatches, weight snapshots,
+  # network probes, peer promotions, NLP part categories, OTD ownership)
+  # into:
+  #   * `learning_log`  — append-only stream of "things the Brain just learned"
+  #   * `corpus_entity` — normalized catalog of Parts, Suppliers, Sites,
+  #                       Models, Peers, Protocols, Tasks, Categories,
+  #                       Owners, POs, Endpoints
+  #   * `corpus_edge`   — typed relationships (CLASSIFIED_AS, ANSWERS,
+  #                       WEIGHTED_FOR, USES, OWNS, ...) with EMA-smoothed
+  #                       weight & sample count
+  # Then `materialize_into_graph()` projects everything into the configured
+  # graph backend (NetworkX default, Neo4j or Cosmos Gremlin in prod) so
+  # every page that already speaks `get_graph_backend()` benefits.
+  # -------------------------------------------------------------------------
+  knowledge_corpus:
+    enabled:                       true
+    interval_s:                    900       # 15 min when run from background scheduler
+    min_seconds_between_rounds:    60.0
+    max_entities_to_project:       5000
+    max_edges_to_project:          20000
+
+  # -------------------------------------------------------------------------
+  # Brain → Body bridge. The User is the Body of the Brain — every signal
+  # the Brain produces (self-train rounds, ensemble validators, network
+  # observations, peer promotions, knowledge-corpus topology) is distilled
+  # into a prioritized, executable Directive aimed at a specific role
+  # (Buyer, Planner, Quality, IT, Ops). The User's feedback (ack /
+  # in_progress / done / rejected + free-text outcome) is recorded to
+  # `body_feedback` and is itself ingested by knowledge_corpus on the next
+  # round, closing the loop.
+  # -------------------------------------------------------------------------
+  brain_body:
+    enabled:                       true
+    interval_s:                    600       # 10 min when run from background scheduler
+    min_seconds_between_rounds:    30.0
+    max_directives_per_round:      25

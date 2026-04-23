@@ -97,13 +97,13 @@ def _render_schema_browser(connector: str, *, st_module) -> None:
                 "WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? "
                 "ORDER BY ORDINAL_POSITION",
                 [sch, tbl])
-            st.dataframe(cols, use_container_width=True, hide_index=True)
+            st.dataframe(cols, width='stretch', hide_index=True)
             sample = read_sql(
                 connector,
                 f"SELECT TOP 25 * FROM {_quote_ident(sch)}.{_quote_ident(tbl)}",
             )
             st.caption(f"Sample rows from `{sch}.{tbl}`")
-            st.dataframe(sample, use_container_width=True, hide_index=True)
+            st.dataframe(sample, width='stretch', hide_index=True)
         except Exception as exc:
             st.caption(f"Schema browser unavailable: {exc}")
 

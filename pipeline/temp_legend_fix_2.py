@@ -10,8 +10,8 @@ def update_legends():
             # Simple global substitution using regex to catch trailing parens across newlines
             new_content = content.replace("theme=None", "theme=None")
             
-            # Replace: `use_container_width=True` followed by optional spaces, then `)`
-            new_content = re.sub(r'use_container_width=True\s*,?\s*\)', r'use_container_width=True)', new_content)
+            # Replace: `width='stretch'` followed by optional spaces, then `)`
+            new_content = re.sub(r'width='stretch'\s*,?\s*\)', r'width='stretch')', new_content)
             
             # Catch charts where it ends with on_select="rerun"
             new_content = re.sub(r'on_select="rerun"\s*,?\s*\)', r'on_select="rerun")', new_content)

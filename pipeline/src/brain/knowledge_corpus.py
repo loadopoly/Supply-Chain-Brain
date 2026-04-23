@@ -241,11 +241,19 @@ def _ingest_self_train(cn, stats: _Stats, since_id: int) -> int:
         last = max(last, int(r["id"]))
         task = r["task"] or "unknown"
         _upsert_entity(cn, stats, entity_id=task, entity_type="Task", label=task)
+        _match_rate = (
+            float(r["matched"]) / max(1, int(r["samples"]))
+            if r["samples"] else 0.0
+        )
         _log_learning(
             cn, stats,
             kind="self_train",
             title=f"Self-train round on '{task}': matched {r['matched']}/{r['samples']}",
-            signal=float(r["avg_validator"] or 0.0),
+            signal=(
+                float(r["avg_validator"])
+                if r["avg_validator"] is not None
+                else _match_rate
+            ),
             detail={
                 "task": task,
                 "samples": r["samples"],
@@ -382,19 +390,20 @@ def _ingest_part_category(cn, stats: _Stats) -> int:
 def _ingest_otd_ownership(cn, stats: _Stats) -> int:
     try:
         rows = cn.execute(
-            "SELECT po_number, owner FROM otd_ownership LIMIT 5000"
+            "SELECT row_key, owner FROM otd_ownership"
+            " WHERE row_key IS NOT NULL AND owner IS NOT NULL LIMIT 5000"
         ).fetchall()
     except sqlite3.OperationalError:
         return 0
     n = 0
     for r in rows:
-        po, owner = (r["po_number"] or "").strip(), (r["owner"] or "").strip()
-        if not po or not owner:
+        row_key, owner = (r["row_key"] or "").strip(), (r["owner"] or "").strip()
+        if not row_key or not owner:
             continue
-        _upsert_entity(cn, stats, entity_id=po, entity_type="PO", label=po)
+        _upsert_entity(cn, stats, entity_id=row_key, entity_type="PO", label=row_key)
         _upsert_entity(cn, stats, entity_id=owner, entity_type="Owner", label=owner)
         _upsert_edge(cn, stats, src_id=owner, src_type="Owner",
-                     dst_id=po, dst_type="PO", rel="OWNS", weight=1.0)
+                     dst_id=row_key, dst_type="PO", rel="OWNS", weight=1.0)
         n += 1
     return n
 
@@ -638,6 +647,15 @@ def refresh_corpus_round() -> dict:
 
     stats = _Stats()
     notes: list[str] = []
+
+    # Ensure the network learner schema exists so _ingest_network /
+    # _ingest_promotions can find their tables even if the learner hasn't
+    # run yet (e.g. tests that skip the full autonomous_agent cycle).
+    try:
+        from .network_learner import init_schema as _nl_init
+        _nl_init()
+    except Exception as _e:
+        notes.append(f"network_schema_init: {_e}")
 
     with _conn() as cn:
         # Incremental cursors

@@ -1,0 +1,129 @@
+{
+  "timestamp": "2026-04-22T21:07:37.561070",
+  "base_url": "http://localhost:8501",
+  "total": 20,
+  "passed": 20,
+  "failed": 0,
+  "pages": [
+    {
+      "label": "Query Console",
+      "url": "http://localhost:8501/Query_Console",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Schema Discovery",
+      "url": "http://localhost:8501/Schema_Discovery",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Overview & Graph",
+      "url": "http://localhost:8501/Supply_Chain_Brain",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Supply Chain Pipeline",
+      "url": "http://localhost:8501/b_Supply_Chain_Pipeline",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "EOQ Deviation",
+      "url": "http://localhost:8501/EOQ_Deviation",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "OTD Recursive",
+      "url": "http://localhost:8501/OTD_Recursive",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Procurement 360",
+      "url": "http://localhost:8501/Procurement_360",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Data Quality",
+      "url": "http://localhost:8501/Data_Quality",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Connectors",
+      "url": "http://localhost:8501/Connectors",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Lead-Time Survival",
+      "url": "http://localhost:8501/Lead_Time_Survival",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Bullwhip Effect",
+      "url": "http://localhost:8501/Bullwhip",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Multi-Echelon",
+      "url": "http://localhost:8501/Multi_Echelon",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Sustainability",
+      "url": "http://localhost:8501/Sustainability",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Freight Portfolio",
+      "url": "http://localhost:8501/Freight_Portfolio",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "What-If Sandbox",
+      "url": "http://localhost:8501/What_If",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Decision Log",
+      "url": "http://localhost:8501/Decision_Log",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Benchmarks",
+      "url": "http://localhost:8501/Benchmarks",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Report Creator",
+      "url": "http://localhost:8501/Report_Creator",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "Cycle Count Accuracy",
+      "url": "http://localhost:8501/Cycle_Count_Accuracy",
+      "status": "PASS",
+      "errors": []
+    },
+    {
+      "label": "\ud83d\udd0d\n\nQuery Console",
+      "url": "http://localhost:8501/",
+      "status": "PASS",
+      "errors": []
+    }
+  ]
+}

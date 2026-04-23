@@ -4,6 +4,61 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.14.3 — SOTA RAG Deepdive + Dynamic Connector Discovery + 100/100 Tests (2026-04-22)
+
+### Added
+- **`autonomous_agent.rag_knowledge_deepdive()` (Step 3e.5)** — Iterative
+  retrieval-augmented reasoning loop over the Brain's knowledge corpus graph:
+  - *Structural-hole detection*: for every corpus entity with degree ≥ 2,
+    finds neighbor pairs sharing ≥ 2 common neighbors but no direct edge
+    (Burt structural-hole heuristic — highest-value missing pathways).
+  - *Semantic confirmation*: character-level TF-IDF n-gram (2–4-gram) cosine
+    similarity gate (`TfidfVectorizer`, `linear_kernel`) suppresses spurious
+    cross-domain inferences.
+  - *Data-grounded co-occurrence*: re-fetches a window of source rows from
+    the entity's `props_json["source"]` connector, measures actual field-level
+    co-occurrence to produce a data-grounded edge weight rather than relying
+    on label similarity alone.
+  - *Iterative deepening*: up to 8 convergence passes per autonomous cycle;
+    early stop when < 3 new edges are added in a pass.
+  - *Persistent explored-pair cache*: serialised in `brain_kv` so each 4-hour
+    cycle goes deeper rather than re-traversing already-evaluated entity pairs.
+  - Writes bidirectional `RAG_INFERRED` `corpus_edge` rows (EMA-smoothed
+    weight) + `learning_log` entries (kind=`rag_deepdive`) with full audit
+    trail. Discovered edge count contributes to `cycle_velocity × 2`.
+- **`sweep_all_data_sources()` Section 4 — Dynamic SQL connector discovery**:
+  Enumerates every connector registered in `db_registry._REGISTRY` beyond the
+  known set (`azure_sql`, `oracle_fusion`, Epicor/SyteLine/AX hardcoded
+  sites), so any connector added to `bootstrap_default_connectors()` or by
+  third-party code is automatically explored without modifying this file.
+  Per-connector 6-hour cooldown tracked in `brain_kv`.  For each new
+  connector: `INFORMATION_SCHEMA.TABLES` discovery (with `sys.objects`
+  fallback), 200-row sampling, column-hint heuristics, absorption into
+  `part_category` / `otd_ownership` / `corpus_entity`.
+- **`autonomous_loop()` Step 3a** — `sweep_all_data_sources()` wired into the
+  main cycle, between `analyze_and_improve()` and the LLM scout step, so all
+  downstream learning steps (self-train, NLP taxonomy, OTD seeding, corpus
+  refresh, RAG deepdive) operate on the freshest available ground truth.
+- **`bench/bench_quest_engine.run_benchmarks(rows, repeats, results_dir,
+  emit_stdout)`** — Extracted callable API from `main()` so
+  `test_bench_quest_engine.py` (and any future programmatic caller) can invoke
+  benchmarks without subprocess overhead.  `main()` now delegates to
+  `run_benchmarks()` using CLI-parsed args.
+
+### Fixed
+- **`test_bench_quest_engine.py` — `AttributeError: module has no attribute
+  'run_benchmarks'`** — the test called `bench_quest_engine.run_benchmarks()`
+  which did not exist; the logic lived only in `main()`. Fixed by extracting
+  `run_benchmarks()` as the primary callable.
+
+### Test Results
+- **100 / 100 pytest tests pass** in 16.2 s on Python 3.13.9
+  (`test_bench_quest_engine`, `test_deck`, `test_intent_parser`,
+  `test_mission_store`, `test_quest_engine`, `test_quests`,
+  `test_recurrent_depth`).
+
+---
+
 ## 0.14.2 — Test + Benchmark Infrastructure, Hardening, Docs (2026-04-22)
 
 ### Added

@@ -2,18 +2,20 @@ from __future__ import annotations
 
 
 
-__version__ = "0.14.2"
+__version__ = "0.14.3"
 
 __release__ = (
 
-    "Test + Benchmark Infrastructure, Hardening, Docs. "
-    "88-test pytest suite (tests/conftest.py + 5 test modules) covering "
-    "Quest taxonomy, intent_parser keyword fallback, mission_store CRUD, "
-    "orchestrator, viz_composer, schema_synthesizer, deck builders with "
-    "kaleido-absent fallback. bench_quest_engine.py benchmarks intent_parser / "
-    "mission_store / schema_synthesizer / viz_composer. Hardened: orchestrator "
-    "_CURRENT_MISSION in finally block; intent_parser 2 000-char truncation; "
-    "mission_runner launch() rejects empty query. README Quest Engine section added."
+    "SOTA RAG Deepdive + Dynamic Connector Discovery + 100/100 Tests. "
+    "autonomous_agent: (1) rag_knowledge_deepdive() — iterative structural-hole "
+    "bridging loop (TF-IDF cosine, data-grounded co-occurrence, 8-iteration "
+    "convergence, brain_kv explored-pair persistence); wired as Step 3e.5. "
+    "(2) sweep_all_data_sources() Section 4 — auto-discovers every SQL connector "
+    "added to db_registry after boot (INFORMATION_SCHEMA table scan, 6h cooldown). "
+    "(3) sweep_all_data_sources() wired as Step 3a. "
+    "bench/bench_quest_engine.py: extracted run_benchmarks() callable API "
+    "(rows, repeats, results_dir, emit_stdout) from main() so test_bench_quest_engine "
+    "can invoke it programmatically. All 100 pytest tests pass (16.2 s)."
 
 )
 
@@ -62,6 +64,8 @@ PHASES = {
     "0.14.1": "UI Stability & Full-Suite Playwright Benchmarks. Fixed duplicate URL collision, missing import, out-of-order import. Playwright smoke-test: 20/20 pages PASS.",
 
     "0.14.2": "Test + Benchmark Infrastructure, Hardening, Docs. 88-test pytest suite, bench_quest_engine.py, orchestrator hardening, intent_parser 2k truncation, mission_runner empty-query guard, README Quest Engine section.",
+
+    "0.14.3": "SOTA RAG Deepdive + Dynamic Connector Discovery + 100/100 Tests. rag_knowledge_deepdive() Step 3e.5: structural-hole bridging, TF-IDF cosine, data-grounded co-occurrence, 8-iter convergence. sweep_all_data_sources() Step 3a wired + Section 4 dynamic SQL connector auto-discovery. bench_quest_engine.run_benchmarks() callable API. 100/100 pytest.",
 
 }
 

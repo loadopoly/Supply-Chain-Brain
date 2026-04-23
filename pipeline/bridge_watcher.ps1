@@ -16,7 +16,7 @@ function Write-Log($msg) {
     "$stamp $msg" | Out-File -FilePath $LogFile -Append -Encoding utf8
 }
 
-function Apply-PortProxy($desktopIp) {
+function Set-PortProxy($desktopIp) {
     $ports = @(
         @{listen=33890; target=3389},   # RDP
         @{listen=14330; target=1433},   # SQL
@@ -30,7 +30,7 @@ function Apply-PortProxy($desktopIp) {
     netsh advfirewall firewall add rule name="AstecBridge" dir=in action=allow protocol=TCP localport=33890,14330,8000 | Out-Null
 }
 
-function Ensure-ComputeNode() {
+function Start-ComputeNode() {
     # Spawned on every domain workstation when a `compute_*.trigger` lands.
     # Reuses the same OneDrive-synced piggyback fabric — no new transport.
     $marker = "$StateDir\compute_node.pid"
@@ -45,11 +45,11 @@ function Ensure-ComputeNode() {
     $pipeline = "$env:USERPROFILE\OneDrive - astecindustries.com\VS Code\pipeline"
     $py = (Get-Command python -ErrorAction SilentlyContinue).Source
     if (-not $py) { Write-Log "compute_node: python not on PATH"; return }
-    $args = @(
+    $procArgs = @(
         "-c",
         "import sys; sys.path.insert(0, r'$pipeline'); from src.brain.compute_grid import serve_compute_node; serve_compute_node()"
     )
-    $proc = Start-Process -FilePath $py -ArgumentList $args `
+    $proc = Start-Process -FilePath $py -ArgumentList $procArgs `
         -WindowStyle Hidden -PassThru -WorkingDirectory $pipeline
     $proc.Id | Out-File $marker -Encoding ascii -Force
     Write-Log "compute_node spawned (pid $($proc.Id)) on port 8000"
@@ -79,14 +79,14 @@ while ($true) {
                 # and publish a fresh capacity heartbeat. The trigger payload
                 # is JSON; we don't need to parse it for the spawn step.
                 Write-Log "Compute trigger received -> ensuring compute_node"
-                Ensure-ComputeNode
+                Start-ComputeNode
                 Remove-Item $t.FullName -Force
                 continue
             }
             $desktopIp = (Get-Content $t.FullName -Raw).Trim()
             if (-not $desktopIp) { $desktopIp = "172.16.4.76" }
             Write-Log "Trigger received -> applying portproxy to $desktopIp"
-            Apply-PortProxy $desktopIp
+            Set-PortProxy $desktopIp
             $ip = Publish-WifiIp
             Write-Log "Bridge active. Wi-Fi IP: $ip"
             Remove-Item $t.FullName -Force

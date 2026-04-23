@@ -1,0 +1,11 @@
+{
+  "ts": "2026-04-22T19:43:01.354027Z",
+  "bridge_ip": null,
+  "hosts": {
+    "desktop": true,
+    "crp-fs03": true,
+    "desktop-sql": false,
+    "brain-api": false,
+    "laptop": true
+  }
+}

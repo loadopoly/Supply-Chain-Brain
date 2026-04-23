@@ -81,3 +81,61 @@ def query_df(connector: str, sql: str, params: list | None = None,
              timeout_s: int = 120) -> pd.DataFrame:
     df = read_sql(connector, sql, params, timeout_s=timeout_s)
     return standard_clean(df)
+
+
+def fetch_xlsx_source(alias: str) -> pd.DataFrame:
+    """
+    Fetch a named dataset from the OneDrive Excel pipeline.
+
+    This is the live, zero-SQL data path for the Brain when direct ERP
+    database connections are not yet configured.  Data comes from
+    ``CycleConsolidated.xlsx`` (and secondary OneDrive files) via
+    :mod:`src.extract.xlsx_extractor`.
+
+    Results are cached in Streamlit session_state for ``_SESSION_CACHE_TTL``
+    seconds (same TTL as SQL paths) so the file is only opened once per page
+    refresh cycle.
+
+    Parameters
+    ----------
+    alias : str
+        Logical sheet name registered in ``brain.yaml > xlsx_sources > aliases``
+        and in :data:`src.extract.xlsx_extractor._EXTRACTOR_MAP`.
+        Examples: ``"epicor_ccmerger"``, ``"oracle_cc_metrics"``,
+        ``"syteline_item_abc"``, ``"ax_cc_journal"``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Canonical DataFrame (empty with ``_error`` attr on failure).
+    """
+    from src.extract.xlsx_extractor import fetch as _xlsx_fetch  # lazy import
+
+    cache_key = f"_da_xlsx_{alias}"
+    cached = _session_get(cache_key)
+    if cached is not None:
+        return cached
+
+    df = standard_clean(_xlsx_fetch(alias))
+    _session_set(cache_key, df)
+    return df
+
+
+def fetch_xlsx_all_cc() -> pd.DataFrame:
+    """
+    Return a combined DataFrame of all ERP cycle-count data from the xlsx pipeline.
+
+    Merges Epicor, Oracle, SyteLine and AX count records into one table with
+    canonical columns + ``erp`` and ``site`` discriminators.  Useful for the
+    cross-ERP variance, bullwhip, and multi-echelon pages.
+    """
+    from src.extract.xlsx_extractor import fetch_all_cc_data as _all
+
+    cache_key = "_da_xlsx_all_cc"
+    cached = _session_get(cache_key)
+    if cached is not None:
+        return cached
+
+    df = standard_clean(_all())
+    _session_set(cache_key, df)
+    return df

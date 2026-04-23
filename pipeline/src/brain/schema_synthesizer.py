@@ -13,6 +13,7 @@ This module never mutates brain.yaml or discovered_schema.yaml.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
+from functools import cache
 from pathlib import Path
 from typing import Any
 import yaml
@@ -74,7 +75,9 @@ class EntitySchema:
 # ---------------------------------------------------------------------------
 # Internals
 # ---------------------------------------------------------------------------
+@cache
 def _load_discovered() -> dict[str, Any]:
+    """Cached: read once per process lifetime."""
     if not _DISCOVERED.exists():
         return {}
     try:
@@ -82,6 +85,12 @@ def _load_discovered() -> dict[str, Any]:
             return yaml.safe_load(f) or {}
     except Exception:
         return {}
+
+
+@cache
+def _load_config_cached() -> dict[str, Any]:
+    """Cached wrapper around load_config() — avoids re-reading brain.yaml."""
+    return load_config()
 
 
 # Which logical tables matter for which entity kind. Picked from brain.yaml
@@ -99,20 +108,41 @@ _TABLES_BY_KIND: dict[str, list[str]] = {
 }
 
 
-def _logical_for_column(col_name: str, patterns: dict[str, list[str]]) -> str | None:
-    """Reverse-lookup brain.yaml column_patterns to label a physical column."""
-    name = (col_name or "").lower()
+def _build_pattern_index(patterns: dict[str, list[str]]) -> dict[str, str]:
+    """Flatten {logical: [hints]} into {hint_lower: logical} for O(1) lookup."""
+    index: dict[str, str] = {}
     for logical, hints in (patterns or {}).items():
         for h in hints or []:
-            if h.lower() in name:
-                return logical
+            index[h.lower()] = logical
+    return index
+
+
+def _logical_for_column(col_name: str, pattern_index: dict[str, str]) -> str | None:
+    """Reverse-lookup using a pre-built hint index."""
+    name = (col_name or "").lower()
+    for hint, logical in pattern_index.items():
+        if hint in name:
+            return logical
     return None
 
 
-def _columns_for(qualified: str, discovered: dict, patterns: dict) -> list[ColumnRef]:
-    """Look up columns for `connector.schema.table` from discovered_schema."""
+# Per-qualified-table column cache: keyed by (qualified, id(pattern_index))
+# Reset by calling _columns_for.cache_clear() if schema reloads are needed.
+_col_cache: dict[str, list[ColumnRef]] = {}
+
+
+def _columns_for(qualified: str, discovered: dict, pattern_index: dict[str, str]) -> list[ColumnRef]:
+    """Look up columns for `connector.schema.table` from discovered_schema.
+
+    Results are memoised in ``_col_cache`` so repeated calls for the same
+    qualified table pay no cost after the first lookup.
+    """
+    if qualified in _col_cache:
+        return _col_cache[qualified]
+
     parts = qualified.split(".")
     if len(parts) < 2:
+        _col_cache[qualified] = []
         return []
     schema, table = parts[-2], parts[-1]
     # discovered: { connector: { schema: { table: [ {column,...}, ... ] } } }
@@ -125,18 +155,18 @@ def _columns_for(qualified: str, discovered: dict, patterns: dict) -> list[Colum
         rows = sblock.get(table)
         if not isinstance(rows, list):
             continue
-        out: list[ColumnRef] = []
-        for r in rows:
-            if not isinstance(r, dict):
-                continue
-            name = str(r.get("column", ""))
-            out.append(ColumnRef(
-                name=name,
+        out: list[ColumnRef] = [
+            ColumnRef(
+                name=(name := str(r.get("column", ""))),
                 type=str(r.get("type", "")),
                 nullable=(str(r.get("nullable", "YES")).upper() == "YES"),
-                logical=_logical_for_column(name, patterns),
-            ))
+                logical=_logical_for_column(name, pattern_index),
+            )
+            for r in rows if isinstance(r, dict)
+        ]
+        _col_cache[qualified] = out
         return out
+    _col_cache[qualified] = []
     return []
 
 
@@ -189,10 +219,11 @@ def _mermaid_er(tables: list[TableRef], rels: list[Relationship]) -> str:
 # ---------------------------------------------------------------------------
 def synthesize(target_entity_kind: str, target_entity_key: str = "") -> EntitySchema:
     """Build an EntitySchema for the given target entity kind."""
-    cfg = load_config()
+    cfg = _load_config_cached()              # cached — no disk I/O after first call
     tables_map = cfg.get("tables", {}) or {}
     patterns = cfg.get("column_patterns", {}) or {}
-    discovered = _load_discovered()
+    pattern_index = _build_pattern_index(patterns)   # O(M) once per call; cheap
+    discovered = _load_discovered()          # cached — no disk I/O after first call
 
     logicals = _TABLES_BY_KIND.get(target_entity_kind,
                                    _TABLES_BY_KIND["site"])
@@ -201,7 +232,7 @@ def synthesize(target_entity_kind: str, target_entity_key: str = "") -> EntitySc
         qualified = tables_map.get(logical)
         if not qualified:
             continue
-        cols = _columns_for(qualified, discovered, patterns)
+        cols = _columns_for(qualified, discovered, pattern_index)
         tables.append(TableRef(logical_name=logical, qualified=qualified, columns=cols))
 
     rels = _infer_relationships(tables)

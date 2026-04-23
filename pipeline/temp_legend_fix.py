@@ -8,7 +8,7 @@ def update_legends():
                 content = file.read()
             
             # Simple replace without regex
-            new_content = content.replace("use_container_width=True)", "use_container_width=True)")
+            new_content = content.replace("width='stretch')", "width='stretch')")
             new_content = new_content.replace(")", ")")
             
             if new_content != content:

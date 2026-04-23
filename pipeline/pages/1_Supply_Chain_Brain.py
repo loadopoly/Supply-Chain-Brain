@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.brain.db_registry import bootstrap_default_connectors, list_connectors, read_sql
+from src.brain.db_registry import bootstrap_default_connectors, read_sql
 from src.brain.data_access import fetch_logical, query_df
 from src.brain.global_filters import date_key_window, sql_and_date_key
 from src.brain.graph_context import GraphContext, HAS_NX
@@ -29,12 +29,6 @@ st.markdown("""
 
 st.markdown("## 🧠 Supply Chain Brain")
 st.caption("Procurement · Logistics · Supply Chain · Customer Service — multi-dimensional graph intelligence")
-
-# ── Connector status ─────────────────────────────────────────────────────────
-connectors = list_connectors()
-cols_status = st.columns(len(connectors) if connectors else 1)
-for i, c in enumerate(connectors):
-    cols_status[i].success(f"🟢 **{c.name}** · `{c.kind}`")
 
 st.divider()
 
@@ -65,7 +59,7 @@ with st.expander("🔍 Refine graph limits & filters", expanded=False):
 
 from src.brain.label_resolver import enrich_labels
 
-@st.cache_data(ttl=600, show_spinner="Building supply chain knowledge graph …")
+@st.cache_resource(ttl=600, show_spinner="Building supply chain knowledge graph …")
 def _build_graph(np_: int, nr_: int, nso_: int, site: str, start_k: int, end_k: int, _bump: int = 0):
     w_parts = f"business_unit_id = '{site}'" if site else "1=1"
     w_recv  = f"business_unit_key IN (SELECT business_unit_key FROM edap_dw_replica.dim_business_unit WITH (NOLOCK) WHERE business_unit_id = '{site}')" if site else "1=1"
@@ -116,6 +110,7 @@ if rerun:
     bump += 1
     st.session_state["_g_bump"] = bump
     st.session_state["_graph_requested"] = True
+    st.cache_resource.clear()
     st.cache_data.clear()
 
 graph_requested = st.session_state.get("_graph_requested", True)
@@ -136,6 +131,13 @@ if graph_requested:
     )
 else:
     st.info("Graph build is paused on first load to keep the app responsive. Open **Refine graph limits & filters** and click **Build / rebuild graph**.")
+
+# Store actual graph results so DBI worker can produce data-specific insights.
+st.session_state["dbi_graph_nodes"]  = g.g.number_of_nodes() if g and HAS_NX else 0
+st.session_state["dbi_graph_edges"]  = g.g.number_of_edges() if g and HAS_NX else 0
+st.session_state["dbi_actual_parts"] = n_p
+st.session_state["dbi_actual_po"]    = n_r
+st.session_state["dbi_actual_so"]    = n_s
 
 ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
 render_dynamic_brain_insight('Supply Chain Brain', ctx)
@@ -235,8 +237,9 @@ if layout_data and HAS_NX:
         height=600,
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        margin=dict(l=0, r=0, t=10, b=0),
+        margin=dict(l=0, r=0, t=30, b=30),
         clickmode="event+select",
+        hovermode="closest",
     )
     clicked = st.plotly_chart(fig_g, use_container_width=True, key="kg_graph",
                               on_select="rerun")

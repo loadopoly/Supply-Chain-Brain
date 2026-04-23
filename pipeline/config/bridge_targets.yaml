@@ -49,12 +49,20 @@ targets:
   # --- Work Laptop (relay host — direct access both ways) ----------------
   - name:        laptop
     label:       "ROADL-4GVKFW3 — Work Laptop (RDP)"
-    laptop_port: ~                           # no portproxy — this IS the relay
-    bridge_endpoint: "192.168.250.200:3389"  # direct VPN-IP when remote
-    target_host: "172.16.4.75"
+    laptop_port: ~                                        # no portproxy — this IS the relay
+    bridge_endpoint: "192.168.250.200:3389"               # direct VPN-IP when remote
+    target_host: "ROADL-4GVKFW3.roadtec.astec.local"     # FQDN matches RDP cert CN — no warning
     target_port: 3389
     protocol:    rdp
-    notes:       "Road laptop; LAN 172.16.4.75 direct; VPN 192.168.250.200 direct"
+    cert_thumbprint: "218FA4BB0816EC0876241C5E987D1C6B2839D358"  # pin cert → no security dialog
+    notes:       "Road laptop; LAN FQDN direct; VPN 192.168.250.200 direct"
+
+  # --- Work Laptop (VS Code Remote Tunnel) --------------------------------
+  - name:        laptop-tunnel
+    label:       "ROADL-4GVKFW3 — Work Laptop (VS Code Tunnel)"
+    tunnel_name: "roadl-4gvkfw3"      # code_tunnel.json name registered on the laptop
+    protocol:    vscode_tunnel
+    notes:       "Tunnel access — bypasses RDP cert/NLA issues; works wherever code-tunnel is reachable"
 
 # ---------------------------------------------------------------------------
 # Global settings

@@ -48,13 +48,13 @@ def drilldown_table(df: pd.DataFrame, key: str,
     try:
         ev = st.dataframe(
             df[cols], key=f"dd_{key}", height=height,
-            hide_index=True, use_container_width=True,
+            hide_index=True, width='stretch',
             on_select="rerun", selection_mode="multi-row",
         )
         sel_idx = getattr(getattr(ev, "selection", None), "rows", []) or []
         return df.iloc[sel_idx].to_dict("records") if sel_idx else []
     except TypeError:                                  # older Streamlit
-        st.dataframe(df[cols], height=height, hide_index=True, use_container_width=True)
+        st.dataframe(df[cols], height=height, hide_index=True, width='stretch')
         st.caption("🔼 Upgrade Streamlit ≥ 1.32 for click-to-drill rows.")
         return []
 
@@ -80,7 +80,7 @@ def render_drilldown_panel(selected: list[dict],
                         "page": f["page"], "score": f["score"],
                         "when": f["created_at"], **f["payload"],
                     } for f in findings]),
-                    hide_index=True, use_container_width=True,
+                    hide_index=True, width='stretch',
                 )
             else:
                 st.caption("No cross-page findings yet for this item.")

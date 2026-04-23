@@ -36,3 +36,20 @@
 2026-04-21 17:53:31,005 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. SLEEPING FOR 4 HOURS ===
 2026-04-22 10:27:41,190 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
 2026-04-22 10:27:47,627 - [AUTONOMOUS AGENT] - LLM scout polled ['openrouter']; candidates=346 promoted=346 rejected=0 failed_sources=[{'kind': 'huggingface', 'error': "('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))"}, {'kind': 'lmarena', 'error': '403 Client Error: Forbidden for url: https://arena.ai/api/leaderboard'}, {'kind': 'artificial_analysis', 'error': '401 Client Error: Unauthorized for url: https://artificialanalysis.ai/api/v2/data/llms/models'}]
+2026-04-22 15:41:24,069 - [AUTONOMOUS AGENT] - Checking bridge tunnel health (v0.7.3 — TCP probe + watchdog trigger)...
+2026-04-22 15:41:27,110 - [AUTONOMOUS AGENT] - TCP probe failed on 192.168.250.200:33890 — requesting bridge recovery.
+2026-04-22 15:41:27,116 - [AUTONOMOUS AGENT] - Trigger dropped: req_1776886887.trigger (desktop=172.16.4.76)
+2026-04-22 15:42:57,146 - [AUTONOMOUS AGENT] - Timed out after 90s. Laptop watcher may not be installed.
+2026-04-22 15:42:57,147 - [AUTONOMOUS AGENT] - Bridge could not be confirmed — laptop may be offline or VPN not connected.
+2026-04-22 15:42:57,162 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-22 15:42:57,218 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-22 15:42:57,239 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-22 15:42:59,269 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-22 15:43:01,298 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [DOWN]
+2026-04-22 15:43:01,300 - [AUTONOMOUS AGENT] -   laptop               172.16.4.75:3389  [UP]
+2026-04-22 15:43:01,300 - [AUTONOMOUS AGENT] - Brain host probe: 3/5 UP | UP=['desktop', 'crp-fs03', 'laptop'] | DOWN=['desktop-sql', 'brain-api']
+2026-04-22 15:43:01,316 - [AUTONOMOUS AGENT] - Exported: c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\rdp_files\desktop.rdp  (endpoint: 172.16.4.76:3389)
+2026-04-22 15:43:01,327 - [AUTONOMOUS AGENT] - Exported: c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\rdp_files\crp-fs03.rdp  (endpoint: 172.17.99.185:3389)
+2026-04-22 15:43:01,353 - [AUTONOMOUS AGENT] - Exported: c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\rdp_files\laptop.rdp  (endpoint: 172.16.4.75:3389)
+2026-04-22 15:43:01,353 - [AUTONOMOUS AGENT] - RDP files refreshed: ['desktop', 'crp-fs03', 'laptop'] \u2192 c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\rdp_files
+2026-04-22 15:43:01,355 - [AUTONOMOUS AGENT] - host_status.json written: c:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\host_status.json

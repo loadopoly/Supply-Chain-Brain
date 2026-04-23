@@ -22,6 +22,18 @@ st.divider()
 
 
 st.subheader("Registered connectors")
+
+# Status summary row
+_conns = list_connectors()
+if _conns:
+    _status_cols = st.columns(len(_conns))
+    for _i, _c in enumerate(_conns):
+        if _c._handle is not None:
+            _status_cols[_i].success(f"🟢 **{_c.name}** · `{_c.kind}`")
+        else:
+            _status_cols[_i].warning(f"🟡 **{_c.name}** · `{_c.kind}`")
+    st.write("")
+
 for c in list_connectors():
     with st.expander(f"{c.name} · {c.kind}", expanded=False):
         st.write(c.description or "—")

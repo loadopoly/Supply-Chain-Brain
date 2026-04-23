@@ -15,6 +15,20 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ── Global CSS: allow Plotly hover tooltips to escape Streamlit's overflow:hidden containers ──
+st.markdown("""
+<style>
+div[data-testid="stVerticalBlock"],
+div[data-testid="stVerticalBlockBorderWrapper"],
+div[data-testid="stHorizontalBlock"],
+div[data-testid="column"],
+div[data-testid="stPlotlyChart"],
+div[data-testid="stPlotlyChart"] > div {
+    overflow: visible !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 try:
     from src.brain._version import __version__ as _BV
 except Exception:

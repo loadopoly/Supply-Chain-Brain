@@ -295,6 +295,14 @@ _AGGREGATORS: dict[str, Callable[[list[WorkerOutcome], dict], Any]] = {
     "json_merge":             _agg_json_merge,
 }
 
+# Register the Recurrent Depth Transformer aggregator. Deferred import
+# avoids a circular load during package init.
+try:
+    from . import recurrent_depth as _rdt
+    _rdt.register_with_ensemble()
+except Exception:
+    pass
+
 
 def _vote_key(resp: Any) -> str:
     if isinstance(resp, dict):
@@ -419,7 +427,10 @@ def dispatch_parallel(task: str, payload: Any, *,
     elapsed = int((time.perf_counter() - t0) * 1000)
     successes = [o for o in outcomes if o.ok and o.response is not None]
     aggregator_fn = _AGGREGATORS.get(aggregator_name, _agg_weighted_softmax_vote)
-    answer = aggregator_fn(successes, agg_cfg) if successes else None
+    # Thread task name into agg_cfg so per-task aggregators (like the
+    # recurrent depth transformer) can attribute their audit logs.
+    agg_cfg_runtime = {**agg_cfg, "_task": task}
+    answer = aggregator_fn(successes, agg_cfg_runtime) if successes else None
 
     result = EnsembleResult(task=task, answer=answer, aggregator=aggregator_name,
                             elapsed_ms=elapsed, contributors=outcomes,

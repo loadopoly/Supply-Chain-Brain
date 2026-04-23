@@ -117,3 +117,74 @@ def bootstrap_default_connectors() -> None:
             description="Oracle Fusion Cloud · DEV13",
             handle_factory=_oracle,
         ))
+
+    # Epicor 9 sites — one connector per site; each is a plain pyodbc SQL Server connection.
+    # Sites are registered lazily: if the connections.yaml block has no server configured
+    # (server: "") the connector is still registered but will raise at first use, so
+    # pages that don't need a given site are unaffected.
+    _epicor_sites = [
+        ("jerome_ave",       "Epicor 9 · Jerome Ave (Chattanooga)"),
+        ("manufacturers_rd", "Epicor 9 · Manufacturers Rd (Chattanooga)"),
+        ("wilson_rd",        "Epicor 9 · Wilson Rd (Chattanooga)"),
+    ]
+    for _site_key, _desc in _epicor_sites:
+        _conn_name = f"epicor_{_site_key}"
+        if _conn_name not in _REGISTRY:
+            try:
+                from pipeline.src.connections import epicor as _epicor_mod  # noqa
+            except Exception:
+                from src.connections import epicor as _epicor_mod            # noqa
+
+            def _make_epicor_factory(sk=_site_key, mod=_epicor_mod):
+                return lambda: mod.get_connection(sk)
+
+            register(Connector(
+                name=_conn_name,
+                kind="sql",
+                description=_desc,
+                handle_factory=_make_epicor_factory(),
+            ))
+
+    # SyteLine sites (Parsons = PFI_App.dbo; add rows as more sites migrate to SyteLine)
+    _syteline_sites = [
+        ("parsons", "SyteLine · Parsons  (PFI_SLMiscApps_DB.cycle_count)"),
+    ]
+    for _site_key, _desc in _syteline_sites:
+        _conn_name = f"syteline_{_site_key}"
+        if _conn_name not in _REGISTRY:
+            try:
+                from pipeline.src.connections import syteline as _syteline_mod  # noqa
+            except Exception:
+                from src.connections import syteline as _syteline_mod            # noqa
+
+            def _make_syteline_factory(sk=_site_key, mod=_syteline_mod):
+                return lambda: mod.get_connection(sk)
+
+            register(Connector(
+                name=_conn_name,
+                kind="sql",
+                description=_desc,
+                handle_factory=_make_syteline_factory(),
+            ))
+
+    # Microsoft Dynamics AX sites — Eugene Airport Road (AX 2012 SQL Server)
+    _ax_sites = [
+        ("airport_rd", "Dynamics AX · Eugene Airport Rd  (MicrosoftDynamicsAX)"),
+    ]
+    for _site_key, _desc in _ax_sites:
+        _conn_name = f"ax_{_site_key}"
+        if _conn_name not in _REGISTRY:
+            try:
+                from pipeline.src.connections import ax as _ax_mod  # noqa
+            except Exception:
+                from src.connections import ax as _ax_mod            # noqa
+
+            def _make_ax_factory(sk=_site_key, mod=_ax_mod):
+                return lambda: mod.get_connection(sk)
+
+            register(Connector(
+                name=_conn_name,
+                kind="sql",
+                description=_desc,
+                handle_factory=_make_ax_factory(),
+            ))

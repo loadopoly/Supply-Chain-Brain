@@ -19,6 +19,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.brain.actions import actions_for_pipeline, actions_to_dataframe
+from src.brain.dynamic_insight import render_dynamic_brain_insight
 
 st.title("🧠 Supply Chain Pipeline — Master Workstream")
 ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
@@ -139,7 +140,6 @@ def _telemetry(seed: int, window_days: int, view_mode: str) -> dict:
 
 import zlib
 from src.brain.global_filters import date_key_window, get_global_window
-from src.brain.dynamic_insight import render_dynamic_brain_insight
 
 _site = st.session_state.get("g_site", "")
 _sk, _ek = date_key_window()

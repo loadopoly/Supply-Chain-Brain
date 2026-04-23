@@ -178,40 +178,57 @@ def bench_viz_composer(n_findings: int, repeats: int) -> float:
     return time_it(lambda: compose(result), repeats)
 
 
-# ── main ─────────────────────────────────────────────────────────────────────
-def main():
-    ap = argparse.ArgumentParser(description="Bench Quest Engine")
-    ap.add_argument("--rows",    type=int, default=100,
-                    help="N for bulk/CRUD benchmarks (default 100)")
-    ap.add_argument("--repeats", type=int, default=3,
-                    help="Timing repeats per benchmark (default 3)")
-    args = ap.parse_args()
-    N = args.rows
-    R = args.repeats
+# ── run_benchmarks (callable API used by tests and main()) ───────────────────
+def run_benchmarks(
+    rows: int = 100,
+    repeats: int = 3,
+    results_dir: "Path | None" = None,
+    emit_stdout: bool = True,
+) -> None:
+    """Run all Quest Engine benchmarks and write CSVs to *results_dir*.
+
+    Parameters
+    ----------
+    rows:
+        N for bulk / CRUD benchmarks.
+    repeats:
+        How many timing repeats per benchmark.
+    results_dir:
+        Directory to write ``bench_quest_engine-*.csv`` and ``latest_quest.csv``.
+        Defaults to ``<bench>/results/`` when *None*.
+    emit_stdout:
+        If *False*, suppresses all print output (useful in test mode).
+    """
+    N = rows
+    R = repeats
 
     py   = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
     plat = platform.platform()
     when = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    rows: list[dict] = []
+    brows: list[dict] = []
 
-    def bench(name: str, scenario: str, elapsed_s: float, n: int):
+    def _out(msg: str) -> None:
+        if emit_stdout:
+            print(msg)
+
+    def bench(name: str, scenario: str, elapsed_s: float, n: int) -> None:
         tps = round(n / elapsed_s, 1) if elapsed_s > 0 and n > 0 else None
-        rows.append({
+        brows.append({
             "benchmark": name, "scenario": scenario,
             "elapsed_s": round(elapsed_s, 4),
             "items_per_s": tps,
             "n": n, "repeats": R, "python": py, "platform": plat, "ts": when,
         })
         tps_str = f"{tps:>9.0f} /s" if tps else "           "
-        print(f"  {name:<45} {scenario:<20} {elapsed_s*1000:>9.1f} ms  {tps_str}")
+        _out(f"  {name:<45} {scenario:<20} {elapsed_s*1000:>9.1f} ms  {tps_str}")
 
-    print(f"\n{'─'*100}")
-    print(f"  Brain Quest Engine Benchmarks   rows={N}  repeats={R}  python={py}")
-    print(f"{'─'*100}")
+    _out(f"\n{'─'*100}")
+    _out(f"  Brain Quest Engine Benchmarks   rows={N}  repeats={R}  python={py}")
+    _out(f"{'─'*100}")
 
     # intent_parser ─────────────────────────────────────────────────────────
-    print("\n  [intent_parser]")
+    _out("\n  [intent_parser]")
     e = bench_intent_parser_single(R)
     bench("intent_parser.parse", "single_query", e, 1)
 
@@ -222,7 +239,7 @@ def main():
     bench("intent_parser.parse", f"bulk_{N}", e, N)
 
     # mission_store ─────────────────────────────────────────────────────────
-    print("\n  [mission_store]")
+    _out("\n  [mission_store]")
     e_create, ids = bench_mission_store_create(N, R)
     bench("mission_store.create_mission", f"create_{N}", e_create, N)
 
@@ -241,29 +258,42 @@ def main():
         pass
 
     # schema_synthesizer ────────────────────────────────────────────────────
-    print("\n  [schema_synthesizer]")
+    _out("\n  [schema_synthesizer]")
     e = bench_schema_synthesizer_all_kinds(R)
     bench("schema_synthesizer.synthesize", "6_entity_kinds", e, 6)
 
     # viz_composer ──────────────────────────────────────────────────────────
-    print("\n  [viz_composer]")
+    _out("\n  [viz_composer]")
     for n_f in [100, 1_000, 5_000]:
         e = bench_viz_composer(n_f, R)
         bench("viz_composer.compose", f"{n_f}_findings", e, n_f)
 
     # results ────────────────────────────────────────────────────────────────
-    results_dir = Path(__file__).parent / "results"
-    results_dir.mkdir(exist_ok=True)
-    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    if results_dir is None:
+        results_dir = Path(__file__).parent / "results"
+    results_dir = Path(results_dir)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    stamp    = datetime.now().strftime("%Y%m%d-%H%M%S")
     out_path = results_dir / f"bench_quest_engine-{stamp}.csv"
     latest   = results_dir / "latest_quest.csv"
 
-    df = pd.DataFrame(rows)
+    df = pd.DataFrame(brows)
     df.to_csv(out_path, index=False)
     df.to_csv(latest,   index=False)
 
-    print(f"\n  Results → {out_path.name}  (and latest_quest.csv)")
-    print(f"{'─'*100}\n")
+    _out(f"\n  Results → {out_path.name}  (and latest_quest.csv)")
+    _out(f"{'─'*100}\n")
+
+
+# ── CLI entry point ───────────────────────────────────────────────────────────
+def main():
+    ap = argparse.ArgumentParser(description="Bench Quest Engine")
+    ap.add_argument("--rows",    type=int, default=100,
+                    help="N for bulk/CRUD benchmarks (default 100)")
+    ap.add_argument("--repeats", type=int, default=3,
+                    help="Timing repeats per benchmark (default 3)")
+    args = ap.parse_args()
+    run_benchmarks(rows=args.rows, repeats=args.repeats)
 
 
 if __name__ == "__main__":

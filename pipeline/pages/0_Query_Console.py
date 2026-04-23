@@ -17,6 +17,7 @@ from src.connections import azure_sql
 from src.connections.oracle_fusion import OracleFusionSession
 from src.brain.db_registry import bootstrap_default_connectors
 from src.brain.findings_index import lookup_findings, record_finding
+from src.brain.dynamic_insight import render_dynamic_brain_insight
 
 bootstrap_default_connectors()
 

@@ -290,3 +290,271 @@ mappings:
       INVENTORY_ITEM_ID:    part_key
       ORGANIZATION_ID:      business_unit_id
       inventory_part_code:  inventory_part_code
+
+# =============================================================================
+# Epicor 9 — source ERP for Jerome Ave, Manufacturers Rd, Wilson Rd
+# All tables live in the Epicor company database; schema = dbo by default.
+# These mappings drive transformer.apply_mapping() and extractor helpers.
+# Column names match Epicor 9.05 / 10.x — cross-reference §3.1 of
+# CrossDataset_Agent_Process_Spec.md for the canonical field mapping table.
+# =============================================================================
+
+  # ── Cycle counts — PartCount (all three Epicor sites share this schema) ────
+  - erp: epicor
+    epicor_table: PartCount
+    azure_schema: stg_replica
+    # Loader creates one staging table per site via ensure_table(); the
+    # site suffix is appended at extract time: epicor_cc_<site_key>
+    azure_table: epicor_cc_jerome_ave   # template — site key swapped at runtime
+    key_columns: [PartNum, WareHouseCode, BinNum, CycleDate]
+    columns:
+      PartNum:           part_number
+      WareHouseCode:     warehouse_code
+      BinNum:            bin_number
+      TotFrozenQOH:      frozen_qty           # canonical: Frozen QOH
+      TotCountQOH:       count_qty            # canonical: Counted QOH
+      TotAdjValue:       variance_value_local
+      CDRCode:           discrepancy_reason   # canonical: Discrepancy reason
+      ABCCode:           abc_class            # canonical: ABC class
+      CycleDate:         cycle_date_key       # canonical: Cycle / due date
+      CompleteDate:      count_date_key       # canonical: Complete date
+      PostDate:          post_date
+      UnitCost:          unit_cost_local
+      Plant:             business_unit_key
+
+  # ── Cycle count header (CCMerger — Jerome Ave only, warehouses S1/E1) ──────
+  - erp: epicor
+    epicor_table: CCMerger
+    azure_schema: stg_replica
+    azure_table: epicor_cc_header_jerome_ave
+    key_columns: [CCMergerNum, WareHouseCode]
+    columns:
+      CCMergerNum:       cc_header_key
+      WareHouseCode:     warehouse_code
+      Description:       cc_description
+      StartDate:         cc_start_date
+      EndDate:           cc_end_date
+      PostDate:          post_date
+      Plant:             business_unit_key
+
+  # ── Part / item master ───────────────────────────────────────────────────────
+  - erp: epicor
+    epicor_table: Part
+    azure_schema: stg_replica
+    azure_table: epicor_dim_part
+    key_columns: [PartNum, Company]
+    columns:
+      PartNum:           part_number
+      PartDescription:   part_description
+      TypeCode:          part_type           # M=Mfg / P=Purchased
+      ProdCode:          prod_code
+      ClassID:           abc_class
+      IUM:               uom
+      PUM:               purchase_uom
+      UnitPrice:         unit_price
+      NetWeight:         net_weight
+      LeadTime:          lead_time_days      # canonical: lead_time_days
+      MinimumQty:        min_qty
+      MaximumQty:        max_qty
+      ReorderQty:        reorder_qty
+      SafetyQty:         safety_stock
+      MfgComment:        mfg_comment
+      InActive:          inactive_flag
+      Company:           company_code
+
+  # ── On-hand inventory (PartBin) ──────────────────────────────────────────────
+  - erp: epicor
+    epicor_table: PartBin
+    azure_schema: stg_replica
+    azure_table: epicor_fact_on_hand
+    key_columns: [PartNum, WareHouseCode, BinNum, Company]
+    columns:
+      PartNum:           part_number
+      WareHouseCode:     warehouse_code
+      BinNum:            bin_number
+      OnhandQty:         quantity_on_hand    # canonical: on_hand_qty
+      Company:           company_code
+
+  # ── Open purchase orders (PORel) ─────────────────────────────────────────────
+  - erp: epicor
+    epicor_table: PORel
+    azure_schema: stg_replica
+    azure_table: epicor_fact_open_po
+    key_columns: [PONum, POLine, PORelNum]
+    columns:
+      PONum:             po_number
+      POLine:            po_line_number
+      PORelNum:          po_release
+      PartNum:           part_number
+      VendorNum:         supplier_key
+      DueDate:           due_date_key
+      OpenRelQty:        quantity_not_received  # canonical: open_order_qty
+      OrderQty:          order_qty
+      UnitCost:          unit_cost_local
+      CurrencyCode:      currency_code
+      Plant:             business_unit_key
+      BuyerID:           buyer_id
+      IUM:               uom
+      OrderDate:         order_date_key
+
+  # ── PO receipts (RcvDtl) ────────────────────────────────────────────────────
+  - erp: epicor
+    epicor_table: RcvDtl
+    azure_schema: stg_replica
+    azure_table: epicor_fact_po_receipt
+    key_columns: [VendorNum, PurPoint, PackSlip, PackLine]
+    columns:
+      VendorNum:         supplier_key
+      PurPoint:          supplier_site
+      PackSlip:          receipt_document_number
+      PackLine:          receipt_document_line_number
+      PONum:             po_number
+      POLine:            po_line_number
+      PORelNum:          po_release
+      PartNum:           part_number
+      OurQty:            received_qty
+      ReceivedDate:      receipt_date_key     # canonical: receipt_date
+      DueDate:           due_date_key
+      OurUnitCost:       unit_cost_local
+      CurrencyCode:      currency_code
+      Plant:             business_unit_key
+      BuyerID:           buyer_id
+
+  # ── Sales order lines (OrderDtl) ─────────────────────────────────────────────
+  - erp: epicor
+    epicor_table: OrderDtl
+    azure_schema: stg_replica
+    azure_table: epicor_fact_sales_order_line
+    key_columns: [OrderNum, OrderLine]
+    columns:
+      OrderNum:          sales_order_number
+      OrderLine:         sales_order_line
+      PartNum:           part_number
+      OrderQty:          sales_order_quantity
+      ShipQty:           shipped_quantity
+      UnitPrice:         unit_price_local
+      ExtPrice:          extended_price_local
+      RequestDate:       requested_ship_date_key
+      NeedByDate:        due_date_key         # canonical: promise_date
+      Plant:             business_unit_key
+      CustNum:           customer_key
+
+  # ── Sales order header (OrderHed) — for OTD date resolution ─────────────────
+  - erp: epicor
+    epicor_table: OrderHed
+    azure_schema: stg_replica
+    azure_table: epicor_fact_sales_order_header
+    key_columns: [OrderNum]
+    columns:
+      OrderNum:          sales_order_number
+      OrderDate:         order_date_key
+      CustNum:           customer_key
+      CustID:            customer_id
+      ShipViaCode:       ship_via
+      Plant:             business_unit_key
+
+  # ── Supplier master (Vendor) ──────────────────────────────────────────────────
+  - erp: epicor
+    epicor_table: Vendor
+    azure_schema: stg_replica
+    azure_table: epicor_dim_supplier
+    key_columns: [VendorNum, Company]
+    columns:
+      VendorNum:         supplier_key
+      Name:              supplier_name
+      Address1:          supplier_address
+      City:              supplier_city
+      State:             supplier_state
+      Country:           supplier_country
+      ZIP:               supplier_zip_code
+      TermsCode:         payment_terms
+      Company:           company_code
+
+# =============================================================================
+# SyteLine (CloudSuite Industrial) — future sites (St. Cloud, others)
+# Column names match SyteLine 9.x / CloudSuite Industrial.
+# Cross-reference §3.1 of CrossDataset_Agent_Process_Spec.md.
+# =============================================================================
+
+  # ── Cycle counts (cc_trn) ────────────────────────────────────────────────────
+  - erp: syteline
+    syteline_table: cc_trn
+    azure_schema: stg_replica
+    azure_table: syteline_cc_parsons    # Parsons SyteLine · PFI_App.dbo.cc_trn per spec §3.2
+    key_columns: [item, whse, due_date]
+    columns:
+      item:              part_number
+      whse:              warehouse_code     # canonical: warehouse
+      qty_on_hand_before: frozen_qty        # canonical: Frozen QOH
+      qty_counted:       count_qty          # canonical: Counted QOH
+      reason_code:       discrepancy_reason # canonical: Discrepancy reason (app: CYC)
+      due_date:          cycle_date_key     # canonical: Cycle / due date
+      post_date:         count_date_key     # canonical: Complete date (post_status IN (1,2))
+      post_status:       post_status
+      variance_qty:      adjustment_qty
+      variance_value:    variance_value_local
+      t_mps_item:        item_abc_code      # canonical: ABC class
+
+  # ── Item master (item) ───────────────────────────────────────────────────────
+  - erp: syteline
+    syteline_table: item
+    azure_schema: stg_replica
+    azure_table: syteline_dim_part
+    key_columns: [item]
+    columns:
+      item:              part_number
+      description:       part_description
+      u_m:               uom
+      product_code:      prod_code
+      abc_code:          abc_class
+      lead_time:         lead_time_days     # canonical: lead_time_days
+      reorder_point:     safety_stock
+      lot_size:          order_qty
+      unit_cost:         unit_cost_local
+      make_buy:          make_or_buy        # canonical: Make or Buy
+
+  # ── On-hand (itemloc) ────────────────────────────────────────────────────────
+  - erp: syteline
+    syteline_table: itemloc
+    azure_schema: stg_replica
+    azure_table: syteline_fact_on_hand
+    key_columns: [item, whse, loc]
+    columns:
+      item:              part_number
+      whse:              warehouse_code
+      loc:               bin_number
+      qty_on_hand:       quantity_on_hand   # canonical: on_hand_qty
+
+  # ── Customer order lines (cust_order_lines) ───────────────────────────────────
+  - erp: syteline
+    syteline_table: cust_order_lines
+    azure_schema: stg_replica
+    azure_table: syteline_fact_sales_order_line
+    key_columns: [co_num, co_line]
+    columns:
+      co_num:            sales_order_number
+      co_line:           sales_order_line
+      item:              part_number
+      qty_ordered:       sales_order_quantity
+      qty_shipped:       shipped_quantity
+      unit_price:        unit_price_local
+      due_date:          due_date_key       # canonical: promise_date
+      cust_num:          customer_key
+
+  # ── PO receipts (po_receipts) ────────────────────────────────────────────────
+  - erp: syteline
+    syteline_table: po_receipts
+    azure_schema: stg_replica
+    azure_table: syteline_fact_po_receipt
+    key_columns: [po_num, po_line, rcpt_num]
+    columns:
+      po_num:            po_number
+      po_line:           po_line_number
+      rcpt_num:          receipt_document_number
+      item:              part_number
+      vendor_num:        supplier_key
+      qty_received:      received_qty
+      rcpt_date:         receipt_date_key   # canonical: receipt_date
+      due_date:          due_date_key
+      unit_cost:         unit_cost_local
+      whse:              warehouse_code

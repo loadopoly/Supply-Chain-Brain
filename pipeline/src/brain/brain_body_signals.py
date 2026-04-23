@@ -171,50 +171,88 @@ def _severity(priority: float) -> str:
 # Generators — each pulls one source and yields Directives
 # ---------------------------------------------------------------------------
 def _gen_low_dispatch_quality(cn) -> list[Directive]:
-    """If a (model, task) pair is sustaining low validator scores, the User
-    needs to know — they may need to swap models or rewrite a prompt."""
+    """Flag tasks with sustained low validator scores.
+
+    The live `llm_dispatch_log` schema does NOT have a top-level `model_id`
+    column — model-level data is inside `contributors_json`.  We therefore
+    aggregate at the `task` level which is always a top-level column.
+    """
     out: list[Directive] = []
     try:
         rows = cn.execute(
-            """SELECT model_id, task, AVG(validator) AS avg_v, COUNT(*) AS n
+            """SELECT task,
+                      AVG(CAST(validator AS REAL)) AS avg_v,
+                      COUNT(*) AS n
                FROM llm_dispatch_log
                WHERE validator IS NOT NULL
-                 AND ran_at >= datetime('now', '-7 day')
-               GROUP BY model_id, task
-               HAVING n >= 5 AND avg_v < 0.40
+                 AND decided_at >= datetime('now', '-7 day')
+               GROUP BY task
+               HAVING n >= 3 AND avg_v < 0.70
                ORDER BY avg_v ASC LIMIT 10"""
         ).fetchall()
     except sqlite3.OperationalError:
         return out
     for r in rows:
-        prio = float(min(1.0, 0.4 + (0.4 - float(r["avg_v"])) * 1.5))
+        avg_v = float(r["avg_v"] or 0.0)
+        prio = float(min(1.0, 0.4 + (0.70 - avg_v) * 1.5))
         out.append(Directive(
             source="dispatch",
             signal_kind="low_dispatch_quality",
-            title=f"Model '{r['model_id']}' under-performing on '{r['task']}'",
+            title=f"Task '{r['task']}' averaging {avg_v:.2f} validator over {r['n']} dispatches",
             why_it_matters=(
-                f"Average validator over the last 7 days is "
-                f"{float(r['avg_v']):.2f} across {r['n']} dispatches — "
-                f"the ensemble is voting around it but the answers are weak."
+                f"The ensemble is consistently uncertain on '{r['task']}'. "
+                f"Average validator {avg_v:.2f} across {r['n']} runs in the "
+                f"last 7 days — outputs are being used but confidence is low."
             ),
             do_this=(
-                f"Review the prompt template for '{r['task']}', or "
-                f"deprioritize '{r['model_id']}' in `llms.scout.blocklist` "
-                f"if it stays weak after a prompt revision."
+                f"Review the prompt template and ground-truth examples for "
+                f"'{r['task']}'. Consider running `python apply_proc.py` to "
+                f"refresh the training corpus, then let self-train re-weight."
             ),
             owner_role="IT",
             priority=prio,
             severity=_severity(prio),
-            target_entity=f"Model::{r['model_id']}",
-            evidence={"avg_validator": float(r["avg_v"]), "samples": int(r["n"])},
+            target_entity=f"Task::{r['task']}",
+            evidence={"avg_validator": round(avg_v, 3), "samples": int(r["n"])},
         ))
     return out
 
 
 def _gen_peer_unreachable(cn) -> list[Directive]:
-    """Compute peer EMA success dropped — User (or IT) needs to fix VPN/ICS."""
+    """Compute peer EMA success dropped — User (or IT) needs to fix VPN/ICS.
+
+    `network_topology` is populated by the cross-protocol network learner.
+    If the table doesn't exist yet (network learner hasn't run) we surface
+    a single informational directive prompting the User to kick it off.
+    """
     out: list[Directive] = []
     try:
+        # Check whether the table exists before querying it.
+        exists = cn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='network_topology'"
+        ).fetchone()
+        if not exists:
+            out.append(Directive(
+                source="network",
+                signal_kind="network_learner_not_started",
+                title="Network topology table is empty — cross-protocol learner has never run",
+                why_it_matters=(
+                    "The Brain can't see which compute peers are healthy or "
+                    "dead. Fanout dispatches may silently be falling back to "
+                    "local-only inference without you knowing."
+                ),
+                do_this=(
+                    "Trigger one full autonomous_agent loop: "
+                    "`cd pipeline; python autonomous_agent.py --once` "
+                    "and confirm Step 3d (network learner) logs topology rows."
+                ),
+                owner_role="IT",
+                priority=0.55,
+                severity="watch",
+                target_entity=None,
+                evidence={},
+            ))
+            return out
         rows = cn.execute(
             """SELECT host, ema_success, samples, last_seen
                FROM network_topology
@@ -252,57 +290,75 @@ def _gen_peer_unreachable(cn) -> list[Directive]:
 
 
 def _gen_missing_category(cn) -> list[Directive]:
-    """Parts the NLP categorizer hasn't classified — supplier-consolidation
-    and EOQ analytics get noisier on every uncategorized part."""
+    """Parts the NLP categorizer hasn't classified.
+
+    The corpus `Part` entities are populated lazily.  Until the DW snapshot
+    is ingested, we instead check `part_category` (which IS populated from
+    the pipeline) vs the distinct parts seen in `llm_dispatch_log` contributors.
+    If `part_category` is empty entirely, that itself is a directive.
+    """
     out: list[Directive] = []
     try:
-        # Look at corpus_entity Parts that have no CLASSIFIED_AS edge.
-        rows = cn.execute(
-            """SELECT e.entity_id, e.samples
-                 FROM corpus_entity e
-                 LEFT JOIN corpus_edge x
-                   ON x.src_id=e.entity_id AND x.src_type='Part'
-                  AND x.rel='CLASSIFIED_AS'
-                WHERE e.entity_type='Part' AND x.src_id IS NULL
-                ORDER BY e.samples DESC LIMIT 1"""
-        ).fetchall()
+        n_categorized = cn.execute(
+            "SELECT COUNT(DISTINCT part_id) FROM part_category"
+        ).fetchone()[0] or 0
     except sqlite3.OperationalError:
         return out
-    if not rows:
-        return out
-    # Aggregate to a single rolled-up directive (don't carpet-bomb).
+
+    # Also check corpus for unclassified Part entities (populated once DW ingest runs).
+    n_corpus_missing = 0
     try:
-        n_missing = cn.execute(
-            """SELECT COUNT(*) AS n FROM corpus_entity e
-                LEFT JOIN corpus_edge x
-                  ON x.src_id=e.entity_id AND x.src_type='Part'
-                 AND x.rel='CLASSIFIED_AS'
+        n_corpus_missing = cn.execute(
+            """SELECT COUNT(*) FROM corpus_entity e
+               LEFT JOIN corpus_edge x
+                 ON x.src_id=e.entity_id AND x.src_type='Part' AND x.rel='CLASSIFIED_AS'
                WHERE e.entity_type='Part' AND x.src_id IS NULL"""
-        ).fetchone()["n"]
+        ).fetchone()[0] or 0
     except sqlite3.OperationalError:
-        n_missing = 0
-    if n_missing == 0:
-        return out
-    prio = float(min(0.85, 0.30 + min(n_missing, 1000) / 1000.0 * 0.5))
-    out.append(Directive(
-        source="corpus",
-        signal_kind="missing_category",
-        title=f"{n_missing} parts still unclassified by the NLP categorizer",
-        why_it_matters=(
-            "Vendor consolidation and EOQ deviation analytics rely on "
-            "part categories. Every uncategorized part is a blind spot."
-        ),
-        do_this=(
-            "Open the **EOQ Deviation** page → 'NLP Recategorize' button, "
-            "or run `python apply_proc.py` to rebuild `part_category` from "
-            "the latest replica DW snapshot."
-        ),
-        owner_role="Planner",
-        priority=prio,
-        severity=_severity(prio),
-        target_entity=None,
-        evidence={"unclassified_parts": int(n_missing)},
-    ))
+        pass
+
+    if n_categorized == 0:
+        out.append(Directive(
+            source="corpus",
+            signal_kind="missing_category",
+            title="part_category table is empty — NLP categorizer has never run against the DW",
+            why_it_matters=(
+                "Vendor consolidation and EOQ deviation analytics both rely on "
+                "part categories. With zero categories, every spend analysis "
+                "is missing its primary dimension."
+            ),
+            do_this=(
+                "Run `python apply_proc.py` to pull the latest DW snapshot "
+                "and rebuild `part_category`. Then open EOQ Deviation → "
+                "'NLP Recategorize' to verify coverage."
+            ),
+            owner_role="Planner",
+            priority=0.70,
+            severity="act",
+            target_entity=None,
+            evidence={"part_category_rows": 0},
+        ))
+    elif n_corpus_missing > 0:
+        prio = float(min(0.85, 0.30 + min(n_corpus_missing, 1000) / 1000.0 * 0.5))
+        out.append(Directive(
+            source="corpus",
+            signal_kind="missing_category",
+            title=f"{n_corpus_missing} corpus parts still unclassified",
+            why_it_matters=(
+                "Vendor consolidation and EOQ deviation analytics rely on "
+                "part categories. Every uncategorized part is a blind spot."
+            ),
+            do_this=(
+                "Open the **EOQ Deviation** page → 'NLP Recategorize' button, "
+                "or run `python apply_proc.py` to rebuild `part_category` from "
+                "the latest replica DW snapshot."
+            ),
+            owner_role="Planner",
+            priority=prio,
+            severity=_severity(prio),
+            target_entity=None,
+            evidence={"unclassified_parts": int(n_corpus_missing)},
+        ))
     return out
 
 
@@ -353,12 +409,18 @@ def _gen_self_train_drift(cn) -> list[Directive]:
 
 
 def _gen_high_centrality_part(cn) -> list[Directive]:
-    """A Part with many corpus edges (suppliers, categories, sites…) that
-    has a low-confidence WEIGHTED_FOR or weak supplier diversity is a
-    leverage point worth surfacing to the User as a consolidation opportunity."""
+    """A Part (or Model, once supply-chain data flows) with many corpus edges.
+
+    Until the DW snapshot populates Part entities, this generator watches
+    Model nodes in the corpus for low average edge weight — a model that
+    is connected to many tasks with low WEIGHTED_FOR scores is under-delivering
+    on coverage and is a tuning opportunity for the User.
+    """
     out: list[Directive] = []
+
+    # ── Part-level signal (when Parts exist in corpus) ──────────────────────
     try:
-        rows = cn.execute(
+        part_rows = cn.execute(
             """SELECT src_id AS part, COUNT(*) AS n_edges
                  FROM corpus_edge
                 WHERE src_type='Part'
@@ -367,8 +429,8 @@ def _gen_high_centrality_part(cn) -> list[Directive]:
                ORDER BY n_edges DESC LIMIT 3"""
         ).fetchall()
     except sqlite3.OperationalError:
-        return out
-    for r in rows:
+        part_rows = []
+    for r in part_rows:
         prio = float(min(0.75, 0.35 + int(r["n_edges"]) * 0.05))
         out.append(Directive(
             source="corpus",
@@ -376,9 +438,9 @@ def _gen_high_centrality_part(cn) -> list[Directive]:
             title=f"High-centrality part '{r['part']}' "
                   f"({r['n_edges']} corpus edges) — consolidation candidate",
             why_it_matters=(
-                "This part touches many suppliers/categories/sites in "
-                "the relational corpus. Concentrating spend or "
-                "renegotiating could move the needle quickly."
+                "This part touches many suppliers/categories/sites in the "
+                "relational corpus. Concentrating spend or renegotiating "
+                "could move the needle quickly."
             ),
             do_this=(
                 f"Open **Procurement 360** filtered to part `{r['part']}` "
@@ -390,6 +452,91 @@ def _gen_high_centrality_part(cn) -> list[Directive]:
             severity=_severity(prio),
             target_entity=f"Part::{r['part']}",
             evidence={"corpus_edges": int(r["n_edges"])},
+        ))
+
+    # ── Model-level signal (always available from corpus) ────────────────────
+    if not part_rows:
+        try:
+            model_rows = cn.execute(
+                """SELECT src_id AS model, COUNT(*) AS n_tasks,
+                          AVG(weight) AS avg_w, MIN(weight) AS min_w
+                     FROM corpus_edge
+                    WHERE src_type='Model' AND rel='WEIGHTED_FOR'
+                    GROUP BY src_id
+                   HAVING n_tasks >= 1 AND avg_w < 0.90
+                   ORDER BY avg_w ASC LIMIT 3"""
+            ).fetchall()
+        except sqlite3.OperationalError:
+            model_rows = []
+        for r in model_rows:
+            avg_w = float(r["avg_w"] or 0.0)
+            prio = float(min(0.72, 0.40 + (0.90 - avg_w) * 0.8))
+            out.append(Directive(
+                source="corpus",
+                signal_kind="model_low_task_weight",
+                title=f"Model '{r['model']}' has low avg corpus weight {avg_w:.2f} across {r['n_tasks']} tasks",
+                why_it_matters=(
+                    f"The relational graph shows '{r['model']}' is "
+                    f"consistently under-weighted by the ensemble router. "
+                    f"It is consuming API budget but not influencing answers."
+                ),
+                do_this=(
+                    f"Review `llm_weights` for '{r['model']}' across all tasks. "
+                    f"If the model is stale or slow, add it to "
+                    f"`llms.scout.blocklist` in `brain.yaml` and re-run "
+                    f"a self-train round to redistribute weight."
+                ),
+                owner_role="IT",
+                priority=prio,
+                severity=_severity(prio),
+                target_entity=f"Model::{r['model']}",
+                evidence={"avg_weight": round(avg_w, 3), "tasks": int(r["n_tasks"])},
+            ))
+    return out
+
+
+def _gen_weak_llm_weights(cn) -> list[Directive]:
+    """Read `llm_weights` directly — the authoritative learned weight table.
+    Flag any (task, model) where `weight` has decayed below 1.0 or
+    `ema_success` dropped below 0.80 with sufficient observations.
+    Also flags the `underdog` pattern: a real model stuck at weight ≤ 0.5.
+    """
+    out: list[Directive] = []
+    try:
+        rows = cn.execute(
+            """SELECT task, model_id, weight, ema_success, ema_latency, n_obs
+                 FROM llm_weights
+                WHERE n_obs >= 5
+                  AND (weight < 1.0 OR ema_success < 0.80)
+                ORDER BY weight ASC, ema_success ASC LIMIT 8"""
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return out
+    for r in rows:
+        w = float(r["weight"] or 0.0)
+        ok = float(r["ema_success"] or 0.0)
+        n = int(r["n_obs"] or 0)
+        prio = float(min(0.88, 0.40 + (1.0 - min(w, 1.0)) * 0.3 + (0.80 - min(ok, 0.80)) * 0.5))
+        out.append(Directive(
+            source="dispatch",
+            signal_kind="weak_model_weight",
+            title=f"Model '{r['model_id']}' on '{r['task']}': weight={w:.2f}, EMA ok={ok:.1%} ({n} obs)",
+            why_it_matters=(
+                f"The router has down-weighted or penalized '{r['model_id']}' "
+                f"on '{r['task']}' based on {n} real observations. It is "
+                f"either slow ({r['ema_latency']:.0f}ms avg) or unreliable."
+            ),
+            do_this=(
+                f"Inspect the most recent `llm_dispatch_log` rows for "
+                f"task='{r['task']}' and model='{r['model_id']}'. If the model "
+                f"is consistently timing out, blocklist it in `brain.yaml`. "
+                f"If it's a test artifact, delete it from `llm_weights`."
+            ),
+            owner_role="IT",
+            priority=prio,
+            severity=_severity(prio),
+            target_entity=f"Model::{r['model_id']}",
+            evidence={"weight": round(w, 3), "ema_success": round(ok, 3), "n_obs": n},
         ))
     return out
 
@@ -549,6 +696,7 @@ _GENERATORS: list[Callable] = [
     _gen_missing_category,
     _gen_self_train_drift,
     _gen_high_centrality_part,
+    _gen_weak_llm_weights,
     _gen_mission_signals,
 ]
 

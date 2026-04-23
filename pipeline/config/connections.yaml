@@ -9,6 +9,72 @@ azure_sql:
   trust_server_certificate: "no"
   connection_timeout: 30
 
+# ---------------------------------------------------------------------------
+# Epicor 9 sites (SQL Server backend — domain Kerberos preferred)
+# Set server + database here OR via env vars EPICOR_<SITE>_SERVER / _DATABASE.
+# Store SQL credentials once with:
+#   python -m src.connections.secrets set epicor_jerome_ave --user <upn> --password <pw>
+# ---------------------------------------------------------------------------
+epicor_jerome_ave:
+  server:   ""   # override: EPICOR_JEROME_AVE_SERVER
+  database: ""   # override: EPICOR_JEROME_AVE_DATABASE
+  authentication: ActiveDirectoryIntegrated
+  driver: "ODBC Driver 18 for SQL Server"
+  encrypt: "yes"
+  trust_server_certificate: "yes"
+  connection_timeout: 30
+  site_string: "Chattanooga - Jerome Avenue"
+
+epicor_manufacturers_rd:
+  server:   ""   # override: EPICOR_MANUFACTURERS_RD_SERVER
+  database: ""   # override: EPICOR_MANUFACTURERS_RD_DATABASE
+  authentication: ActiveDirectoryIntegrated
+  driver: "ODBC Driver 18 for SQL Server"
+  encrypt: "yes"
+  trust_server_certificate: "yes"
+  connection_timeout: 30
+  site_string: "Chattanooga - Manufacturers Road"
+
+epicor_wilson_rd:
+  server:   ""   # override: EPICOR_WILSON_RD_SERVER
+  database: ""   # override: EPICOR_WILSON_RD_DATABASE
+  authentication: ActiveDirectoryIntegrated
+  driver: "ODBC Driver 18 for SQL Server"
+  encrypt: "yes"
+  trust_server_certificate: "yes"
+  connection_timeout: 30
+  site_string: "Chattanooga - Wilson Road"
+
+# ---------------------------------------------------------------------------
+# SyteLine (CloudSuite Industrial) sites — onboard here as sites migrate
+# ---------------------------------------------------------------------------
+syteline_parsons:
+  server:   ""       # override: SYTELINE_PARSONS_SERVER
+  database: "PFI_SLMiscApps_DB"  # confirmed from embedded SQL: SELECT * FROM PFI_SLMiscApps_DB.cycle_count.item_count
+  schema:   "cycle_count"         # SyteLine cycle count schema
+  authentication: ActiveDirectoryIntegrated
+  driver: "ODBC Driver 18 for SQL Server"
+  encrypt: "yes"
+  trust_server_certificate: "yes"
+  connection_timeout: 30
+  site_string: "Parsons"
+
+# ---------------------------------------------------------------------------
+# Microsoft Dynamics AX — Eugene Airport Road
+# AX 2012 SQL Server backend (IIJ* counting journals confirmed in OneDrive export)
+# Set server via env var AX_AIRPORT_RD_SERVER or fill in below.
+# ---------------------------------------------------------------------------
+ax_airport_rd:
+  server:   ""                     # override: AX_AIRPORT_RD_SERVER
+  database: "MicrosoftDynamicsAX"  # default AX 2012 business DB name
+  schema:   "dbo"
+  authentication: ActiveDirectoryIntegrated
+  driver: "ODBC Driver 18 for SQL Server"
+  encrypt: "yes"
+  trust_server_certificate: "yes"
+  connection_timeout: 30
+  site_string: "Eugene - Airport Road"
+
 oracle_fusion:
   host: https://fa-eqtl-dev13-saasfaprod1.fa.ocs.oraclecloud.com
   # BIP REST API endpoint for SQL execution

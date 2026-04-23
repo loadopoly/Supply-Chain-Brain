@@ -1,5 +1,5 @@
-"""
-bridge_rdp.py  —  Multi-target RDP/service launcher for the AstecBridge  v0.8.0
+﻿"""
+bridge_rdp.py  -  Multi-target RDP/service launcher for the AstecBridge  v0.8.0
 
 Reads config/bridge_targets.yaml to know which portproxy slots are mapped to
 which internal hosts.  Provides:
@@ -21,9 +21,9 @@ Importable from the Brain pipeline or callable as a script:
   python bridge_rdp.py freerdp
 
 RDP client options (set globally in bridge_targets.yaml as rdp_client, or per-command):
-  mstsc    — Windows built-in mstsc.exe  (default)
-  freerdp  — open-source wfreerdp.exe    (winget install FreeRDP.FreeRDP)
-  file     — export .rdp file and open with the system default RDP application
+  mstsc    - Windows built-in mstsc.exe  (default)
+  freerdp  - open-source wfreerdp.exe    (winget install FreeRDP.FreeRDP)
+  file     - export .rdp file and open with the system default RDP application
 """
 import socket
 import subprocess
@@ -39,7 +39,7 @@ PIPELINE      = Path(__file__).parent
 CONFIG_FILE   = PIPELINE / "config" / "bridge_targets.yaml"
 LAPTOP_VPN_IP = "192.168.250.200"   # Laptop's VPN-assigned IP (remote relay)
 LAPTOP_LAN_IP = "172.16.4.75"       # Laptop's corporate LAN IP (ROADL-4GVKFW3)
-_LAN_PROBE_HOST = "172.16.4.76"     # Desktop — detect if on corporate LAN / VPN
+_LAN_PROBE_HOST = "172.16.4.76"     # Desktop - detect if on corporate LAN / VPN
 _LAN_PROBE_PORT = 3389
 
 # ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ _LAN_PROBE_PORT = 3389
 def _load_targets() -> list[dict]:
     """Parse bridge_targets.yaml.  Returns list of target dicts."""
     try:
-        import yaml  # PyYAML — already in requirements.txt
+        import yaml  # PyYAML - already in requirements.txt
         with open(CONFIG_FILE, encoding="utf-8") as fh:
             cfg = yaml.safe_load(fh)
         return cfg.get("targets", []) if isinstance(cfg, dict) else []
@@ -112,8 +112,8 @@ def detect_location(timeout: float = 1.5) -> str:
     """
     Detect whether internal LAN hosts are directly reachable.
 
-    Returns 'lan'    — on corporate LAN or VPN with direct route; use target_host:target_port.
-    Returns 'bridge' — remote; must route through laptop portproxy (LAPTOP_VPN_IP:laptop_port).
+    Returns 'lan'    - on corporate LAN or VPN with direct route; use target_host:target_port.
+    Returns 'bridge' - remote; must route through laptop portproxy (LAPTOP_VPN_IP:laptop_port).
     """
     try:
         s = socket.create_connection((_LAN_PROBE_HOST, _LAN_PROBE_PORT), timeout=timeout)
@@ -128,7 +128,7 @@ def detect_location(timeout: float = 1.5) -> str:
 # ---------------------------------------------------------------------------
 
 def _probe(host: str, port: int, timeout: float = 3.0) -> bool:
-    """Raw TCP connect probe — True if port is open."""
+    """Raw TCP connect probe - True if port is open."""
     try:
         s = socket.create_connection((host, port), timeout=timeout)
         s.close()
@@ -141,16 +141,21 @@ def probe_all(laptop_vpn_ip: str = LAPTOP_VPN_IP, timeout: float = 3.0) -> dict[
     """
     TCP-probe every target.  Auto-detects LAN vs bridge mode.
 
-    LAN mode   — probes target_host:target_port directly.
-    Bridge mode — probes laptop_vpn_ip:laptop_port via portproxy, or bridge_endpoint if set.
+    LAN mode   - probes target_host:target_port directly.
+    Bridge mode - probes laptop_vpn_ip:laptop_port via portproxy, or bridge_endpoint if set.
 
     Returns dict  {target_name: bool}  where True = reachable.
     """
     mode = detect_location(timeout=min(timeout, 1.5))
     log.info("Location: %s mode", mode.upper())
-    results: dict[str, bool] = {}
+    results: dict[str, bool | None] = {}
     for t in _load_targets():
         name = t.get("name", "?")
+        proto = t.get("protocol", "rdp")
+        if proto == "vscode_tunnel":
+            results[name] = None  # not TCP-probeable
+            log.info("  %-20s (vscode_tunnel - not TCP-probeable)", name)
+            continue
         if mode == "lan":
             host = t.get("target_host")
             port = t.get("target_port")
@@ -180,8 +185,8 @@ def _build_rdp_endpoint(name: str, laptop_vpn_ip: str = LAPTOP_VPN_IP) -> Option
     """
     Resolve the correct host:port for *name* based on current network location.
 
-    LAN mode   — returns target_host:target_port directly.
-    Bridge mode — returns bridge_endpoint if set, else laptop_vpn_ip:laptop_port.
+    LAN mode   - returns target_host:target_port directly.
+    Bridge mode - returns bridge_endpoint if set, else laptop_vpn_ip:laptop_port.
     Returns None if no reachable path exists for the current location.
     """
     t = get_target(name)
@@ -227,12 +232,15 @@ def rdp_connect(
     """
     t = get_target(name)
     if t is None:
-        log.error("Unknown target %r — run list_targets() to see options.", name)
+        log.error("Unknown target %r - run list_targets() to see options.", name)
         return False
 
     proto = t.get("protocol", "rdp")
+    if proto == "vscode_tunnel":
+        log.error("Target %r is a VS Code tunnel target - use tunnel_connect(%r) instead.", name, name)
+        return False
     if proto != "rdp":
-        log.error("Target %r uses protocol %r — only 'rdp' targets support RDP launch.", name, proto)
+        log.error("Target %r uses protocol %r - only 'rdp' targets support RDP launch.", name, proto)
         return False
 
     label    = t.get("label", name)
@@ -262,17 +270,16 @@ def rdp_connect(
             log.error("Could not open .rdp file: %s", e)
             return False
 
-    # Default: mstsc
-    cmd = ["mstsc.exe", f"/v:{endpoint}"]
-    if fullscreen:
-        cmd.append("/f")
-    else:
-        cmd.extend([f"/w:{width}", f"/h:{height}"])
+    # Default: mstsc - launch via .rdp file so domain SSO settings apply
+    rdp_path = export_rdp_file(name, laptop_vpn_ip=laptop_vpn_ip,
+                               width=width, height=height, fullscreen=fullscreen)
+    if rdp_path is None:
+        return False
     try:
-        subprocess.Popen(cmd)
+        subprocess.Popen(["mstsc.exe", str(rdp_path)])
         return True
     except FileNotFoundError:
-        log.error("mstsc.exe not found — are you running on Windows?")
+        log.error("mstsc.exe not found - are you running on Windows?")
         return False
     except Exception as e:
         log.error("mstsc launch failed: %s", e)
@@ -280,7 +287,7 @@ def rdp_connect(
 
 
 def rdp_connect_ip(laptop_vpn_ip: str, port: int) -> bool:
-    """Ad-hoc RDP to any laptop_port by VPN IP — useful for dynamic targets."""
+    """Ad-hoc RDP to any laptop_port by VPN IP - useful for dynamic targets."""
     endpoint = f"{laptop_vpn_ip}:{port}"
     log.info("Ad-hoc RDP to %s", endpoint)
     try:
@@ -289,6 +296,87 @@ def rdp_connect_ip(laptop_vpn_ip: str, port: int) -> bool:
     except Exception as e:
         log.error("mstsc launch failed: %s", e)
         return False
+
+
+# ---------------------------------------------------------------------------
+# VS Code Remote Tunnel launcher
+# ---------------------------------------------------------------------------
+
+def tunnel_connect(name: str) -> bool:
+    """
+    Open VS Code connected to a vscode_tunnel target via VS Code Remote Tunnels.
+
+    The target must have  protocol: vscode_tunnel  and  tunnel_name: <name>
+    in bridge_targets.yaml.  The laptop must have  code tunnel  (or the
+    'code-tunnel' service) running and registered with the same account.
+
+    Equivalent to clicking  'Connect to Tunnel…'  in VS Code and selecting
+    the machine, or navigating to  vscode.dev/tunnel/<tunnel_name>.
+
+    Example:
+        tunnel_connect("laptop-tunnel")
+    """
+    t = get_target(name)
+    if t is None:
+        log.error("Unknown target %r - run list_targets() to see options.", name)
+        return False
+
+    proto = t.get("protocol", "rdp")
+    if proto != "vscode_tunnel":
+        log.error(
+            "Target %r has protocol %r - tunnel_connect() requires protocol: vscode_tunnel.",
+            name, proto,
+        )
+        return False
+
+    tunnel_name = t.get("tunnel_name")
+    if not tunnel_name:
+        log.error("Target %r has no tunnel_name configured in bridge_targets.yaml.", name)
+        return False
+
+    label = t.get("label", name)
+
+    # Find VS Code executable
+    import shutil as _shutil
+    _vscode_candidates = [
+        Path(r"C:\Users") / _os_env("USERNAME", "") / r"AppData\Local\Programs\Microsoft VS Code\Code.exe",
+        Path(r"C:\Program Files\Microsoft VS Code\Code.exe"),
+        Path(r"C:\Program Files (x86)\Microsoft VS Code\Code.exe"),
+    ]
+    vscode_exe: Optional[Path] = None
+    for c in _vscode_candidates:
+        if c.exists():
+            vscode_exe = c
+            break
+    if vscode_exe is None:
+        found = _shutil.which("code") or _shutil.which("code.cmd")
+        if found:
+            vscode_exe = Path(found)
+
+    # Build the remote URI:  vscode-remote://tunnel+<name>/
+    remote_uri = f"vscode-remote://tunnel+{tunnel_name}/"
+    log.info("Opening VS Code tunnel to %s  [%s]", label, remote_uri)
+
+    if vscode_exe is not None:
+        try:
+            subprocess.Popen([str(vscode_exe), "--folder-uri", remote_uri])
+            return True
+        except Exception as e:
+            log.error("VS Code launch failed: %s", e)
+            return False
+
+    # Fallback: open in default browser (vscode.dev)
+    import webbrowser as _wb
+    fallback_url = f"https://vscode.dev/tunnel/{tunnel_name}"
+    log.info("VS Code not found locally - opening in browser: %s", fallback_url)
+    _wb.open(fallback_url)
+    return True
+
+
+def _os_env(key: str, default: str = "") -> str:
+    """Helper - os.environ.get without importing os at module level."""
+    import os as _os_inner
+    return _os_inner.environ.get(key, default)
 
 
 # ---------------------------------------------------------------------------
@@ -325,7 +413,7 @@ def _launch_freerdp(
 
 
 # ---------------------------------------------------------------------------
-# .rdp file export  (universal — works with any RDP client)
+# .rdp file export  (universal - works with any RDP client)
 # ---------------------------------------------------------------------------
 
 def export_rdp_file(
@@ -339,7 +427,7 @@ def export_rdp_file(
     """
     Write a standard .rdp file for *name* that any RDP client can open.
 
-    output_path — directory or full .rdp file path.
+    output_path - directory or full .rdp file path.
                   Defaults to pipeline/rdp_files/<name>.rdp.
     Returns the Path of the written file, or None on error.
 
@@ -351,7 +439,7 @@ def export_rdp_file(
         log.error("Unknown target %r", name)
         return None
     if t.get("protocol", "rdp") != "rdp":
-        log.error("Target %r is not an RDP target — export skipped.", name)
+        log.error("Target %r is not an RDP target - export skipped.", name)
         return None
 
     endpoint = _build_rdp_endpoint(name, laptop_vpn_ip)
@@ -373,6 +461,12 @@ def export_rdp_file(
         rdp_path = out_dir / f"{name}.rdp"
 
     screen_mode = "2" if fullscreen else "1"
+    # Domain SSO: pre-fill current Windows identity so mstsc uses Kerberos
+    # silently - no credential dialog on domain-joined machines.
+    import os as _os
+    _user   = _os.environ.get("USERNAME", "")
+    _domain = _os.environ.get("USERDOMAIN", "")
+    _domain_user = f"{_domain}\\{_user}" if _domain and _user else _user
     lines = [
         f"full address:s:{endpoint}",
         f"screen mode id:i:{screen_mode}",
@@ -394,8 +488,16 @@ def export_rdp_file(
         "redirectclipboard:i:1",
         "redirectsmartcards:i:0",
         "autoreconnection enabled:i:1",
-        "authentication level:i:2",
+        # NLA / CredSSP - pass current Kerberos ticket, no password prompt
+        "enablecredsspsupport:i:1",
+        "authentication level:i:0",   # 0 = always connect, never warn about cert
         "negotiate security layer:i:1",
+        "prompt for credentials:i:0",
+        "prompt for credentials on client:i:0",
+        f"username:s:{_domain_user}",
+        # Pin the server certificate by thumbprint - eliminates security warning
+        # for self-signed RDP certs on domain machines.
+        *([f"certificate thumbprint:s:{t['cert_thumbprint']}"] if t.get("cert_thumbprint") else []),
         "use multimon:i:0",
         "connection type:i:7",
         "networkautodetect:i:1",
@@ -423,7 +525,7 @@ def _print_targets():
     for t in targets:
         print(col.format(
             t.get("name", ""),
-            t.get("laptop_port") if t.get("laptop_port") is not None else "—",
+            t.get("laptop_port") if t.get("laptop_port") is not None else "-",
             t.get("target_host", ""),
             t.get("target_port", ""),
             t.get("protocol", ""),
@@ -439,11 +541,17 @@ def _print_probe():
     for name, alive in results.items():
         t = get_target(name)
         label = t.get("label", name) if t else name
-        mark  = "OK  " if alive else "FAIL"
+        if alive is None:
+            mark = "N/A "
+        elif alive:
+            mark = "OK  "
+        else:
+            mark = "FAIL"
         print(f"  [{mark}]  {name:<20}  {label}")
-    up   = sum(1 for v in results.values() if v)
-    down = len(results) - up
-    print(f"\n{up}/{len(results)} targets up.")
+    up    = sum(1 for v in results.values() if v is True)
+    na    = sum(1 for v in results.values() if v is None)
+    total = sum(1 for v in results.values() if v is not None)
+    print(f"\n{up}/{total} targets up" + (f"  ({na} N/A)" if na else "") + ".")
 
 
 # ---------------------------------------------------------------------------
@@ -455,7 +563,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         prog="bridge_rdp.py",
-        description="AstecBridge RDP launcher — auto-routes LAN vs bridge",
+        description="AstecBridge RDP launcher - auto-routes LAN vs bridge",
     )
     sub = parser.add_subparsers(dest="cmd")
 
@@ -476,12 +584,15 @@ if __name__ == "__main__":
 
     p_export = sub.add_parser(
         "export",
-        help="Write .rdp file(s) — open with mRemoteNG, Royal TS, Devolutions, FreeRDP, etc.",
+        help="Write .rdp file(s) - open with mRemoteNG, Royal TS, Devolutions, FreeRDP, etc.",
     )
     p_export.add_argument("name",   help="Target name, or 'all' to export every RDP target")
     p_export.add_argument("output", nargs="?", default=None, help="Output file or directory")
 
     sub.add_parser("freerdp", help="Check if FreeRDP (wfreerdp.exe) is installed")
+
+    p_tunnel = sub.add_parser("tunnel", help="Open VS Code connected to a vscode_tunnel target")
+    p_tunnel.add_argument("name", help="Target name with protocol: vscode_tunnel (e.g. laptop-tunnel)")
 
     args = parser.parse_args()
 
@@ -530,6 +641,10 @@ if __name__ == "__main__":
         else:
             print("FreeRDP not found.  Install with:  winget install FreeRDP.FreeRDP")
             sys.exit(1)
+
+    elif args.cmd == "tunnel":
+        ok = tunnel_connect(args.name)
+        sys.exit(0 if ok else 1)
 
     else:
         parser.print_help()
