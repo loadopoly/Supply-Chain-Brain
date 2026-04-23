@@ -1,7 +1,22 @@
-OpenRouter call failed (brain_id=openrouter/pareto-code or_model=deepseek/deepseek-chat-v3-0324:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
-OpenRouter call failed (brain_id=qwen3.5-397b-a17b or_model=qwen/qwen3-235b-a22b:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
-OpenRouter call failed (brain_id=openrouter/auto or_model=deepseek/deepseek-chat-v3-0324:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
-OpenRouter call failed (brain_id=openrouter/bodybuilder or_model=deepseek/deepseek-chat-v3-0324:free): 404 Client Error: Not Found for url: https://openrouter.ai/api/v1/chat/completions
-OpenRouter call failed (brain_id=mimo-v2-flash or_model=google/gemma-3-4b-it:free): 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions
-OpenRouter call failed (brain_id=mimo-v2-flash or_model=google/gemma-3-4b-it:free): 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions
-DBI routed OpenRouter call failed for page=Query Console: 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions
+2026-04-23 12:54:23.761 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `width='stretch'`, use `width='stretch'`. For `width='content'`, use `width='content'`.
+2026-04-23 12:54:23.775 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `width='stretch'`, use `width='stretch'`. For `width='content'`, use `width='content'`.
+2026-04-23 12:54:23.938 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `width='stretch'`, use `width='stretch'`. For `width='content'`, use `width='content'`.
+2026-04-23 12:54:24.036 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `width='stretch'`, use `width='stretch'`. For `width='content'`, use `width='content'`.
+OpenRouter call failed (brain_id=qwen3.5-397b-a17b or_model=qwen/qwen3-next-80b-a3b-instruct:free): 429 Client Error: Too Many Requests for url: https://openrouter.ai/api/v1/chat/completions
+OpenRouter call failed (brain_id=mimo-v2-flash or_model=google/gemma-3n-e4b-it:free): 400 Client Error: Bad Request for url: https://openrouter.ai/api/v1/chat/completions

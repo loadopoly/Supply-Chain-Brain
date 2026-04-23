@@ -110,7 +110,6 @@ with st.expander("🔍 Refine assumptions / SQL override", expanded=False):
 
 sql_to_run = st.session_state.get("eoq_sql","").strip() or DEFAULT_SQL
 
-@st.cache_data(ttl=600, show_spinner="Pulling demand / inventory / cost from Azure SQL …")
 def _load(sql: str, site: str):
     from src.brain.demo_data import auto_load
     if site:

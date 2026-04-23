@@ -38,7 +38,6 @@ _OR_MODEL_MAP: dict[str, str] = {
 _OR_DEFAULT = "openai/gpt-oss-20b:free"
 _OR_FALLBACKS = [
     "openai/gpt-oss-20b:free",
-    "google/gemma-3n-e4b-it:free",
     "google/gemma-3-4b-it:free",
 ]
 _OR_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"

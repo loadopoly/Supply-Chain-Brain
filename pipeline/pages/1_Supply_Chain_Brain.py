@@ -224,14 +224,21 @@ if layout_data and HAS_NX:
         line=dict(width=0.5, color="#334155"), hoverinfo="none", showlegend=False))
     for kind, bucket in by_kind.items():
         fig_g.add_trace(go.Scatter(
-            x=bucket["x"], y=bucket["y"], mode="markers+text",
+            x=bucket["x"], y=bucket["y"], mode="markers",
             marker=dict(size=bucket["size"], color=COLOR_MAP.get(kind,"#a855f7"),
                         line=dict(width=1, color="#1e293b"), opacity=0.92),
-            text=bucket["text"], textposition="top center",
-            textfont=dict(size=8, color="#cbd5e1"),
-            hovertext=bucket["hover"], hoverinfo="text",
+            hovertemplate="%{hovertext}<extra></extra>",
+            hovertext=bucket["hover"],
             customdata=[str(n) for n in bucket["ids"]],
             name=kind.title(), legendgroup=kind, showlegend=True))
+        fig_g.add_trace(go.Scatter(
+            x=bucket["x"], y=bucket["y"], mode="text",
+            text=bucket["text"], textposition="top center",
+            textfont=dict(size=8, color="#cbd5e1"),
+            hoverinfo="skip",
+            showlegend=False,
+            legendgroup=kind,
+        ))
 
     fig_g.update_layout(
         height=600,
