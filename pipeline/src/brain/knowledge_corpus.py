@@ -372,8 +372,8 @@ def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
     Reads every ``kind='ml_research'`` row in ``learning_log`` with
     ``id > since_id`` and upserts:
 
-    * ``MLPaper``       — one entity per paper (entity_id = arxiv_id or title slug)
-    * ``MLDataset``     — one entity per HF dataset (entity_id = dataset_id)
+    * ``MLPaper``       — one entity per paper (entity_id = arxiv_id or DOI slug)
+    * ``MLDataset``     — one entity per research dataset (entity_id = dataset_id)
     * ``ResearchTopic`` — one entity per supply-chain query string
     * Edges:
         - ``MLPaper    ─RESEARCHED_FOR─► ResearchTopic``
@@ -381,9 +381,8 @@ def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
         - keyword-based ``INFORMS`` edges to any existing ``Task`` entities
           whose label overlaps a paper's keywords or title tokens
 
-    Every paper/dataset also reinforces the corpus on repeat corpus rounds
-    (samples counter increments), so the RAG deepdive traverses the
-    freshest, most-cited ML context each cycle.
+    Sources handled: arxiv, openalex, crossref, core, ntrs, arxiv_recent,
+    zenodo (datasets), ml_intern (deep-research summaries).
     """
     try:
         rows = cn.execute(
@@ -436,12 +435,14 @@ def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
 
             props = {
                 "arxiv_id": arxiv_id,
+                "doi": paper.get("doi", ""),
                 "url": paper.get("url", ""),
                 "upvotes": paper.get("upvotes", 0),
                 "citations": paper.get("citations", 0),
                 "year": paper.get("year"),
                 "source": paper.get("source", ""),
                 "keywords": paper.get("keywords", []),
+                "authors": paper.get("authors", []),
             }
             _upsert_entity(cn, stats, entity_id=entity_id,
                            entity_type="MLPaper",
@@ -483,6 +484,7 @@ def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
                 "downloads": ds.get("downloads", 0),
                 "likes": ds.get("likes", 0),
                 "tags": ds.get("tags", []),
+                "source": ds.get("source", ""),
             }
             _upsert_entity(cn, stats, entity_id=ds_id,
                            entity_type="MLDataset", label=ds_id, props=props)
@@ -906,6 +908,109 @@ def _set_cursor(cn, key: str, val: int) -> None:
 # ---------------------------------------------------------------------------
 # Round driver
 # ---------------------------------------------------------------------------
+def _ingest_bridge_observations(cn, stats: _Stats) -> None:
+    """Promote network_topology + bridge_rdp observations into the corpus graph.
+
+    Called on every corpus refresh round.  Reads the ``network_topology``
+    table written by :mod:`src.brain.network_learner` and the declared bridge
+    targets from ``bridge_rdp.list_targets()`` then upserts:
+
+    * ``Endpoint``  entity per discovered host:protocol:port (EMA-updated)
+    * ``REACHABLE`` / ``UNREACHABLE`` edge → linked ``Site`` or ``Peer`` entity
+    * ``SERVES``    edge Endpoint → Peer for reachable compute peers
+    * ``BRIDGES_TO`` edge laptop-relay Endpoint → desktop Endpoint when the
+      piggyback route is verified alive
+
+    This wires the Brain's live network vision into the same entity graph
+    that holds Parts, Suppliers, and MIT OCW courses — giving the RAG deepdive
+    a path from e.g. ``Supplier`` → SQL-server ``Endpoint`` → ``Site`` that
+    hosts the purchase-order database, grounding abstract supply-chain concepts
+    in concrete, observable infrastructure.
+    """
+    # ── Bridge target entities (from bridge_rdp config) ──────────────────────
+    try:
+        import bridge_rdp  # type: ignore[import]
+        bridge_targets   = bridge_rdp.list_targets()
+        bridge_results   = bridge_rdp.probe_all()   # TCP probe each declared target
+    except Exception:
+        bridge_targets  = []
+        bridge_results  = {}
+
+    now_s = datetime.now(timezone.utc).isoformat()
+    for target in bridge_targets:
+        tname   = target.get("name") or ""
+        host    = target.get("target_host") or ""
+        port    = int(target.get("target_port") or 3389)
+        proto   = target.get("protocol") or "rdp"
+        ep_id   = f"bridge:{tname}"
+        alive   = bridge_results.get(tname)   # True / False / None
+
+        if not host:
+            continue
+
+        _upsert_entity(cn, stats, entity_id=ep_id, entity_type="Endpoint",
+                       label=f"{tname} ({host}:{port})",
+                       props={"host": host, "port": port,
+                              "protocol": proto, "bridge_name": tname})
+
+        # Link to an existing Site entity that shares this host address
+        site_row = cn.execute(
+            "SELECT entity_id FROM corpus_entity WHERE entity_type='Site' "
+            "AND (entity_id=? OR props_json LIKE ?)",
+            (host, f"%{host}%"),
+        ).fetchone()
+        if site_row:
+            rel    = "REACHABLE" if alive else "UNREACHABLE"
+            weight = 0.9 if alive else 0.1
+            _upsert_edge(cn, stats, src_id=ep_id, src_type="Endpoint",
+                         dst_id=site_row[0], dst_type="Site", rel=rel, weight=weight)
+
+        # Piggyback: when bridge route is live, create laptop-relay → target edge
+        if alive and proto in ("rdp", "tcp"):
+            relay_id = "bridge:laptop-relay"
+            _upsert_entity(cn, stats, entity_id=relay_id, entity_type="Endpoint",
+                           label="Laptop RDP Relay",
+                           props={"role": "relay", "protocol": "rdp"})
+            _upsert_edge(cn, stats, src_id=relay_id, src_type="Endpoint",
+                         dst_id=ep_id, dst_type="Endpoint",
+                         rel="BRIDGES_TO", weight=0.85)
+
+    # ── Network topology rows (from network_learner) ──────────────────────────
+    try:
+        topo_rows = cn.execute(
+            "SELECT host, protocol, port, capability, "
+            "last_ok, ema_success, ema_latency_ms, source "
+            "FROM network_topology"
+        ).fetchall()
+    except Exception:
+        topo_rows = []
+
+    for row in topo_rows:
+        host, proto, port, cap, last_ok, ema_ok, ema_lat, source = (
+            row["host"], row["protocol"], row["port"], row["capability"],
+            row["last_ok"], row["ema_success"], row["ema_latency_ms"], row["source"],
+        )
+        ep_id = f"{proto}:{host}:{port or 0}"
+        label = f"{cap or host} [{proto}:{port or '?'}]"
+        _upsert_entity(cn, stats, entity_id=ep_id, entity_type="Endpoint",
+                       label=label,
+                       props={"host": host, "port": port, "protocol": proto,
+                              "ema_success": ema_ok, "ema_latency_ms": ema_lat,
+                              "source": source})
+
+        # Reachable compute peer → SERVES edge
+        if ema_ok is not None and float(ema_ok) >= 0.5:
+            peer_row = cn.execute(
+                "SELECT entity_id FROM corpus_entity WHERE entity_type='Peer' "
+                "AND (entity_id=? OR props_json LIKE ?)",
+                (host, f"%{host}%"),
+            ).fetchone()
+            if peer_row:
+                _upsert_edge(cn, stats, src_id=ep_id, src_type="Endpoint",
+                             dst_id=peer_row[0], dst_type="Peer",
+                             rel="SERVES", weight=float(ema_ok))
+
+
 def refresh_corpus_round() -> dict:
     """One incremental sweep across every source stream."""
     if not _enabled():
@@ -966,6 +1071,8 @@ def refresh_corpus_round() -> dict:
         c_ocw = _get_cursor(cn, "ocw_courses")
         try: c_ocw = _ingest_ocw_courses(cn, stats, c_ocw)
         except Exception as e: notes.append(f"ocw_courses: {e}")
+        try: _ingest_bridge_observations(cn, stats)
+        except Exception as e: notes.append(f"bridge_observations: {e}")
 
         _set_cursor(cn, "self_train",  c_st)
         _set_cursor(cn, "dispatch",    c_dsp)
