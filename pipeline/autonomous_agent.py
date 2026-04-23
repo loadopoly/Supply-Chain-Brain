@@ -1250,13 +1250,108 @@ _SYNAPTIC_STOP = _threading.Event()
 _SYNAPTIC_THREADS: list = []
 _SYNAPTIC_STARTED = False
 
+# Per-worker consecutive-failure counters (worker name → int). Used for
+# exponential backoff so a misconfigured connector / corrupt corpus doesn't
+# turn into a tight error loop pinning CPU. Reset to 0 on any successful
+# iteration. Cap multiplier at 8× the base interval (~80-240 min depending
+# on worker) so a permanently-broken dependency still gets retried hourly-ish.
+_SYNAPTIC_FAILURES: dict[str, int] = {}
+_SYNAPTIC_BACKOFF_MAX_MULT = 8
+
 
 def _wait_or_stop(seconds: int) -> bool:
     """Sleep ``seconds`` but wake immediately if shutdown is requested.
 
     Returns ``True`` if shutdown was requested (worker should exit).
     """
-    return _SYNAPTIC_STOP.wait(timeout=seconds)
+    return _SYNAPTIC_STOP.wait(timeout=max(1, int(seconds)))
+
+
+def _next_sleep_with_backoff(name: str, base_interval_s: int,
+                             jitter_s: int, last_ok: bool) -> int:
+    """Compute next sleep for a worker with consecutive-failure backoff.
+
+    Updates ``_SYNAPTIC_FAILURES[name]`` in place: incremented on failure,
+    cleared on success. Sleep multiplier doubles per consecutive failure
+    (1, 2, 4, 8, ... up to ``_SYNAPTIC_BACKOFF_MAX_MULT``). Jitter is added
+    after the multiplier so workers always desync.
+    """
+    import random as _r
+    if last_ok:
+        _SYNAPTIC_FAILURES[name] = 0
+        mult = 1
+    else:
+        prev = _SYNAPTIC_FAILURES.get(name, 0)
+        cur = prev + 1
+        _SYNAPTIC_FAILURES[name] = cur
+        # 1 failure -> 2x, 2 failures -> 4x, 3 -> 8x, etc., capped
+        mult = min(2 ** cur, _SYNAPTIC_BACKOFF_MAX_MULT)
+        # Persist a marker so operators can see degraded workers
+        try:
+            _kv_write(
+                f"synapse_{name}_failures",
+                f"{datetime.now().isoformat()}|consecutive={cur}|next_mult={mult}x",
+            )
+        except Exception:
+            pass
+    return base_interval_s * mult + _r.randint(-jitter_s, jitter_s)
+
+
+def synaptic_agents_status() -> dict:
+    """Return a snapshot of synaptic-worker health for ops/diagnostics.
+
+    Reads the per-worker heartbeat keys from ``brain_kv`` and reports each
+    worker's last-run timestamp, last summary, consecutive-failure count,
+    and a freshness verdict (``"ok"`` / ``"stale"`` / ``"never_ran"``)
+    based on whether the heartbeat is younger than 4× the worker's expected
+    interval. Stale workers indicate the daemon is alive but its iterations
+    are silently dying — a critical condition for the synaptic substrate.
+    """
+    from datetime import timedelta
+    # (kv_key, friendly_name, expected_interval_s)
+    workers = [
+        ("synapse_builder_last",      "synapse-builder",     600),
+        ("synapse_lookahead_7d_last", "synapse-lookahead-7d",  900),
+        ("synapse_lookahead_30d_last","synapse-lookahead-30d", 900),
+        ("synapse_lookahead_90d_last","synapse-lookahead-90d", 900),
+        ("synapse_convergence_last",  "synapse-convergence",  1800),
+    ]
+    out: dict = {
+        "started":        _SYNAPTIC_STARTED,
+        "started_at":     _kv_read("synapse_agents_started", "never"),
+        "thread_count":   len([t for t in _SYNAPTIC_THREADS if t.is_alive()]),
+        "shutdown_set":   _SYNAPTIC_STOP.is_set(),
+        "workers":        [],
+    }
+    now = datetime.now()
+    for kv_key, friendly, interval_s in workers:
+        raw = _kv_read(kv_key, "")
+        ts_iso = raw.split("|", 1)[0] if raw else ""
+        summary = raw.split("|", 1)[1] if "|" in raw else ""
+        try:
+            last_ts = datetime.fromisoformat(ts_iso) if ts_iso else None
+        except Exception:
+            last_ts = None
+        if last_ts is None:
+            verdict = "never_ran"
+            age_s = None
+        else:
+            age_s = int((now - last_ts).total_seconds())
+            verdict = "ok" if age_s < 4 * interval_s else "stale"
+        # short-name → failure count (best-effort match)
+        short = friendly.replace("synapse-", "").split("-")[0]
+        fails = _SYNAPTIC_FAILURES.get(short, 0)
+        out["workers"].append({
+            "name":            friendly,
+            "kv_key":          kv_key,
+            "expected_every":  interval_s,
+            "last_iso":        ts_iso or None,
+            "age_seconds":     age_s,
+            "summary":         summary,
+            "consecutive_failures": fails,
+            "verdict":         verdict,
+        })
+    return out
 
 
 def _synaptic_builder_worker() -> None:
@@ -1268,13 +1363,14 @@ def _synaptic_builder_worker() -> None:
     """
     INTERVAL_S = 600   # 10 min
     JITTER_S   = 60    # ±60s to desync from other workers
+    NAME       = "builder"
     import random as _r
     logging.info("[synapse:builder] started — interval=10min window=24h")
-    # Initial small delay so all four workers don't fire simultaneously
     if _wait_or_stop(_r.randint(5, 30)):
         return
     while not _SYNAPTIC_STOP.is_set():
         t0 = time.time()
+        ok = False
         try:
             r = rag_knowledge_deepdive(
                 window_label="builder_24h",
@@ -1294,10 +1390,11 @@ def _synaptic_builder_worker() -> None:
                 f"[synapse:builder] edges={r.get('edges_discovered',0)} "
                 f"paths={r.get('pathways_explored',0)} elapsed={elapsed}s"
             )
+            ok = True
         except Exception as e:
             logging.warning(f"[synapse:builder] iteration failed: {e}")
-        # Jittered sleep so workers don't synchronise
-        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+        sleep_s = _next_sleep_with_backoff(NAME, INTERVAL_S, JITTER_S, ok)
+        if _wait_or_stop(sleep_s):
             return
 
 
@@ -1313,6 +1410,7 @@ def _lookahead_worker() -> None:
     """
     INTERVAL_S = 900   # 15 min
     JITTER_S   = 90
+    NAME       = "lookahead"
     import random as _r
     # Each window: (label, hours_back_size, offset_hours, kv_key)
     WINDOWS = [
@@ -1328,6 +1426,7 @@ def _lookahead_worker() -> None:
         label, hrs, offset, kvkey = WINDOWS[rotation % len(WINDOWS)]
         rotation += 1
         t0 = time.time()
+        ok = False
         try:
             r = rag_knowledge_deepdive(
                 window_label=label,
@@ -1348,9 +1447,11 @@ def _lookahead_worker() -> None:
                 f"edges={r.get('edges_discovered',0)} "
                 f"paths={r.get('pathways_explored',0)} elapsed={elapsed}s"
             )
+            ok = True
         except Exception as e:
             logging.warning(f"[synapse:lookahead/{label}] failed: {e}")
-        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+        sleep_s = _next_sleep_with_backoff(NAME, INTERVAL_S, JITTER_S, ok)
+        if _wait_or_stop(sleep_s):
             return
 
 
@@ -1366,6 +1467,7 @@ def _dispersed_sweeper_worker() -> None:
     """
     INTERVAL_S = 1200  # 20 min
     JITTER_S   = 120
+    NAME       = "sweeper"
     import random as _r
 
     logging.info("[synapse:sweeper] started — interval=20min mode=connector-rotation")
@@ -1375,6 +1477,7 @@ def _dispersed_sweeper_worker() -> None:
     rotation = 0
     while not _SYNAPTIC_STOP.is_set():
         t0 = time.time()
+        ok = False
         try:
             # Discover connectors at every tick so newly-registered ones
             # automatically join the rotation.
@@ -1386,6 +1489,7 @@ def _dispersed_sweeper_worker() -> None:
                               if c.kind == "sql"]
             if not sql_connectors:
                 logging.info("[synapse:sweeper] no SQL connectors registered yet.")
+                # Not a failure — just nothing to do. Keep base cadence.
                 if _wait_or_stop(INTERVAL_S):
                     return
                 continue
@@ -1413,10 +1517,12 @@ def _dispersed_sweeper_worker() -> None:
             logging.info(
                 f"[synapse:sweeper/{target}] probe rows={n_rows} elapsed={elapsed}s"
             )
+            ok = True
         except Exception as e:
             logging.warning(f"[synapse:sweeper] iteration failed: {e}")
 
-        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+        sleep_s = _next_sleep_with_backoff(NAME, INTERVAL_S, JITTER_S, ok)
+        if _wait_or_stop(sleep_s):
             return
 
 
@@ -1431,6 +1537,7 @@ def _convergence_worker() -> None:
     """
     INTERVAL_S = 1800  # 30 min
     JITTER_S   = 120
+    NAME       = "convergence"
     import random as _r
     logging.info("[synapse:convergence] started — interval=30min")
     if _wait_or_stop(_r.randint(180, 360)):
@@ -1438,6 +1545,7 @@ def _convergence_worker() -> None:
 
     while not _SYNAPTIC_STOP.is_set():
         t0 = time.time()
+        ok = False
         try:
             import sys as _sys
             _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -1461,10 +1569,12 @@ def _convergence_worker() -> None:
                 f"projected {mg.get('nodes_projected',0)}n/"
                 f"{mg.get('edges_projected',0)}e elapsed={elapsed}s"
             )
+            ok = True
         except Exception as e:
             logging.warning(f"[synapse:convergence] iteration failed: {e}")
 
-        if _wait_or_stop(INTERVAL_S + _r.randint(-JITTER_S, JITTER_S)):
+        sleep_s = _next_sleep_with_backoff(NAME, INTERVAL_S, JITTER_S, ok)
+        if _wait_or_stop(sleep_s):
             return
 
 
@@ -1503,7 +1613,13 @@ def start_continuous_synaptic_agents() -> None:
 
 
 def stop_continuous_synaptic_agents(timeout: float = 5.0) -> None:
-    """Signal all synaptic workers to exit and wait briefly for them."""
+    """Signal all synaptic workers to exit and wait briefly for them.
+
+    After this call: ``_SYNAPTIC_STARTED`` is reset, the thread list is
+    cleared, and the failure counters are reset — so a subsequent call to
+    :func:`start_continuous_synaptic_agents` starts a fresh cohort cleanly.
+    """
+    global _SYNAPTIC_STARTED
     if not _SYNAPTIC_STARTED:
         return
     _SYNAPTIC_STOP.set()
@@ -1512,6 +1628,13 @@ def stop_continuous_synaptic_agents(timeout: float = 5.0) -> None:
             t.join(timeout=timeout)
         except Exception:
             pass
+    _SYNAPTIC_THREADS.clear()
+    _SYNAPTIC_FAILURES.clear()
+    _SYNAPTIC_STARTED = False
+    try:
+        _kv_write("synapse_agents_stopped", datetime.now().isoformat())
+    except Exception:
+        pass
     logging.info("Continuous synaptic agents stopped.")
 
 

@@ -2,31 +2,33 @@ from __future__ import annotations
 
 
 
-__version__ = "0.14.6"
+__version__ = "0.14.7"
 
 __release__ = (
 
-    "Continuous Multi-Agent Synaptic Extension (rebased on 0.14.5 OTD fixes). "
-    "autonomous_agent.py: (1) Four daemon worker threads now run continuously "
-    "underneath the main 1-4hr cycle: _synaptic_builder_worker (10min, 24h "
-    "window), _lookahead_worker (15min, rotating 7d/30d/90d dispersed historical "
-    "windows), _dispersed_sweeper_worker (20min, one-connector-per-tick rotation), "
-    "_convergence_worker (30min, refresh_corpus_round + materialize_into_graph). "
-    "(2) rag_knowledge_deepdive() parameterised with window_label, window_hours, "
-    "window_offset_hours, max_iterations, max_entities, explored_kv_key so each "
-    "worker explores its own temporal slice with its own persisted explored-pair "
-    "set. Existing Step 3e.5 call site preserved by defaults. "
-    "(3) start_continuous_synaptic_agents() wired into autonomous_loop() startup; "
-    "stop_continuous_synaptic_agents() with threading.Event cooperative shutdown. "
-    "All workers use SQLite check_same_thread=False, jittered cadences (±60-120s) "
-    "to desynchronise organically, and write per-worker last-run heartbeats to "
-    "brain_kv (synapse_*_last) so operators can observe synaptic activity. "
-    "Result: synapses are pre-built ahead of the slower main cycle's reads "
-    "instead of being constructed only episodically. 100/100 pytest passing."
+    "Synaptic Agents Hardening + Documentation. autonomous_agent.py: "
+    "(1) Added per-worker exponential-backoff failure tracking via "
+    "_next_sleep_with_backoff(): consecutive failures double the sleep "
+    "interval (capped at 8x base) so a misconfigured connector or corrupt "
+    "corpus can't pin CPU in a tight error loop. Backoff is reset on any "
+    "successful iteration. Per-worker failure markers are persisted to "
+    "brain_kv (synapse_<name>_failures) for ops visibility. "
+    "(2) Added synaptic_agents_status() returning a structured snapshot "
+    "of all worker heartbeats with freshness verdicts (ok/stale/never_ran) "
+    "based on whether each heartbeat is younger than 4x the worker's "
+    "expected interval. Stale workers indicate iterations are silently "
+    "dying — a critical condition for the synaptic substrate. "
+    "(3) Hardened stop_continuous_synaptic_agents() to clear thread list, "
+    "reset failure counters, and reset the started flag so re-start "
+    "works cleanly. Writes synapse_agents_stopped heartbeat. "
+    "(4) _wait_or_stop() now floors sleep at 1s for safety. "
+    "(5) Documentation: pipeline/README.md gains a Continuous Synaptic "
+    "Agents section; new docs/CONTINUOUS_SYNAPTIC_AGENTS.md captures "
+    "architecture, cadences, KV keys, and ops runbook. 100/100 pytest."
 
 )
 
-__build_date__ = "2026-04-22"
+__build_date__ = "2026-04-23"
 
 
 
@@ -77,6 +79,7 @@ PHASES = {
 
     "0.14.5": "OTD Recursive Hardening & Training Loop Fix. Daily Review worklists, offline fallback clustering, strict TF trending windows, and seed_otd_direct offline ground-truth seeding.",
     "0.14.6": "Continuous Multi-Agent Synaptic Extension (rebased on 0.14.5). Four daemon worker threads run continuously underneath the main cycle: synaptic-builder (10min, 24h), lookahead (15min, rotating 7d/30d/90d), dispersed-sweeper (20min, connector rotation), convergence (30min). rag_knowledge_deepdive() parameterised for per-worker temporal slicing. start/stop_continuous_synaptic_agents() with threading.Event cooperative shutdown. 100/100 pytest.",
+    "0.14.7": "Synaptic Agents Hardening + Documentation. Per-worker exponential-backoff (cap 8x) on consecutive failures, synaptic_agents_status() health snapshot with freshness verdicts, hardened stop() resets state for clean re-start. README + docs/CONTINUOUS_SYNAPTIC_AGENTS.md ops runbook.",
 
 }
 

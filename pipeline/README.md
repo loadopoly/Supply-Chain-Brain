@@ -145,6 +145,43 @@ every heartbeat cycle.
 
 ---
 
+## Continuous Synaptic Agents (v0.14.6 +)
+
+Underneath the main 1-4 hr autonomous cycle, four lightweight **daemon
+worker threads** run continuously, each focused on a different
+relationally-dispersed temporal slice of the corpus. The goal: synapses
+(corpus_edges) are always pre-built ahead of where the next agent looks,
+so the Brain never has to "think" through a missing bridge.
+
+| Worker                       | Cadence | Slice                                  | What it does                                              |
+|------------------------------|---------|----------------------------------------|-----------------------------------------------------------|
+| `synapse-builder`            | ~10 min | last 24h (near-present)                | RAG deepdive on freshly-active entities                   |
+| `synapse-lookahead`          | ~15 min | rotating 7d / 30d / 90d historical     | Forward-look RAG on dispersed periods                     |
+| `synapse-sweeper`            | ~20 min | one connector per tick (rotation)      | Continuous data freshness probes                          |
+| `synapse-convergence`        | ~30 min | full corpus                            | `refresh_corpus_round` + `materialize_into_graph`         |
+
+All workers:
+
+- run as `threading.Thread(daemon=True)` so they die with the main loop;
+- share a single `threading.Event` (`_SYNAPTIC_STOP`) for cooperative shutdown;
+- use SQLite with `check_same_thread=False`;
+- write a per-tick heartbeat to `brain_kv["synapse_*_last"]`;
+- back off exponentially on consecutive failures (cap 8× base interval) so
+  a misconfigured connector cannot pin CPU in a tight error loop.
+
+Quick health snapshot from a Python REPL or page:
+
+```python
+from autonomous_agent import synaptic_agents_status
+status = synaptic_agents_status()
+for w in status["workers"]:
+    print(w["name"], w["verdict"], w["age_seconds"], "s ago")
+```
+
+Full ops runbook → [`docs/CONTINUOUS_SYNAPTIC_AGENTS.md`](docs/CONTINUOUS_SYNAPTIC_AGENTS.md).
+
+---
+
 ## Layout
 
 ```

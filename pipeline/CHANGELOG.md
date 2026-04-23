@@ -4,6 +4,46 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.14.7 — Synaptic Agents Hardening + Documentation (2026-04-23)
+
+### Added
+- **Per-worker exponential-backoff** in `autonomous_agent.py` via
+  `_next_sleep_with_backoff(name, base, jitter, last_ok)`. Consecutive
+  failures double the sleep multiplier (1×, 2×, 4×, 8× — capped at
+  `_SYNAPTIC_BACKOFF_MAX_MULT = 8`). Backoff resets to 1× on any
+  successful iteration. Per-worker failure markers persist to
+  `brain_kv["synapse_<name>_failures"]` so operators can spot degraded
+  workers without tailing logs.
+- **`synaptic_agents_status()`** — structured snapshot returning
+  `started`, `started_at`, `thread_count`, `shutdown_set`, and a list
+  of per-worker entries with `name`, `last_iso`, `age_seconds`,
+  `summary`, `consecutive_failures`, and a freshness `verdict` of
+  `"ok"` / `"stale"` / `"never_ran"`. A worker is *stale* if its
+  heartbeat is older than 4× its expected interval — the daemon thread
+  is alive but its iterations are silently dying, which is a critical
+  condition for the synaptic substrate.
+- **`docs/CONTINUOUS_SYNAPTIC_AGENTS.md`** — ops runbook covering
+  architecture, cadences, brain_kv keys, backoff behavior, verifying
+  health, and troubleshooting stale workers.
+- **README.md** — new *Continuous Synaptic Agents* section.
+
+### Changed
+- `stop_continuous_synaptic_agents()` now clears `_SYNAPTIC_THREADS`,
+  resets `_SYNAPTIC_FAILURES`, resets the `_SYNAPTIC_STARTED` flag, and
+  writes a `synapse_agents_stopped` heartbeat. Re-starting is now clean.
+- `_wait_or_stop()` floors sleep duration at 1 s (defensive guard
+  against negative sleeps from extreme jitter under pathological
+  configuration).
+
+### Notes
+- All four workers retain their original cadences (10/15/20/30 min) and
+  temporal windows (24h / rotating 7d-30d-90d / connector-rotation /
+  full-corpus). Only failure-mode behavior changed.
+- Hardening is backwards-compatible: workers behave identically when
+  iterations succeed.
+
+---
+
 ## 0.14.6 — Continuous Multi-Agent Synaptic Extension (2026-04-22)
 
 ### Added
