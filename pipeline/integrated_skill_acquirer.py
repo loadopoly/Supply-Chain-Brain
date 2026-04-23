@@ -98,6 +98,17 @@ def perform_skill_acquisition(task):
             logging.info(f"Pushed acquired knowledge back to the Brain via {out_file.name}")
         except Exception as e:
             logging.error(f"Failed to acquire web knowledge {target}: {e}")
+    elif action == "shell_exec":
+        logging.info(f"Executing shell command for skill: {skill_name}")
+        try:
+            result = subprocess.run(target, shell=True, capture_output=True, text=True, timeout=300)
+            out_file = STATE_DIR / f"shell_result_{skill_name.replace(' ', '_')}_{int(time.time())}.txt"
+            with open(out_file, "w", encoding="utf-8") as f:
+                f.write(f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}")
+            logging.info(f"Shell exec completed (rc={result.returncode}). Output: {out_file.name}")
+        except Exception as e:
+            logging.error(f"Shell exec failed for {skill_name}: {e}")
+
     else:
         logging.warning(f"Unknown skill action requested by The Brain: {action}")
 
