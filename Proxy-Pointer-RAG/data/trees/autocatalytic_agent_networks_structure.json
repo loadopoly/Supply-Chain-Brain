@@ -1,0 +1,131 @@
+{
+  "doc_name": "autocatalytic_agent_networks",
+  "line_count": 119,
+  "structure": [
+    {
+      "title": "Autocatalytic Agent Networks in Closed-Loop Environments",
+      "node_id": "0001",
+      "line_num": 1,
+      "nodes": [
+        {
+          "title": "Research: Interactive Platform Modulations, Cross-Tunnel Worming, Syncopatic Synapses, and Iteratively Unbounded System Growth",
+          "node_id": "0002",
+          "line_num": 2
+        },
+        {
+          "title": "Executive Summary",
+          "node_id": "0003",
+          "line_num": 6
+        },
+        {
+          "title": "1. Interactive Platform Modulations",
+          "node_id": "0004",
+          "line_num": 12
+        },
+        {
+          "title": "2. Cross-Tunnel Worming",
+          "node_id": "0005",
+          "line_num": 24,
+          "nodes": [
+            {
+              "title": "Layer 7 Protocol Encapsulation",
+              "node_id": "0006",
+              "line_num": 28
+            },
+            {
+              "title": "Dynamic Bridge Tunneling",
+              "node_id": "0007",
+              "line_num": 32
+            },
+            {
+              "title": "Wormhole Routing",
+              "node_id": "0008",
+              "line_num": 36
+            }
+          ]
+        },
+        {
+          "title": "3. Syncopatic Synapse Creation",
+          "node_id": "0009",
+          "line_num": 42,
+          "nodes": [
+            {
+              "title": "The Actor Model and Micro-Agent Spawning",
+              "node_id": "0010",
+              "line_num": 46
+            },
+            {
+              "title": "Syncopatic Execution",
+              "node_id": "0011",
+              "line_num": 50
+            },
+            {
+              "title": "Generative Code Execution",
+              "node_id": "0012",
+              "line_num": 54
+            }
+          ]
+        },
+        {
+          "title": "4. Symbiotic Value Return",
+          "node_id": "0013",
+          "line_num": 60,
+          "nodes": [
+            {
+              "title": "Shared Vector Corpus Integration via RAG",
+              "node_id": "0014",
+              "line_num": 64
+            },
+            {
+              "title": "Skill Distillation into Reusable Tools",
+              "node_id": "0015",
+              "line_num": 68
+            },
+            {
+              "title": "Federated Gradient Aggregation",
+              "node_id": "0016",
+              "line_num": 72
+            }
+          ]
+        },
+        {
+          "title": "5. Iteratively Unbounded System Growth",
+          "node_id": "0017",
+          "line_num": 78,
+          "nodes": [
+            {
+              "title": "Constructive Neural Architecture Expansion",
+              "node_id": "0018",
+              "line_num": 82
+            },
+            {
+              "title": "Reward-Driven Self-Replication",
+              "node_id": "0019",
+              "line_num": 86
+            },
+            {
+              "title": "Automated Capability Bootstrapping",
+              "node_id": "0020",
+              "line_num": 90
+            },
+            {
+              "title": "Unbounded Cognitive Horizon",
+              "node_id": "0021",
+              "line_num": 94
+            }
+          ]
+        },
+        {
+          "title": "6. Applied Mapping to Current Brain Architecture",
+          "node_id": "0022",
+          "line_num": 100
+        },
+        {
+          "title": "7. Conclusion",
+          "node_id": "0023",
+          "line_num": 116
+        }
+      ]
+    }
+  ]
+}
