@@ -27,7 +27,7 @@ function Set-PortProxy($desktopIp) {
         netsh interface portproxy add    v4tov4 listenport=$($p.listen) listenaddress=0.0.0.0 connectport=$($p.target) connectaddress=$desktopIp | Out-Null
     }
     netsh advfirewall firewall delete rule name="AstecBridge" 2>$null | Out-Null
-    netsh advfirewall firewall add rule name="AstecBridge" dir=in action=allow protocol=TCP localport=33890,14330,8000 | Out-Null
+    netsh advfirewall firewall add rule name="AstecBridge" dir=in action=allow protocol=TCP localport=33890,14330,8000,1080,3128 | Out-Null
 }
 
 function Start-ComputeNode() {
