@@ -35,3 +35,10 @@
 - All dials default to the previous hardcoded values, so behaviour is unchanged on a fresh database.
 - Architecture: `docs/NEURAL_PLASTICITY.md`.
 
+
+## 2026-04-24 — Plasticity wiring extended to Smell, Body, Brain
+- `sense_of_smell.sniff()` now reads `smell.sensitivity` (scales all Dirichlet evidence), `smell.burst_priority` (re-weights the burst receptor), and `smell.tau_jitter` (overrides Sb-125 drift_jitter when caller uses default).
+- `brain_body_signals.surface_effective_signals()` now reads `body.cadence_seconds` for its inter-round floor.
+- `knowledge_corpus.refresh_corpus_round()` now reads `brain.round_min_seconds` for the global Vision round floor.
+- All 20 plasticity dials are now live across the five senses.
+

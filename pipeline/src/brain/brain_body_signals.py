@@ -1130,7 +1130,12 @@ def surface_effective_signals(*, top_k: int | None = None,
 
     init_schema()
     cfg = _cfg()
-    min_seconds = float(cfg.get("min_seconds_between_rounds", 30.0))
+    try:
+        from .neural_plasticity import get_dial as _pl_get
+        min_seconds = float(_pl_get("body", "cadence_seconds",
+                                    cfg.get("min_seconds_between_rounds", 30.0)))
+    except Exception:
+        min_seconds = float(cfg.get("min_seconds_between_rounds", 30.0))
 
     global _LAST_SURFACE_TS
     with _SURFACE_LOCK:
