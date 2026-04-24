@@ -42,3 +42,9 @@
 - `knowledge_corpus.refresh_corpus_round()` now reads `brain.round_min_seconds` for the global Vision round floor.
 - All 20 plasticity dials are now live across the five senses.
 
+
+## 2026-04-24 — Senses interconnected (Smell decay -> Touch -> Vision)
+- `brain_body_signals._update_touch_field()` now reads the latest `sense_of_smell` carrier mass.
+- Computes relational distance as time decay (`1.0 - carrier_mass`).
+- Amplifies the relational force (the Touch gradient pushing pressure up from Body directives) by the proportional time decay, pulling the pressure field harder so Vision focuses more budget on gapped edges.
+

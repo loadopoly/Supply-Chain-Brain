@@ -991,6 +991,19 @@ def _update_touch_field(cn, fresh: list[Directive],
         | set(vision_grads.keys())
     )
 
+    # Read "relational distance" from Smell time decay to amplify Body's relational force
+    try:
+        from .sense_of_smell import recent_smell
+        smell_rows = recent_smell(cn, limit=1)
+        if smell_rows:
+            carrier = float(smell_rows[0].get("carrier_mass", 1.0))
+            # Relational distance = time decay (1.0 - mass). Applied as a force multiplier [1.0, 2.0]
+            force_multiplier = 1.0 + max(0.0, 1.0 - carrier)
+        else:
+            force_multiplier = 1.0
+    except Exception:
+        force_multiplier = 1.0
+
     for kind in all_kinds:
         st = dict(full_state.get(kind) or {})
         v_grad = float(vision_grads.get(kind, 0.0))
@@ -999,7 +1012,7 @@ def _update_touch_field(cn, fresh: list[Directive],
             # Touch firing: Bayesian-Poisson centroid drives the gradient.
             mean_p   = sums[kind] / counts[kind]
             target   = _bayesian_poisson_centroid(st, counts[kind], mean_p)
-            t_grad   = target - float(st.get("pressure", 0.0))
+            t_grad   = (target - float(st.get("pressure", 0.0))) * force_multiplier
             grad     = t_grad + v_grad        # Touch + Vision in one step
         elif kind in resolved_kinds:
             # Resolved this round: synthetic negative gradient + Vision relief.
