@@ -1858,3 +1858,47 @@ def recent_ocw_details(limit: int = 50) -> list[dict]:
     except Exception as exc:
         log.warning(f"ml_research.recent_ocw_details: {exc}")
         return []
+
+
+# ---------------------------------------------------------------------------
+# Adaptive semantic graph traversal — re-exported for single-import convenience
+# ---------------------------------------------------------------------------
+
+def adaptive_cascade_ocw(
+    seed_slug: str,
+    max_hops: int = 3,
+    fan_out: int = 5,
+    endpoint_concepts: list[str] | None = None,
+    decay_lambda: float = 2.5,
+    tunneling_coeff: float = 0.35,
+    beta1: float = 0.9,
+    beta2: float = 0.999,
+) -> dict:
+    """Adaptive BFS traversal with semantic edge ranking, Adam phase-shift
+    detection, and endpoint tunnel bias.
+
+    Delegates to :mod:`src.brain.semantic_graph.adaptive_cascade_ocw`.
+
+    Result dict includes all keys from ``cascade_deepen_ocw`` PLUS:
+    * ``phase_shifts``     — list of hop dicts where inflection was detected
+    * ``edge_potentials``  — {slug: float} for every enqueued node
+    * ``adam_report``      — final Adam tracker state
+    * ``hop_signals``      — {hop_int: mean_signal} per BFS level
+    """
+    try:
+        from src.brain.semantic_graph import (
+            adaptive_cascade_ocw as _adaptive,
+        )
+        return _adaptive(
+            seed_slug=seed_slug,
+            max_hops=max_hops,
+            fan_out=fan_out,
+            endpoint_concepts=endpoint_concepts,
+            decay_lambda=decay_lambda,
+            tunneling_coeff=tunneling_coeff,
+            beta1=beta1,
+            beta2=beta2,
+        )
+    except Exception as exc:
+        log.warning(f"adaptive_cascade_ocw: falling back to standard cascade: {exc}")
+        return cascade_deepen_ocw(seed_slug, hops=max_hops, fan_out=fan_out)

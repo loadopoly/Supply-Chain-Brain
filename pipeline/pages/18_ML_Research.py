@@ -35,6 +35,7 @@ from src.brain.ml_research import (
     recent_ocw_details,
     deepen_ocw_course,
     cascade_deepen_ocw,
+    adaptive_cascade_ocw,
     fetch_ocw_course_detail,
     _SUPPLY_CHAIN_TOPICS,
     _OCW_TOPICS,
@@ -279,13 +280,20 @@ with tab_ocw:
 
     st.divider()
 
-    # ----- Cascade BFS deep-fetch -----
+    # ----- Cascade BFS deep-fetch (standard + adaptive modes) -----
     st.markdown("#### 🕸️ Cascade Graph Expansion")
     st.caption(
-        "Start from any course slug and BFS-traverse the OCW knowledge graph "
-        "up to N hops, absorbing every resource link, related course, and "
-        "external reference into the corpus."
+        "Start from any course slug and BFS-traverse the OCW knowledge graph. "
+        "**Adaptive mode** adds semantic edge ranking, Adam inflection detection, "
+        "and endpoint tunnel bias to extend traversal through relevance valleys."
     )
+
+    _adapt_mode = st.toggle(
+        "⚙️ Adaptive mode — semantic edge potentials + Adam phase-shift + tunnel bias",
+        value=False,
+        key="cascade_adaptive_toggle",
+    )
+
     c1, c2, c3 = st.columns([3, 1, 1])
     cascade_slug = c1.text_input(
         "Seed course slug",
@@ -294,34 +302,126 @@ with tab_ocw:
     )
     cascade_hops = c2.number_input("Hops", min_value=1, max_value=4, value=2, key="cascade_hops")
     cascade_fan  = c3.number_input("Fan-out", min_value=2, max_value=10, value=5, key="cascade_fan")
-    if st.button("🚀 Launch Cascade Deepen", key="cascade_btn", disabled=not cascade_slug):
-        with st.spinner(
-            f"BFS traversal from '{cascade_slug}' — up to {cascade_hops} hops "
-            f"× {cascade_fan} branches each…"
-        ):
-            cascade_result = cascade_deepen_ocw(
-                cascade_slug.strip(),
-                hops=int(cascade_hops),
-                fan_out=int(cascade_fan),
-            )
+
+    if _adapt_mode:
+        with st.expander("🔬 Adaptive tuning parameters", expanded=False):
+            ac1, ac2, ac3, ac4 = st.columns(4)
+            decay_lambda    = ac1.number_input("Edge decay λ",  min_value=0.5, max_value=8.0, value=2.5, step=0.5, key="cas_lambda")
+            tunnel_coeff    = ac2.number_input("Tunnel κ",      min_value=0.0, max_value=1.0, value=0.35, step=0.05, key="cas_tunnel")
+            adam_beta1      = ac3.number_input("Adam β₁",       min_value=0.5, max_value=0.99, value=0.9,  step=0.05, key="cas_b1")
+            adam_beta2      = ac4.number_input("Adam β₂",       min_value=0.9, max_value=0.9999, value=0.999, step=0.001, key="cas_b2", format="%.4f")
+        endpoint_input = st.text_area(
+            "Endpoint concept cluster (one concept per line)",
+            value=(
+                "supply chain optimization machine learning\n"
+                "inventory management deep learning reinforcement\n"
+                "logistics network optimization operations research\n"
+                "demand forecasting neural network probabilistic"
+            ),
+            height=100,
+            key="cascade_endpoints",
+        )
+    else:
+        decay_lambda = 2.5
+        tunnel_coeff = 0.35
+        adam_beta1   = 0.9
+        adam_beta2   = 0.999
+        endpoint_input = ""
+
+    _btn_label = "🚀 Launch Adaptive Cascade" if _adapt_mode else "🚀 Launch Cascade Deepen"
+    if st.button(_btn_label, key="cascade_btn", disabled=not cascade_slug):
+        if _adapt_mode:
+            endpoint_concepts = [
+                ln.strip() for ln in endpoint_input.splitlines() if ln.strip()
+            ] or None
+            with st.spinner(
+                f"Adaptive BFS from '{cascade_slug}' — up to {cascade_hops} hops "
+                f"× {cascade_fan} fan-out · semantic edge ranking · Adam inflection detection…"
+            ):
+                cascade_result = adaptive_cascade_ocw(
+                    cascade_slug.strip(),
+                    max_hops=int(cascade_hops),
+                    fan_out=int(cascade_fan),
+                    endpoint_concepts=endpoint_concepts,
+                    decay_lambda=float(decay_lambda),
+                    tunneling_coeff=float(tunnel_coeff),
+                    beta1=float(adam_beta1),
+                    beta2=float(adam_beta2),
+                )
+        else:
+            with st.spinner(
+                f"BFS traversal from '{cascade_slug}' — up to {cascade_hops} hops "
+                f"× {cascade_fan} branches each…"
+            ):
+                cascade_result = cascade_deepen_ocw(
+                    cascade_slug.strip(),
+                    hops=int(cascade_hops),
+                    fan_out=int(cascade_fan),
+                )
         st.session_state["_cascade_result"] = cascade_result
+        st.session_state["_cascade_adaptive"] = _adapt_mode
 
     cr = st.session_state.get("_cascade_result")
     if cr:
         deepened = cr.get("courses_deepened", [])
         st.success(
             f"Traversal complete — **{len(deepened)} courses** deepened · "
-            f"**{cr.get('rows_written',0)}** corpus rows written · "
-            f"**{cr.get('resources',0)}** resources · "
-            f"**{cr.get('related',0)}** related · "
-            f"**{cr.get('external',0)}** external links"
+            f"**{cr.get('rows_written', 0)}** corpus rows written · "
+            f"**{cr.get('resources', 0)}** resources · "
+            f"**{cr.get('related', 0)}** related · "
+            f"**{cr.get('external', 0)}** external links"
         )
+
+        # Adaptive-mode extras
+        if st.session_state.get("_cascade_adaptive"):
+            phase_shifts = cr.get("phase_shifts", [])
+            adam_rep     = cr.get("adam_report", {})
+            hop_sigs     = cr.get("hop_signals", {})
+            eff_hops     = cr.get("effective_hops", cr.get("max_hops", "?"))
+            max_hops_v   = cr.get("max_hops", "?")
+
+            _ps_col, _ah_col = st.columns(2)
+            with _ps_col:
+                if phase_shifts:
+                    st.info(
+                        f"⚡ **{len(phase_shifts)} phase shift(s)** detected — "
+                        f"hops extended: {max_hops_v} → {eff_hops}"
+                    )
+                    for ps in phase_shifts:
+                        st.markdown(
+                            f"  - Hop **{ps['hop']}**: Adam est `{ps['adam_estimate']}` · "
+                            f"phase amp `{ps['phase_amp']}` · mean signal `{ps['mean_signal']}`"
+                        )
+                else:
+                    st.caption(f"No inflection detected — traversal ran at base hops ({max_hops_v})")
+
+            with _ah_col:
+                if hop_sigs:
+                    st.markdown("**Hop-level signals (Adam input):**")
+                    for hop, sig in sorted(hop_sigs.items()):
+                        bar = "█" * max(1, int(sig * 20))
+                        st.markdown(f"Hop {hop}: `{sig:.3f}` {bar}")
+
+            with st.expander("🧮 Adam tracker state", expanded=False):
+                st.json(adam_rep)
+
+            ep_dict = cr.get("edge_potentials", {})
+            if ep_dict:
+                with st.expander(
+                    f"🔗 Edge potential map ({len(ep_dict)} nodes)", expanded=False
+                ):
+                    ranked_ep = sorted(ep_dict.items(), key=lambda x: x[1], reverse=True)
+                    for slug_ep, pot in ranked_ep:
+                        bar = "▓" * max(1, int(pot * 20))
+                        st.markdown(
+                            f"[{slug_ep}](https://ocw.mit.edu/courses/{slug_ep}/) "
+                            f"— potential `{pot:.4f}` {bar}"
+                        )
+
         if deepened:
             with st.expander(f"Courses visited ({len(deepened)})", expanded=False):
                 for s in deepened:
-                    st.markdown(
-                        f"- [{s}](https://ocw.mit.edu/courses/{s}/)"
-                    )
+                    st.markdown(f"- [{s}](https://ocw.mit.edu/courses/{s}/)")
 
     st.divider()
     st.markdown("#### Monitored OCW Topics (Brain auto-sweeps)")
