@@ -4,7 +4,7 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
-## [0.18.1] rADAM + Directional Intelligence + Systemic Refinement (2026-04-24)
+## [0.18.2] rADAM + Directional Intelligence + Systemic Refinement (2026-04-24)
 
 ### Added
 
