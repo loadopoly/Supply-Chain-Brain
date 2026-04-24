@@ -787,156 +787,6 @@ def _gen_doc_rag_coverage(cn) -> list[Directive]:
     return out
 
 
-def _gen_fallback_parse_warning(cn) -> list[Directive]:
-    """Alert when recent missions were interpreted by the keyword fallback.
-
-    When the LLM ensemble is offline, ``intent_parser.parse()`` falls back to
-    a deterministic keyword classifier whose scope-tag guesses can be wrong —
-    especially for compound or ambiguous queries.  Surfacing this lets IT know
-    the quest was understood imprecisely and prompts a re-parse once the
-    ensemble recovers.
-
-    Reads ``parsed_intent_json`` directly from missions in ``findings_index.db``
-    so it doesn't need the local brain connection.
-    """
-    out: list[Directive] = []
-    try:
-        from . import findings_index, mission_store
-    except Exception:
-        return out
-    try:
-        missions = mission_store.list_open(limit=50)
-    except Exception:
-        return out
-
-    fallback_missions: list[tuple[str, str, str]] = []  # (mid, site, query)
-    for m in missions:
-        pi = getattr(m, "parsed_intent", {}) or {}
-        if pi.get("parser_source") == "fallback_keyword":
-            fallback_missions.append((
-                str(getattr(m, "id", "")),
-                str(getattr(m, "site", "?")),
-                str(getattr(m, "user_query", ""))[:80],
-            ))
-    if not fallback_missions:
-        return out
-
-    n = len(fallback_missions)
-    # Highest priority is when ALL open missions used keyword fallback.
-    all_missions = len(missions)
-    frac = n / all_missions if all_missions else 1.0
-    prio = float(min(0.80, 0.45 + frac * 0.35))
-    titles = "; ".join(f"{mid[:8]}… @ {site}" for mid, site, _ in fallback_missions[:3])
-    plural = "missions were" if n > 1 else "mission was"
-    out.append(Directive(
-        source="mission",
-        signal_kind="quest_fallback_parse",
-        title=f"{n} open {plural} interpreted by keyword fallback — LLM ensemble may be offline",
-        why_it_matters=(
-            "The intent parser fell back to the keyword classifier for one or "
-            "more quests. Keyword parsing can mis-assign scope tags, causing "
-            "the wrong analyzers to run and producing off-target findings. "
-            f"Affected: {titles}"
-        ),
-        do_this=(
-            "Check the LLM ensemble: run `python -c \"from pipeline.src.brain"
-            ".llm_ensemble import dispatch_parallel; print(dispatch_parallel("
-            "'intent_parse', {'kind':'text','text':'test'}).answer)\"`. "
-            "Once ensemble is up, re-open each affected mission to trigger "
-            "a fresh LLM parse, or delete and re-submit the quest query."
-        ),
-        owner_role="IT",
-        priority=prio,
-        severity=_severity(prio),
-        target_entity=None,
-        evidence={"fallback_missions": n, "total_open": all_missions,
-                  "mission_ids": [mid for mid, _, _ in fallback_missions[:5]]},
-    ))
-    return out
-
-
-def _gen_scope_underpowered(cn) -> list[Directive]:
-    """Detect missions that have been open >6 h with zero progress.
-
-    When a quest is submitted and the matching analyzers produce nothing
-    (progress_pct == 0.0 after several hours), the scope tags probably don't
-    align with available ERP data at that site — the quest may have been
-    misunderstood or the data source is offline.
-
-    Only fires for missions whose ``parsed_intent.parser_source`` is NOT
-    'fallback_keyword' (that case is already covered by
-    ``_gen_fallback_parse_warning``).
-    """
-    out: list[Directive] = []
-    try:
-        from . import mission_store, quests
-    except Exception:
-        return out
-    try:
-        missions = mission_store.list_open(limit=50)
-    except Exception:
-        return out
-
-    now = datetime.now(timezone.utc)
-    for m in missions:
-        pct = float(getattr(m, "progress_pct", 0.0) or 0.0)
-        if pct > 0.0:
-            continue
-        pi = getattr(m, "parsed_intent", {}) or {}
-        if pi.get("parser_source") == "fallback_keyword":
-            continue  # already flagged by _gen_fallback_parse_warning
-        created = getattr(m, "created_at", "") or ""
-        try:
-            ts = datetime.fromisoformat(created.replace("Z", "+00:00"))
-            age_h = (now - ts).total_seconds() / 3600.0
-        except Exception:
-            age_h = 0.0
-        if age_h < 6.0:
-            continue  # too new — give the analyzer time to run
-
-        mid = str(getattr(m, "id", ""))
-        site = str(getattr(m, "site", "?"))
-        scope_tags = getattr(m, "scope_tags", []) or []
-        quest_id = getattr(m, "quest_id", "")
-        try:
-            quest = quests.get_quest(quest_id)
-            quest_label = quest.name if quest else quest_id
-        except Exception:
-            quest_label = quest_id
-
-        prio = float(min(0.75, 0.40 + age_h / 72.0))
-        out.append(Directive(
-            source="mission",
-            signal_kind="quest_scope_underpowered",
-            title=(
-                f"Mission '{quest_label}' @ {site} has 0% progress after "
-                f"{age_h:.0f} h — scope tags may not match available data"
-            ),
-            why_it_matters=(
-                f"The quest scope ({', '.join(scope_tags) or 'unknown'}) has "
-                f"been active for {age_h:.0f} hours but the analyzers haven't "
-                f"produced any findings. Either the ERP data for this scope is "
-                f"unavailable at '{site}', or the quest was ambiguous and the "
-                f"wrong analyzers were triggered."
-            ),
-            do_this=(
-                f"1) Verify ERP connectivity: open the Connectors page and "
-                f"confirm Azure SQL / Oracle data is flowing. "
-                f"2) Re-read the original query (see Mission {mid}) and "
-                f"consider rephrasing it to be more specific. "
-                f"3) If the site has no ERP data for the given scope, close "
-                f"the mission and change the target site."
-            ),
-            owner_role="Anyone",
-            priority=prio,
-            severity=_severity(prio),
-            target_entity=f"Mission::{mid}",
-            evidence={"mission_id": mid, "age_hours": round(age_h, 1),
-                      "scope_tags": scope_tags, "site": site},
-        ))
-    return out
-
-
 _GENERATORS: list[Callable] = [
     _gen_low_dispatch_quality,
     _gen_peer_unreachable,
@@ -947,8 +797,6 @@ _GENERATORS: list[Callable] = [
     _gen_mission_signals,
     _gen_corpus_stagnation,
     _gen_doc_rag_coverage,
-    _gen_fallback_parse_warning,
-    _gen_scope_underpowered,
 ]
 
 
@@ -1069,7 +917,15 @@ def _adam_step(state: dict, gradient: float) -> float:
 
     state must hold {m, v, t, pressure}.  Mutates state in place and
     returns the new pressure value clamped to [0, 1].
+    Learning rate is read from neural_plasticity (anneals as corpus
+    matures) with _TOUCH_LR as the default.
     """
+    try:
+        from .neural_plasticity import get_dial as _pl_get
+        lr = float(_pl_get("touch", "learning_rate", _TOUCH_LR))
+    except Exception:
+        lr = _TOUCH_LR
+
     m_prev = float(state.get("m", 0.0))
     v_prev = float(state.get("v", 0.0))
     t_prev = int(state.get("t", 0))
@@ -1083,7 +939,7 @@ def _adam_step(state: dict, gradient: float) -> float:
     m_hat = m / (1.0 - _TOUCH_BETA1 ** t)
     v_hat = v / (1.0 - _TOUCH_BETA2 ** t)
 
-    step  = _TOUCH_LR * m_hat / ((v_hat ** 0.5) + _TOUCH_EPS)
+    step  = lr * m_hat / ((v_hat ** 0.5) + _TOUCH_EPS)
     p_new = max(0.0, min(1.0, p_prev + step))
 
     state["m"]        = m
@@ -1293,7 +1149,14 @@ def surface_effective_signals(*, top_k: int | None = None,
 
         # Sort by priority descending, optional top-k cap.
         all_directives.sort(key=lambda d: -d.priority)
-        cap = int(top_k or cfg.get("max_directives_per_round", 25))
+        # Plasticity-driven cap — grows with directive history so Touch can
+        # act on more signals once it has demonstrated capacity.
+        try:
+            from .neural_plasticity import get_dial as _pl_get
+            pl_cap = int(_pl_get("touch", "max_directives", 25.0))
+        except Exception:
+            pl_cap = int(cfg.get("max_directives_per_round", 25))
+        cap = int(top_k or pl_cap)
         all_directives = all_directives[:cap]
 
         # ── Stale-directive collapse (inverse-ReLU floor) ─────────────────

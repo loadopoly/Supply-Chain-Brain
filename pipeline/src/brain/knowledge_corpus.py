@@ -1644,10 +1644,16 @@ def _torus_schedule(phase: int,
     Returns a dict: blade_name → {"fires": bool, "mode": "broaden"|"deepen",
                                    "forced": bool, "theta_minor": int}
     """
+    # Plasticity-driven force threshold (defaults to module-level constant).
+    try:
+        from .neural_plasticity import get_dial as _pl_get
+        force_thr = float(_pl_get("vision", "force_threshold", _PRESSURE_FORCE))
+    except Exception:
+        force_thr = _PRESSURE_FORCE
     out: dict[str, dict] = {}
     for blade, period, offset, kinds in _TOROIDAL_BLADES:
         natural = (phase % period) == offset
-        forced  = any(pressure.get(k, 0.0) >= _PRESSURE_FORCE for k in kinds)
+        forced  = any(pressure.get(k, 0.0) >= force_thr for k in kinds)
         theta_m = (phase // max(period, 1)) % 2
         mode    = "deepen" if theta_m == 1 else "broaden"
         out[blade] = {
@@ -2088,8 +2094,13 @@ def refresh_corpus_round() -> dict:
 
     # Steering thresholds — pressure above this forces an outreach even
     # when entities_added > 0, so Touch signals can drive Vision actively
-    # rather than only when the round is dry.
-    _PRESSURE_THRESHOLD = 0.30
+    # rather than only when the round is dry.  Threshold value is supplied
+    # by the neural_plasticity agent so it relaxes as the corpus grows.
+    try:
+        from .neural_plasticity import get_dial as _pl_get
+        _PRESSURE_THRESHOLD = float(_pl_get("vision", "pressure_threshold", 0.30))
+    except Exception:
+        _PRESSURE_THRESHOLD = 0.30
     _force_dw   = touch_pressure.get("missing_category", 0.0) >= _PRESSURE_THRESHOLD or \
                   touch_pressure.get("high_centrality_part", 0.0) >= _PRESSURE_THRESHOLD
     _force_ocw  = touch_pressure.get("corpus_rag_saturated", 0.0) >= _PRESSURE_THRESHOLD or \
@@ -2238,6 +2249,18 @@ def refresh_corpus_round() -> dict:
     except Exception as _e:
         notes.append(f"touch_surface: {_e}")
 
+    # ── Neural plasticity: rewire sense capability dials based on growth ────
+    # The agent measures the new corpus state (entities, edges, learnings,
+    # smell readings, directives) and ADAM-smooths every per-sense dial
+    # toward its growth-driven target. Senses (Vision, Touch, Smell, Body,
+    # Brain) read the dials at the start of their next cycle.
+    plasticity_summary: dict = {}
+    try:
+        from .neural_plasticity import rewire_round as _rewire
+        plasticity_summary = _rewire() or {}
+    except Exception as _e:
+        notes.append(f"neural_plasticity: {_e}")
+
     return {
         "ran_at": datetime.now(timezone.utc).isoformat(),
         "entities_added": stats.entities_added,
@@ -2259,6 +2282,11 @@ def refresh_corpus_round() -> dict:
             "ocw": bool(_force_ocw),
             "net": bool(_force_net),
         },
+        "plasticity": {
+            "ran":       not bool(plasticity_summary.get("skipped")),
+            "knowledge": plasticity_summary.get("knowledge"),
+            "dials":     plasticity_summary.get("dials"),
+        } if plasticity_summary else None,
         "notes": notes,
     }
 

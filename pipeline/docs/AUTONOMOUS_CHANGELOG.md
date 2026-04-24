@@ -25,3 +25,13 @@
 - Round output now exposes `vision_ops_out` and `touch_summary_out.vision_grads_in` for full closed-loop observability.
 - Architecture details: `docs/VISION_TOUCH_CLOSED_LOOP.md`.
 
+
+## 2026-04-24 — Neural plasticity rewiring agent
+- New module `pipeline/src/brain/neural_plasticity.py` — measures knowledge state across all five senses (entities, edges, learnings, doc chunks, smell readings, directives, rounds) and ADAM-smooths per-sense capability dials toward growth-driven targets each round.
+- Vision dials wired: `pressure_threshold` and `force_threshold` are now read from plasticity state in `knowledge_corpus.py` (relax as corpus grows).
+- Touch dials wired: `max_directives` and `learning_rate` are now read from plasticity state in `brain_body_signals.py` (cap grows, lr anneals).
+- Smell, Body, and Brain dials defined and persisted; ready for incremental wiring.
+- `rewire_round()` called from `refresh_corpus_round()` tail after Touch surface; round summary now exposes `plasticity.{ran, knowledge, dials}`.
+- All dials default to the previous hardcoded values, so behaviour is unchanged on a fresh database.
+- Architecture: `docs/NEURAL_PLASTICITY.md`.
+
