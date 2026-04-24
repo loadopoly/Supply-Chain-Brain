@@ -991,6 +991,44 @@ def _ingest_schema_vision(cn, stats: _Stats) -> None:
             detail={"table_count": n_tables, "source": str(schema_path.name)},
         )
 
+    # ── Vision scan: Introduction to SCB docs directory ───────────────────────
+    # Walk the SCB docs folder and create/affirm a Document entity for each
+    # discovered JSON file so Vision knows which knowledge artefacts exist,
+    # even before the SCB ingestor has fully parsed them.
+    scb_root = _PIPELINE_ROOT / "docs" / "Introduction to SCB"
+    if scb_root.exists():
+        scb_json_files = list(scb_root.rglob("*.json"))
+        scb_content_files = list(scb_root.rglob("content"))
+        n_scb = 0
+        for fpath in scb_json_files:
+            doc_eid = f"scb_file:{fpath.name}"
+            _upsert_entity(cn, stats, entity_id=doc_eid, entity_type="Document",
+                           label=f"SCB doc: {fpath.name}",
+                           props={
+                               "path": str(fpath.relative_to(_PIPELINE_ROOT)),
+                               "size_kb": round(fpath.stat().st_size / 1024, 1),
+                               "source": "scb_vision_scan",
+                           })
+            # Link each discovered file → the root export document
+            _upsert_edge(cn, stats,
+                         src_id="scb_docs:grok_export", src_type="Document",
+                         dst_id=doc_eid, dst_type="Document",
+                         rel="HAS_FILE", weight=0.9)
+            n_scb += 1
+        if n_scb or scb_content_files:
+            _log_learning(
+                cn, stats,
+                kind="vision",
+                title=(f"SCB Vision scan: {n_scb} JSON + "
+                       f"{len(scb_content_files)} asset files in Introduction to SCB"),
+                signal=0.85,
+                detail={
+                    "json_files": n_scb,
+                    "asset_files": len(scb_content_files),
+                    "root": str(scb_root.relative_to(_PIPELINE_ROOT)),
+                },
+            )
+
 
 # ---------------------------------------------------------------------------
 # DW Vision Outreach — expansive entity discovery when the round is dry
@@ -1624,6 +1662,296 @@ def _torus_schedule(phase: int,
 
 
 # ---------------------------------------------------------------------------
+# SCB document corpus ingestor — Grok conversation export
+# ---------------------------------------------------------------------------
+
+# Static SCB topic → existing Task/Quest cross-links
+# Each entry: topic_slug → list of (entity_id, entity_type, weight)
+_SCB_TOPIC_TASK_MAP: dict[str, list[tuple[str, str, float]]] = {
+    "cycle count": [
+        ("abc_classify",               "Task",  0.80),
+        ("cc_reason_classify",         "Task",  0.75),
+        ("cc_reason_classify_syteline","Task",  0.72),
+        ("quest:optimize_supply_chains","Quest", 0.70),
+    ],
+    "abc classification": [
+        ("abc_classify",               "Task",  0.85),
+        ("fast_classify",              "Task",  0.70),
+        ("quest:optimize_supply_chains","Quest", 0.65),
+    ],
+    "vendor consolidation": [
+        ("vendor_consolidation",       "Task",  0.90),
+        ("quest:optimize_supply_chains","Quest", 0.70),
+    ],
+    "on-time delivery": [
+        ("otd_root_cause",             "Task",  0.85),
+        ("otd_classify",               "Task",  0.80),
+        ("quest:fulfillment",          "Quest", 0.75),
+    ],
+    "procurement": [
+        ("vendor_consolidation",       "Task",  0.75),
+        ("cross_dataset_review",       "Task",  0.65),
+    ],
+    "freight logistics": [
+        ("quest:fulfillment",          "Quest", 0.80),
+        ("cross_dataset_review",       "Task",  0.60),
+    ],
+    "inventory management": [
+        ("abc_classify",               "Task",  0.75),
+        ("quest:optimize_supply_chains","Quest", 0.70),
+    ],
+    "demand planning": [
+        ("quest:optimize_supply_chains","Quest", 0.80),
+        ("cross_dataset_review",       "Task",  0.65),
+    ],
+    "erp oracle": [
+        ("cross_dataset_review",       "Task",  0.75),
+        ("quest:optimize_supply_chains","Quest", 0.65),
+    ],
+    "supply chain analytics": [
+        ("quest:optimize_supply_chains","Quest", 0.85),
+        ("cross_dataset_review",       "Task",  0.70),
+        ("vendor_consolidation",       "Task",  0.60),
+    ],
+    "cycle count reason": [
+        ("cc_reason_classify",         "Task",  0.85),
+        ("cc_reason_classify_syteline","Task",  0.82),
+        ("abc_classify",               "Task",  0.65),
+    ],
+}
+
+# Keyword sets used to detect each topic in conversation text
+_SCB_TOPIC_KEYWORDS: dict[str, set[str]] = {
+    "cycle count":          {"cycle", "count", "counting", "cycle count"},
+    "abc classification":   {"abc", "abc class", "abc classification", "abc assign"},
+    "vendor consolidation": {"vendor", "consolidat", "supplier consolid"},
+    "on-time delivery":     {"otd", "on-time", "on time delivery", "delivery performance", "promised"},
+    "procurement":          {"procurement", "purchase order", "po ", "sourcing"},
+    "freight logistics":    {"freight", "logistics", "shipping", "carrier"},
+    "inventory management": {"inventory", "stock", "warehouse", "on-hand"},
+    "demand planning":      {"demand", "planning", "forecast", "mrp"},
+    "erp oracle":           {"erp", "oracle fusion", "oracle inventory", "oracle cloud"},
+    "supply chain analytics":{"supply chain", "scb", "analytics", "data", "dashboard"},
+    "cycle count reason":   {"cycle count reason", "count reason", "discrepancy reason"},
+}
+
+# Academic topic cross-links for SC conversations
+_SCB_ACADEMIC_HINTS: list[tuple[str, str]] = [
+    ("inventory",      "inventory theory"),
+    ("supply chain",   "supply chain management"),
+    ("logistics",      "logistics systems"),
+    ("procurement",    "operations research"),
+    ("manufacturing",  "manufacturing systems"),
+    ("demand",         "production planning"),
+    ("erp",            "engineering systems design"),
+    ("warehouse",      "inventory theory"),
+    ("vendor",         "operations research"),
+    ("freight",        "logistics systems"),
+]
+
+_SCB_DOCS_PATH = (_PIPELINE_ROOT / "docs" / "Introduction to SCB"
+                  / "ttl" / "30d" / "export_data"
+                  / "9826f3fc-ec86-4751-8129-de43d903e27e"
+                  / "prod-grok-backend.json")
+
+# Minimum SC keyword hit-density (hits/1000 chars of assistant text) to count a
+# conversation as supply-chain relevant.
+_SCB_DENSITY_THRESHOLD = 0.40
+
+# Supply chain keyword set for fast density calculation
+_SC_KEYWORDS = frozenset([
+    "supply chain", "inventory", "vendor", "procurement", "otd", "erp",
+    "oracle", "on-time", "cycle count", "abc", "pfep", "parts", "warehouse",
+    "freight", "astec", "purchase order", "supplier", "demand", "logistics",
+    "scb", "fulfillment", "manufacturing", "cycle", "count reason",
+    "consolidat", "delivery performance",
+])
+
+
+def _scb_keyword_density(text: str) -> float:
+    """Return SC keyword hits per 1 000 chars of *text*."""
+    if not text:
+        return 0.0
+    lower = text.lower()
+    hits = sum(1 for kw in _SC_KEYWORDS if kw in lower)
+    return hits / (len(lower) / 1000.0)
+
+
+def _scb_detected_topics(text: str) -> list[str]:
+    """Return sorted list of SCB topic slugs whose keywords appear in *text*."""
+    lower = text.lower()
+    found: list[str] = []
+    for topic, kwset in _SCB_TOPIC_KEYWORDS.items():
+        if any(kw in lower for kw in kwset):
+            found.append(topic)
+    return sorted(found)
+
+
+def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
+    """Ingest the Grok conversation export from ``docs/Introduction to SCB``.
+
+    Reads ``prod-grok-backend.json`` (the full Grok data export).  Uses an
+    integer file-mtime cursor so the full parse only re-runs when the export
+    file is replaced / updated.
+
+    Upserts:
+    * ``Document``         — one entity for the Grok export file itself
+    * ``GrokConversation`` — one entity per supply-chain-relevant conversation
+    * ``SCBTopic``         — one entity per detected SC topic slug
+
+    Edges:
+    * ``Document          ─CONTAINS──► GrokConversation``
+    * ``GrokConversation  ─DISCUSSES──► SCBTopic``
+    * ``GrokConversation  ─EXPLORES──► AcademicTopic``  (existing AT cross-links)
+    * ``SCBTopic          ─INFORMS───► Task / Quest``   (static mapping above)
+
+    Returns the new mtime int (to be stored as cursor for next round).
+    """
+    if not _SCB_DOCS_PATH.exists():
+        return since_mtime
+
+    current_mtime = int(_SCB_DOCS_PATH.stat().st_mtime)
+    if current_mtime == since_mtime:
+        return since_mtime  # no change since last ingest
+
+    # ── Load Grok export ──────────────────────────────────────────────────────
+    try:
+        raw = json.loads(_SCB_DOCS_PATH.read_text(encoding="utf-8"))
+    except Exception as e:
+        logging.debug(f"corpus:scb_docs: could not parse JSON: {e}")
+        return since_mtime
+
+    conversations = raw.get("conversations", [])
+    if not conversations:
+        return current_mtime
+
+    # ── Document root entity (the export file) ────────────────────────────────
+    doc_id = "scb_docs:grok_export"
+    _upsert_entity(cn, stats, entity_id=doc_id, entity_type="Document",
+                   label="Introduction to SCB — Grok Conversation Export",
+                   props={
+                       "path": str(_SCB_DOCS_PATH),
+                       "conversations_total": len(conversations),
+                       "source": "xAI Grok",
+                       "export_date": "2026-04-24",
+                   })
+
+    # ── Pre-fetch existing AcademicTopics for cross-linking ───────────────────
+    try:
+        at_rows = cn.execute(
+            "SELECT entity_id FROM corpus_entity WHERE entity_type='AcademicTopic'"
+        ).fetchall()
+        academic_topic_ids = {r["entity_id"].lower(): r["entity_id"] for r in at_rows}
+    except Exception:
+        academic_topic_ids = {}
+
+    # ── Process each conversation ─────────────────────────────────────────────
+    sc_conv_count = 0
+    topic_conv_map: dict[str, list[str]] = {}  # topic → [conv_ids] for logging
+
+    for i, conv_wrapper in enumerate(conversations):
+        conv_meta  = conv_wrapper.get("conversation", {})
+        responses  = conv_wrapper.get("responses", [])
+        conv_uuid  = conv_meta.get("_id") or conv_meta.get("id") or f"conv_{i}"
+
+        # Collect all text from this conversation
+        all_assistant = " ".join(
+            r.get("response", {}).get("message", "")
+            for r in responses
+            if r.get("response", {}).get("sender") == "assistant"
+        )
+        all_human = " ".join(
+            r.get("response", {}).get("message", "")
+            for r in responses
+            if r.get("response", {}).get("sender") == "human"
+        )
+        full_text = all_assistant + " " + all_human
+
+        density = _scb_keyword_density(full_text)
+        if density < _SCB_DENSITY_THRESHOLD:
+            continue  # not SC-relevant enough
+
+        sc_conv_count += 1
+        topics = _scb_detected_topics(full_text)
+        signal = min(0.95, 0.55 + density * 0.08)  # density → [0.55, 0.95]
+
+        # Conversation entity
+        conv_id   = f"grok:conv_{i}"
+        first_q   = all_human[:100].strip().replace("\n", " ")
+        n_asst    = sum(1 for r in responses
+                        if r.get("response", {}).get("sender") == "assistant")
+        _upsert_entity(cn, stats, entity_id=conv_id,
+                       entity_type="GrokConversation",
+                       label=first_q or conv_id,
+                       props={
+                           "conv_uuid":  conv_uuid,
+                           "topics":     topics,
+                           "density":    round(density, 3),
+                           "n_responses":n_asst,
+                           "signal":     round(signal, 3),
+                       })
+
+        # Document → Conversation
+        _upsert_edge(cn, stats, src_id=doc_id, src_type="Document",
+                     dst_id=conv_id, dst_type="GrokConversation",
+                     rel="CONTAINS", weight=signal)
+
+        # ── Topic entities + DISCUSSES edges ──────────────────────────────────
+        for topic in topics:
+            topic_conv_map.setdefault(topic, []).append(conv_id)
+            _upsert_entity(cn, stats, entity_id=f"scb_topic:{topic}",
+                           entity_type="SCBTopic", label=topic,
+                           props={"source": "grok_export"})
+            _upsert_edge(cn, stats,
+                         src_id=conv_id,  src_type="GrokConversation",
+                         dst_id=f"scb_topic:{topic}", dst_type="SCBTopic",
+                         rel="DISCUSSES", weight=signal)
+
+        # ── AcademicTopic cross-links from this conversation ──────────────────
+        lower_full = full_text.lower()
+        for hint_kw, at_label in _SCB_ACADEMIC_HINTS:
+            if hint_kw in lower_full:
+                at_id = academic_topic_ids.get(at_label.lower())
+                if at_id:
+                    _upsert_edge(cn, stats,
+                                 src_id=conv_id, src_type="GrokConversation",
+                                 dst_id=at_id, dst_type="AcademicTopic",
+                                 rel="EXPLORES", weight=round(signal * 0.9, 3))
+
+        # Log one learning per SC conversation
+        _log_learning(cn, stats, kind="scb_doc",
+                      title=f"SCB Grok conv[{i}]: {first_q[:60]}",
+                      signal=signal,
+                      detail={
+                          "conv_id":  conv_id,
+                          "topics":   topics,
+                          "density":  round(density, 3),
+                          "n_asst":   n_asst,
+                      })
+
+    # ── SCBTopic → Task / Quest static cross-links ────────────────────────────
+    for topic, linked_convs in topic_conv_map.items():
+        topic_eid = f"scb_topic:{topic}"
+        for (target_id, target_type, weight) in _SCB_TOPIC_TASK_MAP.get(topic, []):
+            # Only link if the target Task/Quest actually exists in the corpus
+            exists = cn.execute(
+                "SELECT 1 FROM corpus_entity WHERE entity_id=? AND entity_type=?",
+                (target_id, target_type),
+            ).fetchone()
+            if exists:
+                _upsert_edge(cn, stats,
+                             src_id=topic_eid,  src_type="SCBTopic",
+                             dst_id=target_id,  dst_type=target_type,
+                             rel="INFORMS", weight=weight)
+
+    logging.info(
+        f"corpus:scb_docs: {sc_conv_count}/{len(conversations)} SC-relevant "
+        f"conversations; {len(topic_conv_map)} topics detected"
+    )
+    return current_mtime
+
+
+# ---------------------------------------------------------------------------
 # Round driver
 # ---------------------------------------------------------------------------
 def _ingest_bridge_observations(cn, stats: _Stats) -> None:
@@ -1819,6 +2147,10 @@ def refresh_corpus_round() -> dict:
         c_ocwr = _get_cursor(cn, "ocw_resources")
         try: c_ocwr = _ingest_ocw_resources(cn, stats, c_ocwr)
         except Exception as e: notes.append(f"ocw_resources: {e}")
+        # ── SCB docs: Grok conversation export from docs/Introduction to SCB ──
+        c_scb = _get_cursor(cn, "scb_docs_mtime")
+        try: c_scb = _ingest_scb_docs(cn, stats, c_scb)
+        except Exception as e: notes.append(f"scb_docs: {e}")
         _net_before = stats.entities_added
         try: _ingest_bridge_observations(cn, stats)
         except Exception as e: notes.append(f"bridge_observations: {e}")
@@ -1865,6 +2197,7 @@ def refresh_corpus_round() -> dict:
         _set_cursor(cn, "ml_research", c_mlr)
         _set_cursor(cn, "ocw_courses", c_ocw)
         _set_cursor(cn, "ocw_resources", c_ocwr)
+        _set_cursor(cn, "scb_docs_mtime", c_scb)
 
         graph_backend = ((load_config().get("graph") or {}).get("backend")) or "networkx"
 
