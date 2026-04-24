@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# SQLite databases (runtime state)
+*.sqlite
+*.sqlite3
+*.db
+
+# Pytest cache
+.pytest_cache/
+
+# Mission snapshots (runtime ephemeral data)
+pipeline/snapshots/missions/
+
+# PIM screenshots (binary artifacts)
+pipeline/pim_screenshots/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.sublime-workspace
+
+# Secrets / env
+.env
+*.env
+secrets.json

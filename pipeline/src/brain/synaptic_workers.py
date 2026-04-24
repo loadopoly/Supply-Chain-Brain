@@ -156,6 +156,7 @@ def synaptic_agents_status() -> dict:
         ("synapse_lookahead_90d_last", "synapse-lookahead-90d", 900),
         ("synapse_convergence_last",   "synapse-convergence",  1800),
         ("synapse_vision_last",        "synapse-vision",        300),
+        ("synapse_torus_last",         "synapse-torus",          30),
     ]
     out: dict = {
         "started":      _SYNAPTIC_STARTED,
@@ -618,6 +619,26 @@ def _vision_worker() -> None:
                 except sqlite3.OperationalError:
                     pass  # network_topology not yet created
 
+                # ── Step 4: symbiotic tunneling — horizontal Brain expansion ─
+                # Closed-loop tcp/udp mesh constraint → Bayesian/Poisson
+                # centroids of synaptic weights → inverted-ReLU ADAM nudge →
+                # propeller routing of new SYMBIOTIC_TUNNEL edges.
+                tunnel_stats: dict = {}
+                try:
+                    from src.brain.symbiotic_tunnel import (  # type: ignore[import]
+                        vision_horizontal_expand,
+                    )
+                    tunnel_stats = vision_horizontal_expand(cn)
+                except Exception as e:
+                    if _is_network_error(e):
+                        logging.info(
+                            f"[synapse:vision] symbiotic tunnel soft-skip: {e}"
+                        )
+                    else:
+                        logging.warning(
+                            f"[synapse:vision] symbiotic_tunnel error: {e}"
+                        )
+
                 cn.commit()
             finally:
                 cn.close()
@@ -628,11 +649,16 @@ def _vision_worker() -> None:
                 f"{datetime.now().isoformat()}"
                 f"|live={live}|down={down}"
                 f"|bridge={bridge_count}|topo={topo_count}"
+                f"|tunnel_added={tunnel_stats.get('edges_added', 0)}"
+                f"|tunnel_opt={tunnel_stats.get('edges_optimised', 0)}"
                 f"|elapsed={elapsed}s",
             )
             logging.info(
                 f"[synapse:vision] live={live} down={down} "
-                f"bridge={bridge_count} topo={topo_count} elapsed={elapsed}s"
+                f"bridge={bridge_count} topo={topo_count} "
+                f"tunnel+={tunnel_stats.get('edges_added', 0)} "
+                f"tunnel~={tunnel_stats.get('edges_optimised', 0)} "
+                f"elapsed={elapsed}s"
             )
             ok = True
 
@@ -642,6 +668,72 @@ def _vision_worker() -> None:
                 ok = True
             else:
                 logging.warning(f"[synapse:vision] iteration failed: {e}")
+
+        sleep_s = _next_sleep_with_backoff(NAME, INTERVAL_S, JITTER_S, ok)
+        if _wait_or_stop(sleep_s):
+            return
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Worker #6 — torus Touch (continuous boundary pressure on T^7, ~30s)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _torus_touch_worker() -> None:
+    """Constantly push Touch against the torus edge.
+
+    Every ~30 seconds this worker runs ``tick_torus_pressure`` which reads
+    every ``Endpoint`` corpus entity, places it on the 7-D torus :math:`T^7`,
+    measures the categorical occupancy gap field, and steps each endpoint
+    one tick along the gap gradient (mod :math:`2\\pi`).
+
+    The result is a *continuous* outward pressure that expands informational
+    gaps in the multidimensional CAT state — the discrete tunneling pass in
+    ``_vision_worker`` then fires every 5 minutes against the spread-out
+    manifold, finding pairs that the static graph never could.
+
+    Soft-fails on any DB error and continues; never holds the connection.
+    """
+    INTERVAL_S = 30
+    JITTER_S   = 5
+    NAME       = "torus"
+
+    logging.info("[synapse:torus] started — interval=30s (T^7 boundary pressure)")
+    if _wait_or_stop(random.randint(2, 8)):
+        return
+
+    while not _SYNAPTIC_STOP.is_set():
+        t0 = time.time()
+        ok = False
+        diag: dict = {}
+        try:
+            _pkg = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            sys.path.insert(0, _pkg)
+            from src.brain.local_store import db_path as _db_path  # type: ignore[import]
+            from src.brain.torus_touch import tick_torus_pressure  # type: ignore[import]
+
+            cn = sqlite3.connect(str(_db_path()))
+            try:
+                diag = tick_torus_pressure(cn)
+            finally:
+                cn.close()
+
+            elapsed = round(time.time() - t0, 2)
+            _sw_kv_write(
+                "synapse_torus_last",
+                f"{datetime.now().isoformat()}"
+                f"|endpoints={diag.get('endpoints', 0)}"
+                f"|moved={diag.get('moved', 0)}"
+                f"|gap={round(diag.get('gap_after', 0.0), 4)}"
+                f"|spread={diag.get('spread_after', 0.0)}%"
+                f"|elapsed={elapsed}s",
+            )
+            ok = True
+        except Exception as e:
+            if _is_network_error(e):
+                logging.info(f"[synapse:torus] soft-skip: {e}")
+                ok = True
+            else:
+                logging.warning(f"[synapse:torus] tick failed: {e}")
 
         sleep_s = _next_sleep_with_backoff(NAME, INTERVAL_S, JITTER_S, ok)
         if _wait_or_stop(sleep_s):
@@ -672,6 +764,7 @@ def start_continuous_synaptic_agents() -> None:
         ("synapse-sweeper",     _dispersed_sweeper_worker),
         ("synapse-convergence", _convergence_worker),
         ("synapse-vision",      _vision_worker),
+        ("synapse-torus",       _torus_touch_worker),
     ]
     for name, fn in workers:
         t = threading.Thread(target=fn, name=name, daemon=True)

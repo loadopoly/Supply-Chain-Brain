@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-__version__ = "0.15.0"
+__version__ = "0.16.0"
 __release__ = (
-    "4-ERP xlsx pipeline (Epicor/Oracle/SyteLine/AX) · Brain page fixes · "
-    "EOQ query optimisation. Adds OneDrive-based live data flow for all four "
-    "ERP systems without SQL credentials, fixes cache decorator on graph builder, "
-    "moves connector status to Connectors page only, and speeds up EOQ column "
-    "resolution with a 30-min cache."
+    "Symbiotic Dynamic Tunneling + Torus-Touch (T^7). Adds two new brain "
+    "modules: src/brain/symbiotic_tunnel.py (Bayesian-Poisson centroids, "
+    "inverted-ReLU ADAM, dual-floor mirror, propeller routing) and "
+    "src/brain/torus_touch.py (continuous 7-D categorical pressure on the "
+    "toroidal manifold).  The vision worker mints SYMBIOTIC_TUNNEL edges "
+    "every 5 min; the new torus worker pushes endpoints along the gap "
+    "gradient every 30 s so tunnel weights follow manifold geometry. "
+    "29 unit tests added."
 )
-__build_date__ = "2026-04-23"
+__build_date__ = "2026-04-24"
 
 PHASES = {
     "0.1.0": "Phase 1 - core (EOQ Bayesian-Poisson, OTD recursive, Procurement 360, Data Quality, Connectors)",
@@ -27,4 +30,6 @@ PHASES = {
     "0.7.1": "Ask the Data cross-dataset report generation. Fixed global connection uninitialized bug. Fixed SQL column queries across analytical pages.",
     "0.8.0": "Massive UX/Actionable overhaul: SQLite local store, NLP-part categorization, Global date windows, semantic action-TODO engine, OTD local-owner tracking, and cross-page metric fixes.",
     "0.14.9": "OCW semantic bridge + synaptic worker protection + network vision worker. Workers moved to synaptic_workers.py. Sweeper treats network errors as soft skips. _vision_worker probes bridge_rdp + piggyback topology every 5 min and materialises Endpoint entities into corpus graph.",
+    "0.15.0": "4-ERP xlsx pipeline (Epicor/Oracle/SyteLine/AX) + Brain page fixes + EOQ query optimisation.",
+    "0.16.0": "Symbiotic Dynamic Tunneling + Torus-Touch. symbiotic_tunnel.vision_horizontal_expand mints SYMBIOTIC_TUNNEL edges from closed-loop tcp/udp mesh using Bayesian-Poisson centroids, inverted-ReLU ADAM, dual-floor mirror, and propeller routing. torus_touch runs continuously (30 s) pushing every Endpoint along the n=7 categorical gap gradient on the toroidal manifold, so tunnel weights follow manifold geometry. 29 unit tests in tests/test_symbiotic_torus.py.",
 }
