@@ -133,8 +133,27 @@ def get_active_candidates(cfg: dict | None = None) -> list[dict]:
 
 
 def tick_candidate(model_id: str, success: bool, latency_ms: int,
-                   cfg: dict | None = None) -> None:
-    """Record one dispatch result for a trial candidate (EMA update)."""
+                   cfg: dict | None = None,
+                   key_miss: bool = False) -> None:
+    """Record one dispatch result for a trial candidate (EMA update).
+
+    Args:
+        model_id:   Candidate model id.
+        success:    Whether the call returned a usable response.
+        latency_ms: Wall-clock call time in milliseconds.
+        cfg:        Optional pre-loaded config (avoids re-reading brain.yaml).
+        key_miss:   When True the call was skipped entirely because the API key
+                    was absent or in backoff.  EMA is NOT updated — a missing
+                    key is not a model quality signal.  Only the raw dispatch
+                    counter is left unchanged so the trial clock doesn't advance
+                    on non-events.
+    """
+    if key_miss:
+        logger.debug(
+            "llm_candidate: skipping tick for %s (key_miss=True — no credential signal)",
+            model_id,
+        )
+        return
     alpha = float(_trial_params(cfg).get("ema_alpha", 0.10))
     with _conn() as cn:
         row = cn.execute(

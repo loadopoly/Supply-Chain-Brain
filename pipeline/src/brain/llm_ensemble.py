@@ -471,6 +471,17 @@ def _try_dispatch_candidates(task: str, payload: Any,
     Candidate responses are intentionally discarded; only EMA success/latency
     stats are accumulated.  After every 10th call this function also runs
     ``evaluate_candidates()`` to check promote/reject thresholds.
+
+    Key-awareness:
+    - Before attempting a candidate call, ``llm_key_guard.check_key()`` probes
+      the model's endpoint_env.  If the key is absent or in backoff the tick is
+      skipped entirely (``key_miss=True``) so the EMA is not penalised for a
+      credential gap rather than a model quality failure.
+    - Auth errors (401/403) from the caller are caught and forwarded to
+      ``key_guard.record_auth_error()`` which applies the same backoff.
+    - When ALL candidates are key-locked, ``key_guard.redirect_to_best()``
+      logs which registered model the task would route through next — the main
+      ensemble already handles the actual answer, so no extra call is made.
     """
     try:
         from .llm_candidate import (  # noqa: PLC0415
@@ -478,6 +489,8 @@ def _try_dispatch_candidates(task: str, payload: Any,
             tick_candidate,
             evaluate_candidates,
         )
+        from . import llm_key_guard as _kguard  # noqa: PLC0415
+        from .llm_caller_openrouter import AuthError  # noqa: PLC0415
     except ImportError:
         return
 
@@ -485,11 +498,16 @@ def _try_dispatch_candidates(task: str, payload: Any,
     if not candidates:
         return
 
-    import os  # noqa: PLC0415 — deferred to keep cold-import cost near zero
+    import os  # noqa: PLC0415
     timeout_s = float(cfg.get("request_timeout_s", 45))
 
-    def _run_candidate(spec: dict) -> tuple[str, bool, int]:
+    # 4-tuple: (model_id, ok, latency_ms, key_miss)
+    def _run_candidate(spec: dict) -> tuple[str, bool, int, bool]:
         env_name = str(spec.get("endpoint_env") or "")
+        if not _kguard.check_key(env_name):
+            # Key absent or in backoff — report key_miss without calling the model.
+            return spec["id"], False, 0, True
+
         d = Decision(
             model_id=spec["id"],
             vendor=str(spec.get("vendor", "")),
@@ -505,22 +523,50 @@ def _try_dispatch_candidates(task: str, payload: Any,
         t0 = time.perf_counter()
         try:
             invoke(d, payload, cfg)
-            return spec["id"], True, int((time.perf_counter() - t0) * 1000)
+            _kguard.record_success(env_name)
+            return spec["id"], True, int((time.perf_counter() - t0) * 1000), False
+        except AuthError:
+            # 401/403: key is present but invalid/revoked — apply auth backoff.
+            _kguard.record_auth_error(env_name)
+            return spec["id"], False, int((time.perf_counter() - t0) * 1000), True
         except Exception:
-            return spec["id"], False, int((time.perf_counter() - t0) * 1000)
+            # Transient error: the key was fine but the call failed — real signal.
+            return spec["id"], False, int((time.perf_counter() - t0) * 1000), False
 
+    locked_envs: set[str] = set()
     with ThreadPoolExecutor(max_workers=max(1, len(candidates))) as pool:
         futures = {pool.submit(_run_candidate, spec): spec for spec in candidates}
         for fut in as_completed(futures, timeout=timeout_s):
             spec = futures[fut]
             try:
-                mid, ok, ms = fut.result(timeout=0)
+                mid, ok, ms, is_key_miss = fut.result(timeout=0)
             except Exception:
-                mid, ok, ms = spec["id"], False, int(timeout_s * 1000)
-            try:
-                tick_candidate(mid, ok, ms)
-            except Exception as exc:
-                logger.debug("llm_candidate tick failed for %s: %s", mid, exc)
+                mid, ok, ms, is_key_miss = spec["id"], False, int(timeout_s * 1000), False
+            if is_key_miss:
+                env = str(spec.get("endpoint_env") or "")
+                if env:
+                    locked_envs.add(env)
+                logger.debug(
+                    "llm_candidate sidecar: %s skipped — key unavailable (env=%s)",
+                    mid, env or "<none>",
+                )
+            else:
+                try:
+                    tick_candidate(mid, ok, ms)
+                except Exception as exc:
+                    logger.debug("llm_candidate tick failed for %s: %s", mid, exc)
+
+    # Dimensionality redirection: log what the Brain is routing through while
+    # candidates are locked.  The main ensemble's answer is already produced;
+    # this surfaces the redirect path for observability.
+    if locked_envs and len(locked_envs) == len(candidates):
+        best = _kguard.redirect_to_best(task, exclude_envs=locked_envs)
+        if best:
+            logger.info(
+                "key_guard: all candidates key-locked — task '%s' served by "
+                "registry model '%s' (score=%.3f)",
+                task, best.model_id, best.score,
+            )
 
     # Check promote / reject thresholds every 10 candidate dispatches.
     global _candidate_dispatch_count

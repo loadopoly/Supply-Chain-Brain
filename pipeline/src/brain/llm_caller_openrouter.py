@@ -27,6 +27,7 @@ log = logging.getLogger(__name__)
 # brain.yaml uses canonical internal IDs; OpenRouter uses vendor/name:free slugs.
 # These slugs are grounded to the current OpenRouter catalog as of 2026-04-23.
 _OR_MODEL_MAP: dict[str, str] = {
+    # ── Main registry (free tier) ─────────────────────────────────────────
     "gemma-4":              "google/gemma-4-31b-it:free",
     "glm-5.1":              "z-ai/glm-4.5-air:free",
     "qwen3.5-397b-a17b":    "qwen/qwen3-next-80b-a3b-instruct:free",
@@ -34,6 +35,9 @@ _OR_MODEL_MAP: dict[str, str] = {
     "kimi-k2.5":            "openai/gpt-oss-20b:free",
     "minimax-m2.7":         "minimax/minimax-m2.5:free",
     "mimo-v2-flash":        "google/gemma-3n-e4b-it:free",
+    # ── Candidates (paid tier — require OR account with credits) ──────────
+    "deepseek-v4-pro":      "deepseek/deepseek-v4-pro",
+    "deepseek-v4-flash":    "deepseek/deepseek-v4-flash",
 }
 _OR_DEFAULT = "openai/gpt-oss-20b:free"
 _OR_FALLBACKS = [
@@ -41,6 +45,11 @@ _OR_FALLBACKS = [
     "google/gemma-3-4b-it:free",
 ]
 _OR_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+# ── Distinct exception so callers can distinguish auth failure from transient ──
+class AuthError(Exception):
+    """Raised when OpenRouter returns 401 or 403 (bad or revoked key)."""
+
 
 _key: str | None = None
 
@@ -98,21 +107,39 @@ def openrouter_caller(decision: Any, payload: Any, _cfg: dict) -> Any:
             "max_tokens": 350,
             "temperature": 0.35,
         }
-        try:
-            r = requests.post(_OR_BASE_URL, headers=headers, json=body, timeout=7)
-            r.raise_for_status()
-            data = r.json()
-            text = data["choices"][0]["message"]["content"].strip()
-            log.debug("OpenRouter OK model=%s chars=%d", or_model, len(text))
-            return {"text": text, "confidence": 0.9, "model": or_model}
-        except Exception as exc:
-            last_exc = exc
-            log.warning(
-                "OpenRouter call failed (brain_id=%s or_model=%s): %s",
-                decision.model_id,
-                or_model,
-                exc,
-            )
+        # Retry transient errors (429 rate-limit, 503 overload) with backoff.
+        # Auth errors (401, 403) are raised immediately as AuthError so the
+        # key_guard can record them and apply a longer backoff cooldown.
+        for attempt in range(3):
+            try:
+                r = requests.post(_OR_BASE_URL, headers=headers,
+                                  json=body, timeout=7)
+                if r.status_code in (401, 403):
+                    raise AuthError(
+                        f"OpenRouter auth error {r.status_code} for {or_model}: {r.text[:200]}"
+                    )
+                if r.status_code in (429, 503):
+                    backoff = 2.0 ** attempt
+                    log.warning(
+                        "OpenRouter %d on %s — retry in %.1fs (attempt %d/3)",
+                        r.status_code, or_model, backoff, attempt + 1,
+                    )
+                    time.sleep(backoff)
+                    continue
+                r.raise_for_status()
+                data = r.json()
+                text = data["choices"][0]["message"]["content"].strip()
+                log.debug("OpenRouter OK model=%s chars=%d", or_model, len(text))
+                return {"text": text, "confidence": 0.9, "model": or_model}
+            except AuthError:
+                raise  # propagate immediately — no point retrying
+            except Exception as exc:
+                last_exc = exc
+                log.warning(
+                    "OpenRouter call failed (brain_id=%s or_model=%s attempt=%d): %s",
+                    decision.model_id, or_model, attempt + 1, exc,
+                )
+                break  # non-transient error on this slug — try next slug
 
     if last_exc is not None:
         raise last_exc

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "0.18.0"
+__version__ = "0.18.1"
 __release__ = (
     "Grounded Tunneling: certainty-anchored expansory pathway collapser. "
     "grounded_tunneling.py adds compute_endpoint_certainty (Bayesian posterior "
