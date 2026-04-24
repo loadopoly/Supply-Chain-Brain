@@ -156,7 +156,12 @@ class TouchPressure:
         field: CatGapField,
         prev_velocity: np.ndarray | None = None,
         rng: np.random.Generator | None = None,
+        step_multipliers: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Apply one pressure step.  *step_multipliers* (shape ``(N,)``) scales
+        the radial step per-endpoint — grounded_tunneling writes amplification
+        factors for nodes on active resistance paths to expand torsional bounds.
+        """
         if rng is None:
             rng = np.random.default_rng()
         N = angles_matrix.shape[0]
@@ -170,7 +175,8 @@ class TouchPressure:
         for n in range(N):
             g = field.gradient_at(angles_matrix[n], pmf)
             j = rng.normal(0.0, self.jitter, size=field.dims)
-            nv = self.momentum * v[n] + self.step * g + j
+            scale = float(step_multipliers[n]) if step_multipliers is not None else 1.0
+            nv = self.momentum * v[n] + self.step * scale * g + j
             new_v[n] = nv
             new_a[n] = (angles_matrix[n] + nv) % (2.0 * math.pi)
         return new_a, new_v
@@ -301,8 +307,28 @@ def tick_torus_pressure(
     pmf_before = field.histogram(angles)
     diag_before = gap_field_summary(pmf_before, field)
 
+    # Read per-endpoint torus amplification factors written by grounded_tunneling.
+    # Nodes on active resistance paths receive AMPLIFY_FACTOR (default 1.8) so
+    # their radial step is boosted, expanding the torsional manifold boundary.
+    amplify = np.ones(len(eids), dtype=float)
+    try:
+        for i, eid in enumerate(eids):
+            row = cn.execute(
+                "SELECT value FROM kv_store WHERE key=?",
+                (f"torus_amplify:{eid}",),
+            ).fetchone()
+            if row and row[0]:
+                try:
+                    amplify[i] = float(row[0])
+                except (ValueError, TypeError):
+                    pass
+    except sqlite3.OperationalError:
+        pass
+
     pressure = TouchPressure(step=step)
-    new_angles, new_velocity = pressure.apply(angles, pmf_before, field, velocity)
+    new_angles, new_velocity = pressure.apply(
+        angles, pmf_before, field, velocity, step_multipliers=amplify,
+    )
     pmf_after = field.histogram(new_angles)
     diag_after = gap_field_summary(pmf_after, field)
 

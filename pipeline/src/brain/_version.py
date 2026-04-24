@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-__version__ = "0.17.0"
+__version__ = "0.17.1"
 __release__ = (
-    "UEQGM + AI Knowledge Expansion Research Tracks. Adds "
-    "_EXTENDED_RESEARCH_TOPICS (47 queries across 8 clusters) to "
-    "src/brain/ml_research.py, derived from the user's active Grok 3 "
-    "research thread. Covers: quantum dynamics/wavefunction models, "
-    "superconducting qubit architectures, topological condensed matter, "
-    "biohybrid quantum systems, astrophysical timing (FRBs, pulsars, "
-    "muonic decay, gravitational wave memory, neutrino superradiance), "
-    "AI knowledge graph self-reference, ensemble LLM/RAG, and organic "
-    "data structures. The extended sweep runs before the SC topic loop "
-    "so physics/AI context is already in the corpus when supply chain "
-    "systems engineering topics are processed."
+    "Grounded Tunneling: certainty-anchored expansory pathway collapser. "
+    "grounded_tunneling.py adds compute_endpoint_certainty (Bayesian posterior "
+    "precision anchor), find_expansory_pathway (BFS toward low-certainty / "
+    "high-torus-gap frontiers), RESISTANCE_DURATION weight resistance records "
+    "in kv_store, torus_amplify:{eid} torsional boundary boost, and nodal_collapse "
+    "(expired paths distil into permanent GROUNDED_TUNNEL edges). "
+    "torus_touch.TouchPressure.apply() gains step_multipliers for per-endpoint "
+    "amplification. _vision_worker Step 5 calls ground_and_expand each vision cycle. "
+    "8 new unit tests in TestGroundedTunneling (38 total, all green)."
 )
 __build_date__ = "2026-04-24"
 
@@ -36,4 +34,5 @@ PHASES = {
     "0.15.0": "4-ERP xlsx pipeline (Epicor/Oracle/SyteLine/AX) + Brain page fixes + EOQ query optimisation.",
     "0.16.0": "Symbiotic Dynamic Tunneling + Torus-Touch. symbiotic_tunnel.vision_horizontal_expand mints SYMBIOTIC_TUNNEL edges from closed-loop tcp/udp mesh using Bayesian-Poisson centroids, inverted-ReLU ADAM, dual-floor mirror, and propeller routing. torus_touch runs continuously (30 s) pushing every Endpoint along the n=7 categorical gap gradient on the toroidal manifold, so tunnel weights follow manifold geometry. 29 unit tests in tests/test_symbiotic_torus.py.",
     "0.17.0": "UEQGM + AI Knowledge Expansion Research Tracks. _EXTENDED_RESEARCH_TOPICS (47 queries, 8 clusters) added to ml_research.py from the active Grok 3 thread: quantum dynamics, biohybrid computing, moiré superlattices, astrophysical timing, AI knowledge graph self-reference, ensemble LLM/RAG, archival AI training, organic data structures. Extended sweep runs before SC loop so foundational physics/AI context precedes supply chain systems engineering acquisition each cycle.",
+    "0.17.1": "Grounded Tunneling. grounded_tunneling.py: certainty-anchored expansory pathway collapser. Ground nodes (top-quartile Bayesian certainty) open BFS paths toward uncertain (low-certainty, high-torus-gap) frontiers with RESISTANCE_DURATION weight immunity + torus_amplify torsional boost. Expired paths undergo nodal collapse → new permanent GROUNDED_TUNNEL edge. torus_touch.TouchPressure gains step_multipliers for per-endpoint amplification. _vision_worker Step 5 wires ground_and_expand. 8 new unit tests (TestGroundedTunneling), 38 total, all green. Oracle schema map expanded (Demand Priority Rules, B2B Trading Partners, ECN Tracking, General Ledger Journals, Supply Network maintenance). oracle_schema_mapper.py ADF task panel hardened with computed-style section-header detection and fallback link scraping. Corpus diagnostic (_cohesion_report.py), bilateral Vision<->Touch test harness (_test_bilateral.py), ADAM optimiser unit test (_test_adam.py), Oracle Fusion intersection map (build_intersection_map.py) added. brain_body_signals.py gains 2 quest-comprehension generators (_gen_fallback_parse_warning, _gen_scope_underpowered); knowledge_corpus.py gains SCB Grok conversation ingestor (_ingest_scb_docs) and extended vision scan for SCB docs directory.",
 }

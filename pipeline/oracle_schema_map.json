@@ -103,9 +103,16 @@
     ],
     "quick_actions": [
       "Quick Actions",
+      "AppsAnalytics",
+      "Apps",
+      "Analytics",
+      "AppsInstalled Base Assets",
+      "Installed Base Assets",
       "Manage Price Lists",
       "Manage Discount Lists",
       "Show More",
+      "AppsnewAstec ECN Tracking Application",
+      "new",
       "Add Item",
       "Things to Finish",
       "PreviousAssigned to Me0Created by Me0You have no open notifications.Show More",
@@ -117,7 +124,6 @@
       "Created by Me0",
       "Created by Me",
       "AnalyticsRefresh to load content.Refresh",
-      "Analytics",
       "Refresh to load content.Refresh",
       "Refresh to load content.",
       "Refresh"
@@ -127,9 +133,66 @@
         "title": "Manage Price Lists - Pricing Administration - Oracle Fusion Cloud Applications",
         "tile": "Manage Price Lists",
         "task_sections": {
-          "Application Default": [],
-          "--------": [],
-          "Personalize...": []
+          "Application Default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1378,
+                  "cy": 411
+                }
+              ]
+            },
+            {
+              "header": "Status",
+              "tasks": []
+            },
+            {
+              "header": "Start Date",
+              "tasks": []
+            }
+          ],
+          "--------": [
+            {
+              "header": "Personalize Saved Searches",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1378,
+                  "cy": 411
+                }
+              ]
+            },
+            {
+              "header": "Status",
+              "tasks": []
+            },
+            {
+              "header": "Start Date",
+              "tasks": []
+            }
+          ],
+          "Personalize...": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1378,
+                  "cy": 411
+                }
+              ]
+            },
+            {
+              "header": "Status",
+              "tasks": []
+            },
+            {
+              "header": "Start Date",
+              "tasks": []
+            }
+          ]
         },
         "raw_visible": [
           "ActionsDownload Spreadsheet to Maintain Price List Data",
@@ -182,7 +245,18 @@
         "title": "Manage Discount Lists - Pricing Administration - Oracle Fusion Cloud Applications",
         "tile": "Manage Discount Lists",
         "task_sections": {
-          "Application Default": [],
+          "Application Default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1378,
+                  "cy": 368
+                }
+              ]
+            }
+          ],
           "findByName": [],
           "--------": [],
           "Personalize...": []
@@ -217,53 +291,7 @@
           "Reorder",
           "Reorder",
           "End Date",
-          "End Date",
-          "Pricing Charges",
-          "Pricing Charges",
-          "Manage Price Lists",
-          "Manage Price Lists",
-          "Manage Price Lists - New",
-          "Manage Price Lists - New",
-          "Manage Returns Price Lists",
-          "Manage Returns Price Lists",
-          "Manage Cost Lists",
-          "Manage Cost Lists",
-          "Manage Cost Lists - New",
-          "Manage Cost Lists - New",
-          "Manage Discount Lists",
-          "Manage Discount Lists - New",
-          "Manage Discount Lists - New",
-          "Shipping ChargesManage Shipping Charge Lists",
-          "Shipping ChargesManage Shipping Charge Lists",
-          "Shipping Charges",
-          "Shipping Charges",
-          "Manage Shipping Charge Lists",
-          "Manage Shipping Charge Lists",
-          "Manage Shipping Charge Lists",
-          "Pricing RulesManage Guidelines",
-          "Pricing RulesManage Guidelines",
-          "Pricing Rules",
-          "Pricing Rules",
-          "Manage Guidelines",
-          "Manage Guidelines",
-          "Manage Guidelines",
-          "Pricing Strategies",
-          "Pricing Strategies",
-          "Manage Customer Pricing Profiles",
-          "Manage Customer Pricing Profiles",
-          "Manage Pricing Segments",
-          "Manage Pricing Segments",
-          "Manage Pricing Strategies",
-          "Manage Pricing Strategies",
-          "Manage Pricing Strategy Assignments",
-          "Manage Pricing Strategy Assignments",
-          "Pricing ConfigurationManage Service Mappings",
-          "Pricing ConfigurationManage Service Mappings",
-          "Pricing Configuration",
-          "Pricing Configuration",
-          "Manage Service Mappings",
-          "Manage Service Mappings",
-          "Manage Service Mappings"
+          "End Date"
         ],
         "task_panel_options": [
           "Application Default",
@@ -420,12 +448,6 @@
           "Others",
           "Others",
           "Apps",
-          "Pay",
-          "Pay",
-          "Time and Absences",
-          "Time and Absences",
-          "Personal Information",
-          "Personal Information",
           "Quality Management",
           "Quality Management",
           "Inventory Management (Classic)",
@@ -436,26 +458,6 @@
           "Supply Orchestration",
           "Supply Chain Orchestration",
           "Supply Chain Orchestration",
-          "Supply Planning",
-          "Supply Planning",
-          "Replenishment Planning",
-          "Replenishment Planning",
-          "AppsProduct DevelopmentProduct Information Management",
-          "Product DevelopmentProduct Information Management",
-          "AppsJournals",
-          "Journals",
-          "Purchase Orders",
-          "Purchase Orders",
-          "My Receipts",
-          "My Receipts",
-          "Catalogs",
-          "Catalogs",
-          "Supplier Dashboard",
-          "Supplier Dashboard",
-          "Reports and Analytics",
-          "Reports and Analytics",
-          "Scheduled Processes",
-          "Scheduled Processes",
           "You have no open notifications.",
           "You have no open notifications.",
           "You have no open notifications."
@@ -540,7 +542,18 @@
         "title": "Overview - Work Execution - Oracle Fusion Cloud Applications",
         "tile": "Work Execution",
         "task_sections": {
-          "default": []
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "3145_US_MAN_MFG",
+                  "cx": 1364,
+                  "cy": 110
+                }
+              ]
+            }
+          ]
         },
         "raw_visible": [
           "Manufacturing Organization",
@@ -550,31 +563,7 @@
           "3145_US_MAN_MFG",
           "Change Organization",
           "Change Organization",
-          "Change Organization",
-          "Manage ProductionManage Work OrdersReview Product Genealogy",
-          "Manage ProductionManage Work OrdersReview Product Genealogy",
-          "Manage Production",
-          "Manage Production",
-          "Manage Work OrdersReview Product Genealogy",
-          "Manage Work Orders",
-          "Manage Work Orders",
-          "Review Product Genealogy",
-          "Review Product Genealogy",
-          "Execute Production",
-          "Execute Production",
-          "Flow Schedules Execution",
-          "Flow Schedules Execution",
-          "Review Production Transaction History",
-          "Review Production Transaction History",
-          "Print Work Order Traveler",
-          "Print Work Order Traveler",
-          "Manufacturing SetupManage Work Order Statuses",
-          "Manufacturing SetupManage Work Order Statuses",
-          "Manufacturing Setup",
-          "Manufacturing Setup",
-          "Manage Work Order Statuses",
-          "Manage Work Order Statuses",
-          "Manage Work Order Statuses"
+          "Change Organization"
         ],
         "task_panel_options": []
       },
@@ -932,35 +921,7 @@
             }
           ]
         },
-        "raw_visible": [
-          "Open Shipments by PriorityTop 5 Priorities by Volume",
-          "Open Shipments by Priority",
-          "Open Shipments by Priority",
-          "Top 5 Priorities by Volume",
-          "Top 5 Priorities by Volume",
-          "No data available",
-          "No data available",
-          "Shipment Exceptions0Shipments",
-          "Shipment Exceptions0Shipments",
-          "Shipment Exceptions0Shipments",
-          "Shipment Exceptions",
-          "Shipment Exceptions",
-          "0Shipments",
-          "Shipments",
-          "Shipments",
-          "Shipment Lines for Next 30 Days4 to 7 Days15 to 30 Days12",
-          "Shipment Lines for Next 30 Days4 to 7 Days15 to 30 Days12",
-          "Shipment Lines for Next 30 Days4 to 7 Days15 to 30 Days12",
-          "Shipment Lines for Next 30 Days",
-          "Shipment Lines for Next 30 Days",
-          "4 to 7 Days15 to 30 Days12",
-          "Receipt LinesAwaiting Ins…Awaiting Put…131",
-          "Receipt LinesAwaiting Ins…Awaiting Put…131",
-          "Receipt LinesAwaiting Ins…Awaiting Put…131",
-          "Receipt Lines",
-          "Receipt Lines",
-          "Awaiting Ins…Awaiting Put…131"
-        ],
+        "raw_visible": [],
         "task_panel_options": [
           "Inventory",
           "Counts",
@@ -1076,14 +1037,6 @@
         "tile": "Financial Orchestration",
         "task_sections": {},
         "raw_visible": [
-          "Pay",
-          "Pay",
-          "Time and Absences",
-          "Time and Absences",
-          "Personal Information",
-          "Personal Information",
-          "AppsPricing AdministrationOrder Management",
-          "Pricing AdministrationOrder Management",
           "Quality Management",
           "Quality Management",
           "Inventory Management (Classic)",
@@ -1094,26 +1047,6 @@
           "Supply Orchestration",
           "Supply Chain Orchestration",
           "Supply Chain Orchestration",
-          "Supply Planning",
-          "Supply Planning",
-          "Replenishment Planning",
-          "Replenishment Planning",
-          "AppsProduct DevelopmentProduct Information Management",
-          "Product DevelopmentProduct Information Management",
-          "AppsJournals",
-          "Journals",
-          "Purchase Orders",
-          "Purchase Orders",
-          "My Receipts",
-          "My Receipts",
-          "Catalogs",
-          "Catalogs",
-          "Supplier Dashboard",
-          "Supplier Dashboard",
-          "Reports and Analytics",
-          "Reports and Analytics",
-          "Scheduled Processes",
-          "Scheduled Processes",
           "You have no open notifications.",
           "You have no open notifications.",
           "You have no open notifications."
@@ -1124,14 +1057,6 @@
         "tile": "Supply Orchestration",
         "task_sections": {},
         "raw_visible": [
-          "Pay",
-          "Pay",
-          "Time and Absences",
-          "Time and Absences",
-          "Personal Information",
-          "Personal Information",
-          "AppsPricing AdministrationOrder Management",
-          "Pricing AdministrationOrder Management",
           "Quality Management",
           "Quality Management",
           "Inventory Management (Classic)",
@@ -1142,26 +1067,6 @@
           "Supply Orchestration",
           "Supply Chain Orchestration",
           "Supply Chain Orchestration",
-          "Supply Planning",
-          "Supply Planning",
-          "Replenishment Planning",
-          "Replenishment Planning",
-          "AppsProduct DevelopmentProduct Information Management",
-          "Product DevelopmentProduct Information Management",
-          "AppsJournals",
-          "Journals",
-          "Purchase Orders",
-          "Purchase Orders",
-          "My Receipts",
-          "My Receipts",
-          "Catalogs",
-          "Catalogs",
-          "Supplier Dashboard",
-          "Supplier Dashboard",
-          "Reports and Analytics",
-          "Reports and Analytics",
-          "Scheduled Processes",
-          "Scheduled Processes",
           "You have no open notifications.",
           "You have no open notifications.",
           "You have no open notifications."
@@ -1172,14 +1077,6 @@
         "tile": "Supply Chain Orchestration",
         "task_sections": {},
         "raw_visible": [
-          "Pay",
-          "Pay",
-          "Time and Absences",
-          "Time and Absences",
-          "Personal Information",
-          "Personal Information",
-          "AppsPricing AdministrationOrder Management",
-          "Pricing AdministrationOrder Management",
           "Quality Management",
           "Quality Management",
           "Inventory Management (Classic)",
@@ -1190,26 +1087,6 @@
           "Supply Orchestration",
           "Supply Chain Orchestration",
           "Supply Chain Orchestration",
-          "Supply Planning",
-          "Supply Planning",
-          "Replenishment Planning",
-          "Replenishment Planning",
-          "AppsProduct DevelopmentProduct Information Management",
-          "Product DevelopmentProduct Information Management",
-          "AppsJournals",
-          "Journals",
-          "Purchase Orders",
-          "Purchase Orders",
-          "My Receipts",
-          "My Receipts",
-          "Catalogs",
-          "Catalogs",
-          "Supplier Dashboard",
-          "Supplier Dashboard",
-          "Reports and Analytics",
-          "Reports and Analytics",
-          "Scheduled Processes",
-          "Scheduled Processes",
           "You have no open notifications.",
           "You have no open notifications.",
           "You have no open notifications."
@@ -1231,12 +1108,21 @@
     ],
     "quick_actions": [
       "Quick Actions",
+      "AppsAnalytics",
+      "Apps",
+      "Analytics",
+      "AppsInstalled Base Assets",
+      "Installed Base Assets",
+      "Work Definition",
+      "Receipt Accounting",
       "Manage Backlog Planning Rules",
       "Supply Allocation Rules",
       "Demand Priority Rules",
       "Maintain Supply Network Model",
       "Manage Assignment Sets",
       "Show More",
+      "AppsnewAstec ECN Tracking Application",
+      "new",
       "Add Item",
       "Things to Finish",
       "PreviousAssigned to Me0Created by Me0You have no open notifications.Show More",
@@ -1248,7 +1134,6 @@
       "Created by Me0",
       "Created by Me",
       "AnalyticsRefresh to load content.Refresh",
-      "Analytics",
       "Refresh to load content.Refresh",
       "Refresh to load content.",
       "Refresh"
@@ -1297,7 +1182,216 @@
       "Demand Priority Rules": {
         "title": "Oracle Fusion Cloud Applications",
         "tile": "Demand Priority Rules",
-        "task_sections": {},
+        "task_sections": {
+          "Additional Attributes": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1504,
+                  "cy": 354
+                }
+              ]
+            },
+            {
+              "header": "Organization Group",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Supply Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Forecast Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Sales Order Days",
+              "tasks": []
+            },
+            {
+              "header": "Project Control Level",
+              "tasks": []
+            },
+            {
+              "header": "Plan Subinventories",
+              "tasks": []
+            },
+            {
+              "header": "Order Shipment Cutoff Time",
+              "tasks": []
+            },
+            {
+              "header": "Pick and Pack Lead Time",
+              "tasks": []
+            },
+            {
+              "header": "Notes",
+              "tasks": []
+            },
+            {
+              "header": "Project Enabled",
+              "tasks": []
+            }
+          ],
+          "All Organizations": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1438,
+                  "cy": 409
+                }
+              ]
+            },
+            {
+              "header": "Organization Group",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Supply Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Forecast Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Sales Order Days",
+              "tasks": []
+            },
+            {
+              "header": "Project Control Level",
+              "tasks": []
+            },
+            {
+              "header": "Plan Subinventories",
+              "tasks": []
+            },
+            {
+              "header": "Order Shipment Cutoff Time",
+              "tasks": []
+            },
+            {
+              "header": "Pick and Pack Lead Time",
+              "tasks": []
+            },
+            {
+              "header": "Notes",
+              "tasks": []
+            },
+            {
+              "header": "Project Enabled",
+              "tasks": []
+            }
+          ],
+          "--------": [
+            {
+              "header": "Personalize Saved Searches",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1438,
+                  "cy": 409
+                }
+              ]
+            },
+            {
+              "header": "Organization Group",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Supply Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Forecast Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Sales Order Days",
+              "tasks": []
+            },
+            {
+              "header": "Project Control Level",
+              "tasks": []
+            },
+            {
+              "header": "Plan Subinventories",
+              "tasks": []
+            },
+            {
+              "header": "Order Shipment Cutoff Time",
+              "tasks": []
+            },
+            {
+              "header": "Pick and Pack Lead Time",
+              "tasks": []
+            },
+            {
+              "header": "Notes",
+              "tasks": []
+            },
+            {
+              "header": "Project Enabled",
+              "tasks": []
+            }
+          ],
+          "Personalize...": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1438,
+                  "cy": 409
+                }
+              ]
+            },
+            {
+              "header": "Organization Group",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Supply Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Forecast Days",
+              "tasks": []
+            },
+            {
+              "header": "Past Due Sales Order Days",
+              "tasks": []
+            },
+            {
+              "header": "Project Control Level",
+              "tasks": []
+            },
+            {
+              "header": "Plan Subinventories",
+              "tasks": []
+            },
+            {
+              "header": "Order Shipment Cutoff Time",
+              "tasks": []
+            },
+            {
+              "header": "Pick and Pack Lead Time",
+              "tasks": []
+            },
+            {
+              "header": "Notes",
+              "tasks": []
+            },
+            {
+              "header": "Project Enabled",
+              "tasks": []
+            }
+          ]
+        },
         "raw_visible": [
           "SaveSave and CloseCancel",
           "Save",
@@ -1357,12 +1451,31 @@
           "Currency",
           "Pick and Pack Lead Time",
           "Pick and Pack Lead Time"
+        ],
+        "task_panel_options": [
+          "Additional Attributes",
+          "All Organizations",
+          "--------",
+          "Personalize..."
         ]
       },
       "Maintain Supply Network Model": {
         "title": "Oracle Fusion Cloud Applications",
         "tile": "Maintain Supply Network Model",
-        "task_sections": {},
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Save",
+                  "cx": 1470,
+                  "cy": 146
+                }
+              ]
+            }
+          ]
+        },
         "raw_visible": [
           "View Sourcing Hierarchy",
           "View Sourcing Hierarchy",
@@ -1378,7 +1491,8 @@
           "Reset",
           "DetachDetach",
           "DetachDetach"
-        ]
+        ],
+        "task_panel_options": []
       },
       "Manage Assignment Sets": {
         "title": "Oracle Fusion Cloud Applications",
@@ -1412,6 +1526,11 @@
                   "text": "Load Planning Data from Files",
                   "cx": 1419,
                   "cy": 149
+                },
+                {
+                  "text": "Save",
+                  "cx": 1399,
+                  "cy": 160
                 },
                 {
                   "text": "Maintain Supply Network Model",
@@ -1492,7 +1611,24 @@
                   "text": "View Segmentation Summary",
                   "cx": 1419,
                   "cy": 517
-                },
+                }
+              ]
+            },
+            {
+              "header": "Planning Time Fence Date",
+              "tasks": []
+            },
+            {
+              "header": "Safety Stock Quantity",
+              "tasks": []
+            },
+            {
+              "header": "Calculate ATP",
+              "tasks": []
+            },
+            {
+              "header": "Note",
+              "tasks": [
                 {
                   "text": "Manage Supply Allocation Rules",
                   "cx": 1419,
@@ -1551,9 +1687,19 @@
               "header": "Unknown",
               "tasks": [
                 {
+                  "text": "Collect Planning Data",
+                  "cx": 1419,
+                  "cy": 86
+                },
+                {
                   "text": "Load Planning Data from Files",
                   "cx": 1419,
                   "cy": 109
+                },
+                {
+                  "text": "Save",
+                  "cx": 1399,
+                  "cy": 120
                 },
                 {
                   "text": "Maintain Supply Network Model",
@@ -1634,7 +1780,24 @@
                   "text": "View Segmentation Summary",
                   "cx": 1419,
                   "cy": 477
-                },
+                }
+              ]
+            },
+            {
+              "header": "Planning Time Fence Date",
+              "tasks": []
+            },
+            {
+              "header": "Safety Stock Quantity",
+              "tasks": []
+            },
+            {
+              "header": "Calculate ATP",
+              "tasks": []
+            },
+            {
+              "header": "Note",
+              "tasks": [
                 {
                   "text": "Manage Supply Allocation Rules",
                   "cx": 1419,
@@ -1692,6 +1855,16 @@
             {
               "header": "Unknown",
               "tasks": [
+                {
+                  "text": "Load Planning Data from Files",
+                  "cx": 1419,
+                  "cy": 102
+                },
+                {
+                  "text": "Save",
+                  "cx": 1399,
+                  "cy": 113
+                },
                 {
                   "text": "Maintain Supply Network Model",
                   "cx": 1419,
@@ -1771,7 +1944,24 @@
                   "text": "View Segmentation Summary",
                   "cx": 1419,
                   "cy": 470
-                },
+                }
+              ]
+            },
+            {
+              "header": "Planning Time Fence Date",
+              "tasks": []
+            },
+            {
+              "header": "Safety Stock Quantity",
+              "tasks": []
+            },
+            {
+              "header": "Calculate ATP",
+              "tasks": []
+            },
+            {
+              "header": "Note",
+              "tasks": [
                 {
                   "text": "Manage Supply Allocation Rules",
                   "cx": 1419,
@@ -1886,6 +2076,273 @@
           "--------",
           "Personalize..."
         ]
+      },
+      "Demand Management": {
+        "title": "Demand Management - Oracle Fusion Cloud Applications",
+        "tile": "Demand Management",
+        "task_sections": {
+          "default": []
+        },
+        "raw_visible": [
+          "PlansManage PlansLoad Measures from Other Plans",
+          "PlansManage PlansLoad Measures from Other Plans",
+          "Plans",
+          "Plans",
+          "Manage PlansLoad Measures from Other Plans",
+          "Manage Plans",
+          "Manage Plans",
+          "Load Measures from Other Plans",
+          "Load Measures from Other Plans",
+          "Plan Inputs",
+          "Plan Inputs",
+          "Collect Planning Data",
+          "Collect Planning Data",
+          "Load Planning Data from Files",
+          "Load Planning Data from Files",
+          "Manage Planning Data Collection Processes",
+          "Manage Planning Data Collection Processes",
+          "Maintain Supply Network Model",
+          "Maintain Supply Network Model",
+          "Manage Planning Source Systems",
+          "Manage Planning Source Systems",
+          "Manage Planners",
+          "Manage Planners",
+          "Manage Segment Groups and Criteria",
+          "Manage Segment Groups and Criteria",
+          "Manage Segment Members",
+          "Manage Segment Members",
+          "View Segmentation Summary",
+          "View Segmentation Summary",
+          "Configuration",
+          "Configuration",
+          "Configure Exceptions",
+          "Configure Exceptions",
+          "Configure Exception Sets",
+          "Configure Exception Sets",
+          "Configure Planning Analytics",
+          "Configure Planning Analytics",
+          "Manage Demand Classes",
+          "Manage Demand Classes",
+          "Manage Planning Measures",
+          "Manage Planning Measures",
+          "Manage Forecasting Profiles",
+          "Manage Forecasting Profiles",
+          "Manage Planning Profile Options",
+          "Manage Planning Profile Options"
+        ],
+        "task_panel_options": []
+      },
+      "Supply Planning": {
+        "title": "Supply Planning - Oracle Fusion Cloud Applications",
+        "tile": "Supply Planning",
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Collect Planning Data",
+                  "cx": 1420,
+                  "cy": 175
+                },
+                {
+                  "text": "Load Planning Data from Files",
+                  "cx": 1420,
+                  "cy": 198
+                },
+                {
+                  "text": "Manage Planning Data Collection Processes",
+                  "cx": 1420,
+                  "cy": 221
+                },
+                {
+                  "text": "Maintain Supply Network Model",
+                  "cx": 1420,
+                  "cy": 244
+                },
+                {
+                  "text": "Manage Assignment Sets",
+                  "cx": 1420,
+                  "cy": 267
+                },
+                {
+                  "text": "Manage Sourcing Rules",
+                  "cx": 1420,
+                  "cy": 290
+                },
+                {
+                  "text": "Manage Bills of Distribution",
+                  "cx": 1420,
+                  "cy": 313
+                },
+                {
+                  "text": "Manage Planning Source Systems",
+                  "cx": 1420,
+                  "cy": 336
+                },
+                {
+                  "text": "Manage Demand Priority Rules",
+                  "cx": 1420,
+                  "cy": 359
+                },
+                {
+                  "text": "Manage Planners",
+                  "cx": 1420,
+                  "cy": 382
+                },
+                {
+                  "text": "Review Planning Calendars",
+                  "cx": 1420,
+                  "cy": 405
+                },
+                {
+                  "text": "Review Planning Calendar Shifts",
+                  "cx": 1420,
+                  "cy": 428
+                },
+                {
+                  "text": "Review Planning Calendar Associations",
+                  "cx": 1420,
+                  "cy": 451
+                },
+                {
+                  "text": "Manage Planning Attributes",
+                  "cx": 1420,
+                  "cy": 474
+                },
+                {
+                  "text": "Manage Project Groups",
+                  "cx": 1420,
+                  "cy": 497
+                },
+                {
+                  "text": "Manage Attribute-Based Netting Rules",
+                  "cx": 1420,
+                  "cy": 520
+                },
+                {
+                  "text": "Manage Segment Groups and Criteria",
+                  "cx": 1420,
+                  "cy": 543
+                },
+                {
+                  "text": "Manage Segment Members",
+                  "cx": 1420,
+                  "cy": 566
+                },
+                {
+                  "text": "Manage Supply Planning Policy Assignment Sets",
+                  "cx": 1420,
+                  "cy": 589
+                },
+                {
+                  "text": "View Segmentation Summary",
+                  "cx": 1420,
+                  "cy": 612
+                },
+                {
+                  "text": "Configure Exceptions",
+                  "cx": 1420,
+                  "cy": 661
+                },
+                {
+                  "text": "Configure Exception Sets",
+                  "cx": 1420,
+                  "cy": 684
+                },
+                {
+                  "text": "Configure Planning Analytics",
+                  "cx": 1420,
+                  "cy": 707
+                },
+                {
+                  "text": "Manage Demand Classes",
+                  "cx": 1420,
+                  "cy": 730
+                },
+                {
+                  "text": "Manage Planning Measures",
+                  "cx": 1420,
+                  "cy": 753
+                },
+                {
+                  "text": "Manage Planning Profile Options",
+                  "cx": 1420,
+                  "cy": 776
+                }
+              ]
+            }
+          ]
+        },
+        "raw_visible": [],
+        "task_panel_options": []
+      },
+      "Replenishment Planning": {
+        "title": "Replenishment Planning - Oracle Fusion Cloud Applications",
+        "tile": "Replenishment Planning",
+        "task_sections": {
+          "default": []
+        },
+        "raw_visible": [
+          "PlansManage Plans",
+          "PlansManage Plans",
+          "Plans",
+          "Plans",
+          "Manage Plans",
+          "Manage Plans",
+          "Manage Plans",
+          "Plan Inputs",
+          "Plan Inputs",
+          "Collect Planning Data",
+          "Collect Planning Data",
+          "Load Planning Data from Files",
+          "Load Planning Data from Files",
+          "Manage Planning Data Collection Processes",
+          "Manage Planning Data Collection Processes",
+          "Maintain Supply Network Model",
+          "Maintain Supply Network Model",
+          "Manage Assignment Sets",
+          "Manage Assignment Sets",
+          "Manage Sourcing Rules",
+          "Manage Sourcing Rules",
+          "Manage Bills of Distribution",
+          "Manage Bills of Distribution",
+          "Manage Planning Source Systems",
+          "Manage Planning Source Systems",
+          "Manage Planners",
+          "Manage Planners",
+          "Review Planning Calendars",
+          "Review Planning Calendars",
+          "Review Planning Calendar Associations",
+          "Review Planning Calendar Associations",
+          "Manage Segment Groups and Criteria",
+          "Manage Segment Groups and Criteria",
+          "Manage Segment Members",
+          "Manage Segment Members",
+          "View Segmentation Summary",
+          "View Segmentation Summary",
+          "Manage Analysis Hierarchies for Related Items",
+          "Manage Analysis Hierarchies for Related Items",
+          "Manage Policy Assignment Sets",
+          "Manage Policy Assignment Sets",
+          "Manage Planning Clusters",
+          "Manage Planning Clusters",
+          "Configuration",
+          "Configuration",
+          "Configure Exceptions",
+          "Configure Exceptions",
+          "Configure Exception Sets",
+          "Configure Exception Sets",
+          "Configure Planning Analytics",
+          "Configure Planning Analytics",
+          "Manage Planning Measures",
+          "Manage Planning Measures",
+          "Manage Forecasting Profiles",
+          "Manage Forecasting Profiles",
+          "Manage Planning Profile Options",
+          "Manage Planning Profile Options"
+        ],
+        "task_panel_options": []
       }
     }
   },
@@ -1929,9 +2386,116 @@
         "title": "Manufacturers (Classic) - Product Development - Oracle Fusion Cloud Applications",
         "tile": "Manufacturers (Classic)",
         "task_sections": {
-          "--------": [],
-          "Application Default": [],
-          "Personalize...": []
+          "--------": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Manage Items",
+                  "cx": 1476,
+                  "cy": 102
+                },
+                {
+                  "text": "View Item Audit Trail",
+                  "cx": 1476,
+                  "cy": 125
+                },
+                {
+                  "text": "Create Manufacturer Part",
+                  "cx": 1476,
+                  "cy": 272
+                },
+                {
+                  "text": "Manage Manufacturer Parts",
+                  "cx": 1476,
+                  "cy": 295
+                }
+              ]
+            },
+            {
+              "header": "Last Updated By",
+              "tasks": []
+            },
+            {
+              "header": "Creation Date",
+              "tasks": []
+            }
+          ],
+          "Application Default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Create Item",
+                  "cx": 1476,
+                  "cy": 86
+                },
+                {
+                  "text": "Manage Items",
+                  "cx": 1476,
+                  "cy": 109
+                },
+                {
+                  "text": "View Item Audit Trail",
+                  "cx": 1476,
+                  "cy": 132
+                },
+                {
+                  "text": "Create Manufacturer Part",
+                  "cx": 1476,
+                  "cy": 279
+                },
+                {
+                  "text": "Manage Manufacturer Parts",
+                  "cx": 1476,
+                  "cy": 302
+                }
+              ]
+            },
+            {
+              "header": "Last Updated By",
+              "tasks": []
+            },
+            {
+              "header": "Creation Date",
+              "tasks": []
+            }
+          ],
+          "Personalize...": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Manage Items",
+                  "cx": 1476,
+                  "cy": 102
+                },
+                {
+                  "text": "View Item Audit Trail",
+                  "cx": 1476,
+                  "cy": 125
+                },
+                {
+                  "text": "Create Manufacturer Part",
+                  "cx": 1476,
+                  "cy": 272
+                },
+                {
+                  "text": "Manage Manufacturer Parts",
+                  "cx": 1476,
+                  "cy": 295
+                }
+              ]
+            },
+            {
+              "header": "Last Updated By",
+              "tasks": []
+            },
+            {
+              "header": "Creation Date",
+              "tasks": []
+            }
+          ]
         },
         "raw_visible": [
           "Done",
@@ -1955,49 +2519,7 @@
           "Last Updated By",
           "Last Updated By",
           "Updated Date",
-          "Updated Date",
-          "ItemsCreate ItemManage ItemsView Item Audit Trail",
-          "ItemsCreate ItemManage ItemsView Item Audit Trail",
-          "Items",
-          "Items",
-          "Create ItemManage ItemsView Item Audit Trail",
-          "Create Item",
-          "Create Item",
-          "Manage Items",
-          "Manage Items",
-          "View Item Audit Trail",
-          "View Item Audit Trail",
-          "Change OrdersManage Change Orders",
-          "Change OrdersManage Change Orders",
-          "Change Orders",
-          "Change Orders",
-          "Manage Change Orders",
-          "Manage Change Orders",
-          "Manage Change Orders",
-          "Change RequestsManage Change Requests",
-          "Change RequestsManage Change Requests",
-          "Change Requests",
-          "Change Requests",
-          "Manage Change Requests",
-          "Manage Change Requests",
-          "Manage Change Requests",
-          "Manufacturer Parts",
-          "Manufacturer Parts",
-          "Create Manufacturer PartManage Manufacturer Parts",
-          "Create Manufacturer Part",
-          "Create Manufacturer Part",
-          "Manage Manufacturer Parts",
-          "Manage Manufacturer Parts",
-          "Manufacturers",
-          "Manufacturers",
-          "Manufacturers",
-          "Scheduled ProcessesView Scheduled Processes",
-          "Scheduled ProcessesView Scheduled Processes",
-          "Scheduled Processes",
-          "Scheduled Processes",
-          "View Scheduled Processes",
-          "View Scheduled Processes",
-          "View Scheduled Processes"
+          "Updated Date"
         ],
         "task_panel_options": [
           "--------",
@@ -2050,12 +2572,33 @@
                   "cy": 290
                 }
               ]
+            },
+            {
+              "header": "Item Status",
+              "tasks": []
+            },
+            {
+              "header": "Long Description",
+              "tasks": []
+            },
+            {
+              "header": "Item Class",
+              "tasks": []
+            },
+            {
+              "header": "Organization",
+              "tasks": []
             }
           ],
           "UnApprovedItemSearchForCCO": [
             {
               "header": "Unknown",
               "tasks": [
+                {
+                  "text": "Create Item",
+                  "cx": 1479,
+                  "cy": 86
+                },
                 {
                   "text": "Manage Items",
                   "cx": 1479,
@@ -2087,6 +2630,22 @@
                   "cy": 250
                 }
               ]
+            },
+            {
+              "header": "Item Status",
+              "tasks": []
+            },
+            {
+              "header": "Long Description",
+              "tasks": []
+            },
+            {
+              "header": "Item Class",
+              "tasks": []
+            },
+            {
+              "header": "Organization",
+              "tasks": []
             }
           ]
         },
@@ -2146,38 +2705,7 @@
         "title": "Overview - Product Development - Oracle Fusion Cloud Applications",
         "tile": "Product Development",
         "task_sections": {
-          "default": [
-            {
-              "header": "Unknown",
-              "tasks": [
-                {
-                  "text": "Create Item",
-                  "cx": 1476,
-                  "cy": 126
-                },
-                {
-                  "text": "Manage Items",
-                  "cx": 1476,
-                  "cy": 149
-                },
-                {
-                  "text": "View Item Audit Trail",
-                  "cx": 1476,
-                  "cy": 172
-                },
-                {
-                  "text": "Create Manufacturer Part",
-                  "cx": 1476,
-                  "cy": 319
-                },
-                {
-                  "text": "Manage Manufacturer Parts",
-                  "cx": 1476,
-                  "cy": 342
-                }
-              ]
-            }
-          ]
+          "default": []
         },
         "raw_visible": [
           "Refresh",
@@ -2192,7 +2720,49 @@
           "Pending Approval",
           "Pending Approval",
           "Approved",
-          "Approved"
+          "Approved",
+          "ItemsCreate ItemManage ItemsView Item Audit Trail",
+          "ItemsCreate ItemManage ItemsView Item Audit Trail",
+          "Items",
+          "Items",
+          "Create ItemManage ItemsView Item Audit Trail",
+          "Create Item",
+          "Create Item",
+          "Manage Items",
+          "Manage Items",
+          "View Item Audit Trail",
+          "View Item Audit Trail",
+          "Change OrdersManage Change Orders",
+          "Change OrdersManage Change Orders",
+          "Change Orders",
+          "Change Orders",
+          "Manage Change Orders",
+          "Manage Change Orders",
+          "Manage Change Orders",
+          "Change RequestsManage Change Requests",
+          "Change RequestsManage Change Requests",
+          "Change Requests",
+          "Change Requests",
+          "Manage Change Requests",
+          "Manage Change Requests",
+          "Manage Change Requests",
+          "Manufacturer Parts",
+          "Manufacturer Parts",
+          "Create Manufacturer PartManage Manufacturer Parts",
+          "Create Manufacturer Part",
+          "Create Manufacturer Part",
+          "Manage Manufacturer Parts",
+          "Manage Manufacturer Parts",
+          "Manufacturers",
+          "Manufacturers",
+          "Manufacturers",
+          "Scheduled ProcessesView Scheduled Processes",
+          "Scheduled ProcessesView Scheduled Processes",
+          "Scheduled Processes",
+          "Scheduled Processes",
+          "View Scheduled Processes",
+          "View Scheduled Processes",
+          "View Scheduled Processes"
         ],
         "task_panel_options": []
       },
@@ -2283,7 +2853,68 @@
       "Manage Journals": {
         "title": "Manage Journals - Journals - Oracle Fusion Cloud Applications",
         "tile": "Manage Journals",
-        "task_sections": {},
+        "task_sections": {
+          "All Journals": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1434,
+                  "cy": 486
+                }
+              ]
+            }
+          ],
+          "Journals That Haven't Been Reversed": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1434,
+                  "cy": 524
+                }
+              ]
+            }
+          ],
+          "Unposted Journals": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1434,
+                  "cy": 486
+                }
+              ]
+            }
+          ],
+          "--------": [
+            {
+              "header": "Personalize Saved Searches",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1434,
+                  "cy": 486
+                }
+              ]
+            }
+          ],
+          "Personalize...": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Add Fields",
+                  "cx": 1434,
+                  "cy": 486
+                }
+              ]
+            }
+          ]
+        },
         "raw_visible": [
           "Done",
           "Done",
@@ -2315,12 +2946,36 @@
           "Journal Entered Credit",
           "Batch Status",
           "Batch Status"
+        ],
+        "task_panel_options": [
+          "All Journals",
+          "Journals That Haven't Been Reversed",
+          "Unposted Journals",
+          "--------",
+          "Personalize..."
         ]
       },
       "Manage Approvals for Journals": {
         "title": "Manage Approvals for Journals - Journals - Oracle Fusion Cloud Applications",
         "tile": "Manage Approvals for Journals",
-        "task_sections": {},
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Help",
+                  "cx": 1504,
+                  "cy": 224
+                }
+              ]
+            },
+            {
+              "header": "Accounting Period",
+              "tasks": []
+            }
+          ]
+        },
         "raw_visible": [
           "Done",
           "Done",
@@ -2334,12 +2989,26 @@
           "Accounting Period",
           "Current Approver",
           "Current Approver"
-        ]
+        ],
+        "task_panel_options": []
       },
       "Journals": {
         "title": "Journals - Oracle Fusion Cloud Applications",
         "tile": "Journals",
-        "task_sections": {},
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Help",
+                  "cx": 1504,
+                  "cy": 192
+                }
+              ]
+            }
+          ]
+        },
         "raw_visible": [
           "Help",
           "Help",
@@ -2348,7 +3017,8 @@
           "Issue",
           "Error Date",
           "Error Date"
-        ]
+        ],
+        "task_panel_options": []
       }
     }
   },
@@ -2472,6 +3142,14 @@
                   "cy": 270
                 }
               ]
+            },
+            {
+              "header": "Tax Registration Number",
+              "tasks": []
+            },
+            {
+              "header": "D-U-N-S Number",
+              "tasks": []
             }
           ],
           "--------": [
@@ -2494,6 +3172,14 @@
                   "cy": 230
                 }
               ]
+            },
+            {
+              "header": "Tax Registration Number",
+              "tasks": []
+            },
+            {
+              "header": "D-U-N-S Number",
+              "tasks": []
             }
           ],
           "Personalize...": [
@@ -2516,6 +3202,14 @@
                   "cy": 223
                 }
               ]
+            },
+            {
+              "header": "Tax Registration Number",
+              "tasks": []
+            },
+            {
+              "header": "D-U-N-S Number",
+              "tasks": []
             }
           ]
         },
@@ -2651,10 +3345,25 @@
         ]
       },
       "Purchase Requisitions": {
-        "title": "https://www.google.com/search?q=arxiv&oq=arxiv&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCDE4NjFqMGo0qAIAsAIB&sourceid=chrome&ie=UTF-8&sei=qm3qaZSFE9ugptQP3dXn-Qo",
+        "title": "Oracle Fusion Cloud Applications",
         "tile": "Purchase Requisitions",
         "task_sections": {},
-        "raw_visible": []
+        "raw_visible": [
+          "Others",
+          "Others",
+          "Apps",
+          "Purchase Orders",
+          "Purchase Orders",
+          "My Receipts",
+          "My Receipts",
+          "Catalogs",
+          "Catalogs",
+          "Supplier Dashboard",
+          "Supplier Dashboard",
+          "You have no open notifications.",
+          "You have no open notifications.",
+          "You have no open notifications."
+        ]
       },
       "Purchase Requisitions (New)": {
         "title": "Self Service Procurement Home - Search - Oracle Fusion Cloud Applications",
@@ -2729,11 +3438,7 @@
           "Transfer Order",
           "Transfer Order",
           "Currency",
-          "Currency",
-          "Manage Receipts",
-          "Manage Receipts",
-          "Manage Receipts",
-          "Manage Receipts"
+          "Currency"
         ],
         "task_panel_options": [
           "Items Due in Last 7 Days",
@@ -2795,6 +3500,14 @@
                   "cy": 296
                 }
               ]
+            },
+            {
+              "header": "Agreement",
+              "tasks": []
+            },
+            {
+              "header": "Buyer",
+              "tasks": []
             }
           ]
         },
@@ -2914,7 +3627,20 @@
       "B2B Trading Partners": {
         "title": "Oracle Fusion Cloud Applications",
         "tile": "B2B Trading Partners",
-        "task_sections": {},
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Done",
+                  "cx": 1556,
+                  "cy": 146
+                }
+              ]
+            }
+          ]
+        },
         "raw_visible": [
           "DoneDone",
           "DoneDone",
@@ -2927,7 +3653,8 @@
           "Partner ID Type",
           "Oracle Business Network ID",
           "Oracle Business Network ID"
-        ]
+        ],
+        "task_panel_options": []
       },
       "Set Preferences": {
         "title": "Tasks - Set Preferences - Oracle Fusion Cloud Applications",
@@ -2987,12 +3714,12 @@
           "app devops4/15/26 11:31 AM",
           "4/15/26 11:31 AM",
           "4/15/26 11:31 AM",
-          "Created ByLast Updated Byapp devops4/22/26 7:33 AM",
-          "Created ByLast Updated Byapp devops4/22/26 7:33 AM",
-          "app devops4/22/26 7:33 AM",
-          "app devops4/22/26 7:33 AM",
-          "4/22/26 7:33 AM",
-          "4/22/26 7:33 AM",
+          "Created ByLast Updated Byapp devops4/23/26 7:30 PM",
+          "Created ByLast Updated Byapp devops4/23/26 7:30 PM",
+          "app devops4/23/26 7:30 PM",
+          "app devops4/23/26 7:30 PM",
+          "4/23/26 7:30 PM",
+          "4/23/26 7:30 PM",
           "Created ByLast Updated Byapp devops7/29/25 5:12 PM",
           "Created ByLast Updated Byapp devops7/29/25 5:12 PM",
           "app devops7/29/25 5:12 PM",
@@ -3015,156 +3742,168 @@
           "Scheduled Time",
           "Submission Time",
           "Submission Time",
-          "22720745",
-          "22720745",
-          "Wait",
-          "Wait",
-          "4/23/26 3:17 PM EDT",
-          "4/23/26 3:17 PM EDT",
-          "4/23/26 2:17 PM EDT",
-          "4/23/26 2:17 PM EDT",
-          "22720743",
-          "22720743",
+          "22725212",
+          "22725212",
           "Running",
           "Running",
-          "22720744",
-          "22720744",
+          "4/24/26 12:45 PM EDT",
+          "4/24/26 12:45 PM EDT",
+          "22725211",
+          "22725211",
+          "Wait",
+          "Wait",
+          "4/24/26 12:47 PM EDT",
+          "4/24/26 12:47 PM EDT",
+          "4/24/26 12:42 PM EDT",
+          "4/24/26 12:42 PM EDT",
+          "22725210",
+          "22725210",
+          "22725209",
+          "22725209",
+          "4/24/26 12:46 PM EDT",
+          "4/24/26 12:46 PM EDT",
+          "22725208",
+          "22725208",
+          "4/24/26 12:49 PM EDT",
+          "4/24/26 12:49 PM EDT",
+          "4/24/26 12:39 PM EDT",
+          "4/24/26 12:39 PM EDT",
+          "22725207",
+          "22725207",
+          "22725206",
+          "22725206",
           "Succeeded",
           "Succeeded",
-          "22720742",
-          "22720742",
-          "4/23/26 2:47 PM EDT",
-          "4/23/26 2:47 PM EDT",
-          "22720741",
-          "22720741",
-          "4/23/26 2:27 PM EDT",
-          "4/23/26 2:27 PM EDT",
-          "22720740",
-          "22720740",
-          "4/23/26 2:22 PM EDT",
-          "4/23/26 2:22 PM EDT",
-          "22720739",
-          "22720739",
-          "22720737",
-          "22720737",
-          "22720738",
-          "22720738",
-          "4/23/26 8:16 PM EDT",
-          "4/23/26 8:16 PM EDT",
-          "22720736",
-          "22720736",
-          "22720735",
-          "22720735",
-          "4/23/26 4:16 PM EDT",
-          "4/23/26 4:16 PM EDT",
-          "22720734",
-          "22720734",
-          "22720733",
-          "22720733",
-          "4/23/26 3:16 PM EDT",
-          "4/23/26 3:16 PM EDT",
-          "22720732",
-          "22720732",
-          "4/23/26 2:21 PM EDT",
-          "4/23/26 2:21 PM EDT",
-          "22720731",
-          "22720731",
-          "22720730",
-          "22720730",
-          "22720729",
-          "22720729",
-          "4/23/26 2:15 PM EDT",
-          "4/23/26 2:15 PM EDT",
-          "22720728",
-          "22720728",
-          "4/23/26 2:12 PM EDT",
-          "4/23/26 2:12 PM EDT",
-          "22720727",
-          "22720727",
-          "4/23/26 2:16 PM EDT",
-          "4/23/26 2:16 PM EDT",
-          "22720726",
-          "22720726",
-          "22720725",
-          "22720725",
-          "4/23/26 3:10 PM EDT",
-          "4/23/26 3:10 PM EDT",
-          "4/23/26 2:10 PM EDT",
-          "4/23/26 2:10 PM EDT",
-          "22720724",
-          "22720724",
-          "22720723",
-          "22720723",
-          "22720722",
-          "22720722",
-          "22720721",
-          "22720721",
-          "22720720",
-          "22720720",
-          "22720719",
-          "22720719",
-          "22720718",
-          "22720718",
-          "22720717",
-          "22720717",
-          "22720716",
-          "22720716",
-          "22720715",
-          "22720715",
-          "22720714",
-          "22720714",
-          "22720713",
-          "22720713",
-          "22720712",
-          "22720712",
-          "22720711",
-          "22720711",
-          "22720710",
-          "22720710",
-          "22720709",
-          "22720709",
-          "22720708",
-          "22720708",
-          "4/23/26 8:10 PM EDT",
-          "4/23/26 8:10 PM EDT",
-          "22720707",
-          "22720707",
-          "4/23/26 3:09 PM EDT",
-          "4/23/26 3:09 PM EDT",
-          "22720706",
-          "22720706",
-          "4/23/26 2:19 PM EDT",
-          "4/23/26 2:19 PM EDT",
-          "22720705",
-          "22720705",
-          "4/23/26 2:09 PM EDT",
-          "4/23/26 2:09 PM EDT",
-          "22720704",
-          "22720704",
-          "4/23/26 3:05 PM EDT",
-          "4/23/26 3:05 PM EDT",
-          "22720703",
-          "22720703",
-          "4/23/26 2:07 PM EDT",
-          "4/23/26 2:07 PM EDT",
-          "22720702",
-          "22720702",
-          "22720701",
-          "22720701",
-          "22720699",
-          "22720699",
-          "22720700",
-          "22720700",
-          "4/23/26 2:11 PM EDT",
-          "4/23/26 2:11 PM EDT",
-          "22720698",
-          "22720698",
-          "4/23/26 2:05 PM EDT",
-          "4/23/26 2:05 PM EDT",
-          "22720697",
-          "22720697",
-          "22720696",
-          "22720696"
+          "4/24/26 12:37 PM EDT",
+          "4/24/26 12:37 PM EDT",
+          "22725205",
+          "22725205",
+          "22725204",
+          "22725204",
+          "22725203",
+          "22725203",
+          "22725202",
+          "22725202",
+          "4/24/26 12:41 PM EDT",
+          "4/24/26 12:41 PM EDT",
+          "22725201",
+          "22725201",
+          "4/24/26 12:36 PM EDT",
+          "4/24/26 12:36 PM EDT",
+          "22725200",
+          "22725200",
+          "4/24/26 12:35 PM EDT",
+          "4/24/26 12:35 PM EDT",
+          "22725199",
+          "22725199",
+          "22725198",
+          "22725198",
+          "4/24/26 12:34 PM EDT",
+          "4/24/26 12:34 PM EDT",
+          "22725197",
+          "22725197",
+          "22725196",
+          "22725196",
+          "4/24/26 12:33 PM EDT",
+          "4/24/26 12:33 PM EDT",
+          "22725195",
+          "22725195",
+          "22725194",
+          "22725194",
+          "4/24/26 12:32 PM EDT",
+          "4/24/26 12:32 PM EDT",
+          "22725193",
+          "22725193",
+          "22725192",
+          "22725192",
+          "22725191",
+          "22725191",
+          "4/24/26 12:30 PM EDT",
+          "4/24/26 12:30 PM EDT",
+          "22725190",
+          "22725190",
+          "4/24/26 1:00 PM EDT",
+          "4/24/26 1:00 PM EDT",
+          "22725189",
+          "22725189",
+          "4/24/26 1:30 PM EDT",
+          "4/24/26 1:30 PM EDT",
+          "22725188",
+          "22725188",
+          "4/24/26 12:29 PM EDT",
+          "4/24/26 12:29 PM EDT",
+          "22725187",
+          "22725187",
+          "22725186",
+          "22725186",
+          "4/24/26 12:27 PM EDT",
+          "4/24/26 12:27 PM EDT",
+          "22725185",
+          "22725185",
+          "22725184",
+          "22725184",
+          "22725183",
+          "22725183",
+          "4/24/26 12:31 PM EDT",
+          "4/24/26 12:31 PM EDT",
+          "22725182",
+          "22725182",
+          "22725181",
+          "22725181",
+          "4/24/26 12:22 PM EDT",
+          "4/24/26 12:22 PM EDT",
+          "22725180",
+          "22725180",
+          "22725179",
+          "22725179",
+          "4/24/26 12:26 PM EDT",
+          "4/24/26 12:26 PM EDT",
+          "22725178",
+          "22725178",
+          "4/24/26 12:21 PM EDT",
+          "4/24/26 12:21 PM EDT",
+          "22725177",
+          "22725177",
+          "22725176",
+          "22725176",
+          "4/24/26 12:20 PM EDT",
+          "4/24/26 12:20 PM EDT",
+          "22725175",
+          "22725175",
+          "4/24/26 12:19 PM EDT",
+          "4/24/26 12:19 PM EDT",
+          "22725174",
+          "22725174",
+          "4/24/26 1:17 PM EDT",
+          "4/24/26 1:17 PM EDT",
+          "4/24/26 12:17 PM EDT",
+          "4/24/26 12:17 PM EDT",
+          "22725173",
+          "22725173",
+          "22725172",
+          "22725172",
+          "22725171",
+          "22725171",
+          "22725170",
+          "22725170",
+          "22725169",
+          "22725169",
+          "22725168",
+          "22725168",
+          "22725167",
+          "22725167",
+          "4/24/26 2:16 PM EDT",
+          "4/24/26 2:16 PM EDT",
+          "22725166",
+          "22725166",
+          "22725165",
+          "22725165",
+          "22725164",
+          "22725164",
+          "4/24/26 1:16 PM EDT",
+          "4/24/26 1:16 PM EDT",
+          "22725163",
+          "22725163"
         ]
       }
     }
@@ -3211,7 +3950,20 @@
       "Astec ECN Tracking Application": {
         "title": "Oracle Fusion Cloud Applications",
         "tile": "Astec ECN Tracking Application",
-        "task_sections": {},
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Personal Information",
+                  "cx": 1168,
+                  "cy": 450
+                }
+              ]
+            }
+          ]
+        },
         "raw_visible": [
           "Time and Absences",
           "Time and Absences",
@@ -3252,7 +4004,8 @@
           "You have no open notifications.",
           "You have no open notifications.",
           "You have no open notifications."
-        ]
+        ],
+        "task_panel_options": []
       }
     }
   }

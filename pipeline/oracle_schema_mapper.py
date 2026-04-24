@@ -479,17 +479,25 @@ def select_task_tab(page, option_index: int):
 
 
 def get_task_panel_content(page):
-    """Return section headers and task links currently visible in the task panel."""
+    """Return section headers and task links currently visible in the task panel.
+
+    ADF Classic task panels use obfuscated CSS class names that change between releases,
+    so we detect section headers via computed font-weight / structural heuristics:
+    - bold DIV with no <a> children → section header
+    - LI element or A element at x>1100 → task link
+    Also falls back to scraping all <a> links in the right panel when no LI structure found.
+    """
     return page.evaluate("""
         () => {
+            const PANEL_X = 1100;
             const sections = [];
             let current_section = {header: 'Unknown', tasks: []};
 
-            const els = Array.from(document.querySelectorAll('div,li,a'))
+            const els = Array.from(document.querySelectorAll('div,li,a,span'))
                 .filter(el => {
                     if (!el.offsetParent) return false;
                     const r = el.getBoundingClientRect();
-                    return r.x > 1100 && r.y > 100 && r.height > 8;
+                    return r.x > PANEL_X && r.y > 75 && r.height > 8;
                 })
                 .sort((a,b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y);
 
@@ -497,19 +505,31 @@ def get_task_panel_content(page):
             for (const el of els) {
                 const t = el.textContent.trim().replace(/\\s+/g,' ');
                 if (!t || t.length < 3 || t.length > 100 || seen.has(t)) continue;
-                if (el.childElementCount > 2) continue;
+                if (el.childElementCount > 3) continue;
                 seen.add(t);
 
                 const r = el.getBoundingClientRect();
-                const cls = (el.className||'').toString();
+                const tag = el.tagName;
 
-                // Section header: DIV with class containing 'xmu' or special section classes
-                if (el.tagName === 'DIV' && (cls.includes('xmu') || cls.includes('x16g'))) {
+                // Section header detection: bold DIV/SPAN with no anchor children,
+                // or ADF-specific classes (xmu, x16g), or role="heading"
+                const cls = (el.className||'').toString();
+                const fw = window.getComputedStyle(el).fontWeight;
+                const bold = parseInt(fw) >= 600;
+                const hasAnchorChild = !!el.querySelector('a');
+                const isHeading = el.getAttribute('role') === 'heading';
+                const isAdfHeader = cls.includes('xmu') || cls.includes('x16g')
+                                 || cls.includes('Header') || cls.includes('header');
+
+                const isSection = tag === 'DIV' && (bold || isAdfHeader || isHeading)
+                                  && !hasAnchorChild && r.height < 35;
+
+                if (isSection) {
                     if (current_section.tasks.length > 0 || sections.length > 0) {
                         sections.push(current_section);
                     }
                     current_section = {header: t, tasks: []};
-                } else if (el.tagName === 'LI') {
+                } else if (tag === 'LI' || tag === 'A') {
                     current_section.tasks.push({
                         text: t,
                         cx: Math.round(r.x+r.width/2),
@@ -523,7 +543,6 @@ def get_task_panel_content(page):
             return sections;
         }
     """)
-
 
 def navigate_to_module_by_text(page, tile_text: str) -> bool:
     """
@@ -627,13 +646,39 @@ def go_home(page):
 
 # ── main mapper ──────────────────────────────────────────────────────────────
 
+def _module_has_content(schema: dict, tab_name: str, tile_text: str) -> bool:
+    """Return True if this module already has meaningful task section content mapped.
+    Requires at least 2 tasks that are not trivial UI controls ('Add Fields', 'Help',
+    'Done', 'Save', 'Personal Information').
+    """
+    NOISE = {'Add Fields', 'Help', 'Done', 'Save', 'Personal Information', 'Refresh'}
+    mod = schema.get(tab_name, {}).get("modules", {}).get(tile_text)
+    if not mod:
+        return False
+    ts = mod.get("task_sections", {})
+    real_tasks = [
+        t["text"]
+        for secs in ts.values()
+        for sec in secs
+        for t in sec.get("tasks", [])
+        if t["text"] not in NOISE
+    ]
+    return len(real_tasks) >= 2
+
+
 def map_module(page, tab_name: str, tile: dict, schema: dict):
     """
     Navigate into a module tile, enumerate its task panel sections,
     and record everything into schema.
+    Skips modules that already have task section content (resume mode).
     """
     tile_text = tile['text']
     slug = tile_text.replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_')
+
+    if _module_has_content(schema, tab_name, tile_text):
+        print(f"\n    [SKIP] {tile_text} — already mapped")
+        return
+
     print(f"\n    [MODULE] {tile_text}")
 
     ok = navigate_to_module_by_text(page, tile_text)
@@ -658,12 +703,25 @@ def map_module(page, tab_name: str, tile: dict, schema: dict):
     visible = dump_page(page, min_x=900, min_y=100)
     module_entry["raw_visible"] = [e['text'] for e in visible if len(e['text']) < 60]
 
-    task_opened = open_task_panel(page)
-    if not task_opened:
-        print(f"    (no task panel found)")
-        schema[tab_name]["modules"][tile_text] = module_entry
-        go_home(page)
-        return
+    # Precheck: Redwood modules render the task panel already open on page load.
+    # Read content BEFORE attempting to click the Tasks icon — clicking it would
+    # toggle the panel closed if it's already open.
+    precheck = get_task_panel_content(page)
+    if precheck:
+        print(f"    (task panel already open — Redwood layout)")
+        task_opened = True
+    else:
+        task_opened = open_task_panel(page)
+        if not task_opened:
+            # Final fallback: re-read in case panel opened without returning True
+            precheck = get_task_panel_content(page)
+            if not precheck:
+                print(f"    (no task panel found)")
+                schema[tab_name]["modules"][tile_text] = module_entry
+                go_home(page)
+                return
+            print(f"    (task panel opened via fallback)")
+            task_opened = True
 
     # Get SELECT options for this module
     options = get_task_panel_select_options(page)
@@ -841,7 +899,18 @@ def write_output(schema: dict):
 
 
 def main():
-    schema = {}
+    # Resume mode: load existing schema so already-mapped modules are skipped
+    if OUTPUT_JSON.exists():
+        with open(OUTPUT_JSON, encoding='utf-8') as f:
+            schema = json.load(f)
+        mapped = sum(
+            1 for tab in schema.values()
+            for mod in tab.get("modules", {}).values()
+            if any(s for s in mod.get("task_sections", {}).values())
+        )
+        print(f"[resume] Loaded existing schema ({mapped} modules already mapped)")
+    else:
+        schema = {}
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=False, slow_mo=60)

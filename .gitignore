@@ -29,6 +29,14 @@ pipeline/snapshots/missions/
 # PIM screenshots (binary artifacts)
 pipeline/pim_screenshots/
 
+# Docs — large binary/export data (keep markdown + theme files, exclude dumps)
+pipeline/docs/**/*.xlsx
+pipeline/docs/**/*.xls
+pipeline/docs/**/*.json
+pipeline/docs/**/*.dax
+pipeline/docs/**/*.m
+pipeline/docs/**/ttl/
+
 # Jupyter
 .ipynb_checkpoints/
 

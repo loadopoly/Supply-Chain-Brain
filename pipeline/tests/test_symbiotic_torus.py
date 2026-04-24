@@ -335,3 +335,197 @@ class TestTunnelManifoldCoupling:
         cn.commit()
         stats = vision_horizontal_expand(cn)
         assert stats["edges_added"] > 0
+
+
+# ===========================================================================
+# grounded_tunneling — certainty-anchored expansory pathway collapser
+# ===========================================================================
+
+class TestGroundedTunneling:
+    """Tests for src.brain.grounded_tunneling — statistical grounding mechanism."""
+
+    def test_certainty_higher_for_well_sampled_high_weight_edge(self):
+        from src.brain.grounded_tunneling import compute_endpoint_certainty
+        cn = _make_corpus_db()
+        _seed_endpoints(cn, ["a", "b", "c"])
+        now = datetime.now().isoformat()
+        # high-certainty: many samples + high weight
+        cn.execute(
+            "INSERT INTO corpus_edge VALUES(?,?,?,?,?,?,?,?)",
+            ("bridge:a", "Endpoint", "bridge:b", "Endpoint",
+             "REACHABLE", 0.9, now, 20),
+        )
+        # low-certainty: 1 sample + low weight
+        cn.execute(
+            "INSERT INTO corpus_edge VALUES(?,?,?,?,?,?,?,?)",
+            ("bridge:b", "Endpoint", "bridge:c", "Endpoint",
+             "REACHABLE", 0.1, now, 1),
+        )
+        cn.commit()
+        c = compute_endpoint_certainty(cn)
+        # bridge:a is only in the high-cert edge; bridge:c only in low-cert
+        assert c["bridge:a"] > c["bridge:c"]
+
+    def test_find_expansory_pathway_prefers_uncertain_high_gap(self):
+        from src.brain.grounded_tunneling import find_expansory_pathway
+        certainty = {"A": 9.0, "B": 2.0, "C": 5.0}
+        adj = {"A": [("B", 0.8), ("C", 0.7)]}
+        torus_gap = {"A": 0.0, "B": 1.5, "C": 0.2}
+        path = find_expansory_pathway("A", certainty, adj, torus_gap)
+        assert path is not None
+        assert path[0] == "A"
+        assert path[1] == "B"   # B: lower certainty AND higher torus gap
+
+    def test_find_expansory_pathway_stops_when_neighbour_more_certain(self):
+        from src.brain.grounded_tunneling import find_expansory_pathway
+        certainty = {"A": 5.0, "B": 9.0}  # B MORE certain than A
+        adj = {"A": [("B", 0.5)]}
+        path = find_expansory_pathway("A", certainty, adj, {})
+        assert path is None   # no expansory frontier
+
+    def test_find_expansory_pathway_returns_none_when_isolated(self):
+        from src.brain.grounded_tunneling import find_expansory_pathway
+        certainty = {"A": 9.0}
+        path = find_expansory_pathway("A", certainty, {}, {})
+        assert path is None
+
+    def test_resistance_record_written_with_all_amplify_keys(self):
+        from src.brain.grounded_tunneling import (
+            _write_resistance, _resist_key, _amplify_key, _ensure_kv_store,
+        )
+        cn = _make_corpus_db()
+        _ensure_kv_store(cn)
+        path = ["A", "B", "C"]
+        _write_resistance(cn, path, "A", duration_s=300)
+        cn.commit()
+        # resistance record
+        row = cn.execute(
+            "SELECT value FROM kv_store WHERE key=?",
+            (_resist_key("A", "C"),),
+        ).fetchone()
+        assert row is not None
+        rec = json.loads(row[0])
+        assert rec["ground_id"] == "A"
+        assert rec["path"] == path
+        # amplify key for every node on the path
+        for eid in path:
+            arow = cn.execute(
+                "SELECT value FROM kv_store WHERE key=?",
+                (_amplify_key(eid),),
+            ).fetchone()
+            assert arow is not None
+            assert float(arow[0]) > 1.0
+
+    def test_nodal_collapse_inserts_grounded_tunnel_edge(self):
+        from src.brain.grounded_tunneling import nodal_collapse
+        cn = _make_corpus_db()
+        _seed_endpoints(cn, ["ground", "mid", "term"])
+        certainty = {
+            "bridge:ground": 8.0,
+            "bridge:mid":    2.0,
+            "bridge:term":   1.0,
+        }
+        record = {
+            "ground_id": "bridge:ground",
+            "path": ["bridge:ground", "bridge:mid", "bridge:term"],
+        }
+        ok = nodal_collapse(
+            cn, "bridge:ground", "bridge:term", record, certainty, {},
+        )
+        assert ok is True
+        row = cn.execute(
+            "SELECT rel, weight FROM corpus_edge "
+            "WHERE src_id='bridge:ground' AND dst_id='bridge:term'"
+        ).fetchone()
+        assert row is not None
+        assert row[0] == "GROUNDED_TUNNEL"
+        assert 0.0 < row[1] <= 1.0
+
+    def test_nodal_collapse_removes_resistance_record(self):
+        from src.brain.grounded_tunneling import (
+            nodal_collapse, _write_resistance, _resist_key, _ensure_kv_store,
+        )
+        cn = _make_corpus_db()
+        _seed_endpoints(cn, ["g", "t"])
+        _ensure_kv_store(cn)
+        path = ["bridge:g", "bridge:t"]
+        _write_resistance(cn, path, "bridge:g", duration_s=300)
+        cn.commit()
+        record = {"ground_id": "bridge:g", "path": path}
+        nodal_collapse(cn, "bridge:g", "bridge:t", record, {"bridge:g": 5.0}, {})
+        cn.commit()
+        row = cn.execute(
+            "SELECT key FROM kv_store WHERE key=?",
+            (_resist_key("bridge:g", "bridge:t"),),
+        ).fetchone()
+        assert row is None   # resistance record cleaned up
+
+    def test_ground_and_expand_opens_and_collapses(self):
+        """Full tick: open paths then force-expire and collapse."""
+        from src.brain.grounded_tunneling import (
+            ground_and_expand, _resist_key, _ensure_kv_store,
+        )
+        cn = _make_corpus_db()
+        names = ["a", "b", "c", "d"]
+        _seed_endpoints(cn, names)
+        now = datetime.now().isoformat()
+        # a→b: high certainty anchor
+        cn.execute(
+            "INSERT INTO corpus_edge VALUES(?,?,?,?,?,?,?,?)",
+            ("bridge:a", "Endpoint", "bridge:b", "Endpoint",
+             "REACHABLE", 0.95, now, 25),
+        )
+        # b→c→d: low certainty frontier
+        cn.execute(
+            "INSERT INTO corpus_edge VALUES(?,?,?,?,?,?,?,?)",
+            ("bridge:b", "Endpoint", "bridge:c", "Endpoint",
+             "REACHABLE", 0.08, now, 1),
+        )
+        cn.execute(
+            "INSERT INTO corpus_edge VALUES(?,?,?,?,?,?,?,?)",
+            ("bridge:c", "Endpoint", "bridge:d", "Endpoint",
+             "REACHABLE", 0.05, now, 1),
+        )
+        cn.commit()
+
+        s1 = ground_and_expand(cn)
+        assert s1["ground_nodes"] >= 1
+
+        # Force-expire a resistance record to test collapse
+        from datetime import timedelta
+        past = (datetime.now() - timedelta(seconds=10)).isoformat()
+        expired_path = ["bridge:a", "bridge:b", "bridge:c"]
+        cn.execute(
+            "INSERT INTO kv_store(key, value) VALUES(?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (
+                _resist_key("bridge:a", "bridge:c"),
+                json.dumps({
+                    "expires_at": past,
+                    "ground_id":  "bridge:a",
+                    "path":       expired_path,
+                }),
+            ),
+        )
+        cn.commit()
+
+        s2 = ground_and_expand(cn)
+        assert s2["collapses"] >= 1
+        row = cn.execute(
+            "SELECT rel FROM corpus_edge "
+            "WHERE src_id='bridge:a' AND dst_id='bridge:c' "
+            "  AND rel='GROUNDED_TUNNEL'"
+        ).fetchone()
+        assert row is not None
+
+    def test_torus_amplify_read_by_tick_without_error(self):
+        """tick_torus_pressure reads torus_amplify keys from kv_store silently."""
+        cn = _make_corpus_db()
+        _seed_endpoints(cn, list("abcdefgh"))
+        cn.execute(
+            "INSERT INTO kv_store(key,value) VALUES('torus_amplify:bridge:a','1.8')"
+        )
+        cn.commit()
+        d = tick_torus_pressure(cn)
+        assert d["endpoints"] == 8
+        assert d["moved"] >= 0   # no exception raised

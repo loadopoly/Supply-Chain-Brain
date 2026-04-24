@@ -24,19 +24,33 @@ TAB: Service
 TAB: Order Management
 ============================================================
   Tiles: Manage Price Lists, Manage Discount Lists, Pricing Administration
-  Quick Actions: Quick Actions, Manage Price Lists, Manage Discount Lists, Show More, Add Item, Things to Finish, PreviousAssigned to Me0Created by Me0You have no open notifications.Show More, PreviousAssigned to Me0Created by Me0You have no open notifications., Assigned to Me0Created by Me0You have no open notifications., Assigned to Me0Created by Me0
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Manage Price Lists, Manage Discount Lists, Show More, AppsnewAstec ECN Tracking Application
 
   MODULE: Manage Price Lists
     Title: Manage Price Lists - Pricing Administration - Oracle Fusion Cloud Applications
     Task Panel Tabs: Application Default, --------, Personalize...
     [Application Default]
+      Section: Unknown
+        - Add Fields
+      Section: Status
+      Section: Start Date
     [--------]
+      Section: Personalize Saved Searches
+        - Add Fields
+      Section: Status
+      Section: Start Date
     [Personalize...]
+      Section: Unknown
+        - Add Fields
+      Section: Status
+      Section: Start Date
 
   MODULE: Manage Discount Lists
     Title: Manage Discount Lists - Pricing Administration - Oracle Fusion Cloud Applications
     Task Panel Tabs: Application Default, findByName, --------, Personalize...
     [Application Default]
+      Section: Unknown
+        - Add Fields
     [findByName]
     [--------]
     [Personalize...]
@@ -84,6 +98,8 @@ TAB: Supply Chain Execution
   MODULE: Work Execution
     Title: Overview - Work Execution - Oracle Fusion Cloud Applications
     [default]
+      Section: Unknown
+        - 3145_US_MAN_MFG
 
   MODULE: Quality Management
     Title: Overview - Quality Management - Oracle Fusion Cloud Applications
@@ -193,7 +209,7 @@ TAB: Supply Chain Execution
 TAB: Supply Chain Planning
 ============================================================
   Tiles: Manage Backlog Planning Rules, Supply Allocation Rules, Demand Priority Rules, Maintain Supply Network Model, Manage Assignment Sets, Plan Inputs, Demand Management, Supply Planning, Replenishment Planning
-  Quick Actions: Quick Actions, Manage Backlog Planning Rules, Supply Allocation Rules, Demand Priority Rules, Maintain Supply Network Model, Manage Assignment Sets, Show More, Add Item, Things to Finish, PreviousAssigned to Me0Created by Me0You have no open notifications.Show More
+  Quick Actions: Quick Actions, AppsAnalytics, Apps, Analytics, AppsInstalled Base Assets, Installed Base Assets, Work Definition, Receipt Accounting, Manage Backlog Planning Rules, Supply Allocation Rules
 
   MODULE: Manage Backlog Planning Rules
     Title: Oracle Fusion Cloud Applications
@@ -203,9 +219,65 @@ TAB: Supply Chain Planning
 
   MODULE: Demand Priority Rules
     Title: Oracle Fusion Cloud Applications
+    Task Panel Tabs: Additional Attributes, All Organizations, --------, Personalize...
+    [Additional Attributes]
+      Section: Unknown
+        - Add Fields
+      Section: Organization Group
+      Section: Past Due Supply Days
+      Section: Past Due Forecast Days
+      Section: Past Due Sales Order Days
+      Section: Project Control Level
+      Section: Plan Subinventories
+      Section: Order Shipment Cutoff Time
+      Section: Pick and Pack Lead Time
+      Section: Notes
+      Section: Project Enabled
+    [All Organizations]
+      Section: Unknown
+        - Add Fields
+      Section: Organization Group
+      Section: Past Due Supply Days
+      Section: Past Due Forecast Days
+      Section: Past Due Sales Order Days
+      Section: Project Control Level
+      Section: Plan Subinventories
+      Section: Order Shipment Cutoff Time
+      Section: Pick and Pack Lead Time
+      Section: Notes
+      Section: Project Enabled
+    [--------]
+      Section: Personalize Saved Searches
+        - Add Fields
+      Section: Organization Group
+      Section: Past Due Supply Days
+      Section: Past Due Forecast Days
+      Section: Past Due Sales Order Days
+      Section: Project Control Level
+      Section: Plan Subinventories
+      Section: Order Shipment Cutoff Time
+      Section: Pick and Pack Lead Time
+      Section: Notes
+      Section: Project Enabled
+    [Personalize...]
+      Section: Unknown
+        - Add Fields
+      Section: Organization Group
+      Section: Past Due Supply Days
+      Section: Past Due Forecast Days
+      Section: Past Due Sales Order Days
+      Section: Project Control Level
+      Section: Plan Subinventories
+      Section: Order Shipment Cutoff Time
+      Section: Pick and Pack Lead Time
+      Section: Notes
+      Section: Project Enabled
 
   MODULE: Maintain Supply Network Model
     Title: Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Save
 
   MODULE: Manage Assignment Sets
     Title: Oracle Fusion Cloud Applications
@@ -217,6 +289,7 @@ TAB: Supply Chain Planning
       Section: Unknown
         - Collect Planning Data
         - Load Planning Data from Files
+        - Save
         - Maintain Supply Network Model
         - Manage Assignment Sets
         - Manage Sourcing Rules
@@ -233,6 +306,10 @@ TAB: Supply Chain Planning
         - Manage Segment Groups and Criteria
         - Manage Segment Members
         - View Segmentation Summary
+      Section: Planning Time Fence Date
+      Section: Safety Stock Quantity
+      Section: Calculate ATP
+      Section: Note
         - Manage Supply Allocation Rules
         - Lead Time Performance Summary
         - Lead Time Insights Parameter Configuration
@@ -245,7 +322,9 @@ TAB: Supply Chain Planning
         - Manage Planning Profile Options
     [--------]
       Section: Unknown
+        - Collect Planning Data
         - Load Planning Data from Files
+        - Save
         - Maintain Supply Network Model
         - Manage Assignment Sets
         - Manage Sourcing Rules
@@ -262,6 +341,10 @@ TAB: Supply Chain Planning
         - Manage Segment Groups and Criteria
         - Manage Segment Members
         - View Segmentation Summary
+      Section: Planning Time Fence Date
+      Section: Safety Stock Quantity
+      Section: Calculate ATP
+      Section: Note
         - Manage Supply Allocation Rules
         - Lead Time Performance Summary
         - Lead Time Insights Parameter Configuration
@@ -274,6 +357,8 @@ TAB: Supply Chain Planning
         - Manage Planning Profile Options
     [Personalize...]
       Section: Unknown
+        - Load Planning Data from Files
+        - Save
         - Maintain Supply Network Model
         - Manage Assignment Sets
         - Manage Sourcing Rules
@@ -290,6 +375,10 @@ TAB: Supply Chain Planning
         - Manage Segment Groups and Criteria
         - Manage Segment Members
         - View Segmentation Summary
+      Section: Planning Time Fence Date
+      Section: Safety Stock Quantity
+      Section: Calculate ATP
+      Section: Note
         - Manage Supply Allocation Rules
         - Lead Time Performance Summary
         - Lead Time Insights Parameter Configuration
@@ -300,6 +389,45 @@ TAB: Supply Chain Planning
         - Manage Demand Classes
         - Manage Planning Measures
         - Manage Planning Profile Options
+
+  MODULE: Demand Management
+    Title: Demand Management - Oracle Fusion Cloud Applications
+    [default]
+
+  MODULE: Supply Planning
+    Title: Supply Planning - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Collect Planning Data
+        - Load Planning Data from Files
+        - Manage Planning Data Collection Processes
+        - Maintain Supply Network Model
+        - Manage Assignment Sets
+        - Manage Sourcing Rules
+        - Manage Bills of Distribution
+        - Manage Planning Source Systems
+        - Manage Demand Priority Rules
+        - Manage Planners
+        - Review Planning Calendars
+        - Review Planning Calendar Shifts
+        - Review Planning Calendar Associations
+        - Manage Planning Attributes
+        - Manage Project Groups
+        - Manage Attribute-Based Netting Rules
+        - Manage Segment Groups and Criteria
+        - Manage Segment Members
+        - Manage Supply Planning Policy Assignment Sets
+        - View Segmentation Summary
+        - Configure Exceptions
+        - Configure Exception Sets
+        - Configure Planning Analytics
+        - Manage Demand Classes
+        - Manage Planning Measures
+        - Manage Planning Profile Options
+
+  MODULE: Replenishment Planning
+    Title: Replenishment Planning - Oracle Fusion Cloud Applications
+    [default]
 
 ============================================================
 TAB: Product Management
@@ -311,8 +439,30 @@ TAB: Product Management
     Title: Manufacturers (Classic) - Product Development - Oracle Fusion Cloud Applications
     Task Panel Tabs: --------, Application Default, --------, Personalize...
     [--------]
+      Section: Unknown
+        - Manage Items
+        - View Item Audit Trail
+        - Create Manufacturer Part
+        - Manage Manufacturer Parts
+      Section: Last Updated By
+      Section: Creation Date
     [Application Default]
+      Section: Unknown
+        - Create Item
+        - Manage Items
+        - View Item Audit Trail
+        - Create Manufacturer Part
+        - Manage Manufacturer Parts
+      Section: Last Updated By
+      Section: Creation Date
     [Personalize...]
+      Section: Unknown
+        - Manage Items
+        - View Item Audit Trail
+        - Create Manufacturer Part
+        - Manage Manufacturer Parts
+      Section: Last Updated By
+      Section: Creation Date
 
   MODULE: Browse Commercial Items
     Title: Browse Commercial Items - Product Information Management - Oracle Fusion Cloud Applications
@@ -326,24 +476,27 @@ TAB: Product Management
         - Manage Item Relationships
         - Manage Change Orders
         - Manage Worklist
+      Section: Item Status
+      Section: Long Description
+      Section: Item Class
+      Section: Organization
     [UnApprovedItemSearchForCCO]
       Section: Unknown
+        - Create Item
         - Manage Items
         - Browse Items
         - Manage Catalogs
         - Manage Item Relationships
         - Manage Change Orders
         - Manage Worklist
+      Section: Item Status
+      Section: Long Description
+      Section: Item Class
+      Section: Organization
 
   MODULE: Product Development
     Title: Overview - Product Development - Oracle Fusion Cloud Applications
     [default]
-      Section: Unknown
-        - Create Item
-        - Manage Items
-        - View Item Audit Trail
-        - Create Manufacturer Part
-        - Manage Manufacturer Parts
 
   MODULE: Product Information Management
     Title: Product Information Management - Oracle Fusion Cloud Applications
@@ -357,12 +510,35 @@ TAB: General Accounting
 
   MODULE: Manage Journals
     Title: Manage Journals - Journals - Oracle Fusion Cloud Applications
+    Task Panel Tabs: All Journals, Journals That Haven't Been Reversed, Unposted Journals, --------, Personalize...
+    [All Journals]
+      Section: Unknown
+        - Add Fields
+    [Journals That Haven't Been Reversed]
+      Section: Unknown
+        - Add Fields
+    [Unposted Journals]
+      Section: Unknown
+        - Add Fields
+    [--------]
+      Section: Personalize Saved Searches
+        - Add Fields
+    [Personalize...]
+      Section: Unknown
+        - Add Fields
 
   MODULE: Manage Approvals for Journals
     Title: Manage Approvals for Journals - Journals - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Help
+      Section: Accounting Period
 
   MODULE: Journals
     Title: Journals - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Help
 
 ============================================================
 TAB: Procurement
@@ -381,16 +557,22 @@ TAB: Procurement
         - Research Suppliers
         - Manage Suppliers
         - Manage Approved Supplier List Entries
+      Section: Tax Registration Number
+      Section: D-U-N-S Number
     [--------]
       Section: Unknown
         - Research Suppliers
         - Manage Suppliers
         - Manage Approved Supplier List Entries
+      Section: Tax Registration Number
+      Section: D-U-N-S Number
     [Personalize...]
       Section: Unknown
         - Research Suppliers
         - Manage Suppliers
         - Manage Approved Supplier List Entries
+      Section: Tax Registration Number
+      Section: D-U-N-S Number
 
   MODULE: Requisition Lines
     Title: Approved Supplier List Entries - Purchase Orders - Oracle Fusion Cloud Applications
@@ -406,7 +588,7 @@ TAB: Procurement
     Title: Oracle Fusion Cloud Applications
 
   MODULE: Purchase Requisitions
-    Title: https://www.google.com/search?q=arxiv&oq=arxiv&gs_lcrp=EgZjaHJvbWUyBggAEEUYOdIBCDE4NjFqMGo0qAIAsAIB&sourceid=chrome&ie=UTF-8&sei=qm3qaZSFE9ugptQP3dXn-Qo
+    Title: Oracle Fusion Cloud Applications
 
   MODULE: Purchase Requisitions (New)
     Title: Self Service Procurement Home - Search - Oracle Fusion Cloud Applications
@@ -439,6 +621,8 @@ TAB: Procurement
         - Manage Purchasing News
         - Manage Smart Forms
         - Manage Supplier Content Map Sets
+      Section: Agreement
+      Section: Buyer
 
   MODULE: Supplier Qualification
     Title: Oracle Fusion Cloud Applications
@@ -457,6 +641,9 @@ TAB: Tools
 
   MODULE: B2B Trading Partners
     Title: Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Done
 
   MODULE: Set Preferences
     Title: Tasks - Set Preferences - Oracle Fusion Cloud Applications
@@ -482,3 +669,6 @@ TAB: Others
 
   MODULE: Astec ECN Tracking Application
     Title: Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Personal Information

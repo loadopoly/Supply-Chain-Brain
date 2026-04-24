@@ -639,6 +639,27 @@ def _vision_worker() -> None:
                             f"[synapse:vision] symbiotic_tunnel error: {e}"
                         )
 
+                # ── Step 5: grounded tunneling — certainty-anchored collapser ─
+                # Ground nodes (top certainty quartile) open expansory BFS
+                # paths toward uncertain frontiers with temporary weight
+                # resistance + torus amplification.  Expired paths collapse
+                # into permanent GROUNDED_TUNNEL edges (nodal collapse).
+                ground_stats: dict = {}
+                try:
+                    from src.brain.grounded_tunneling import (  # type: ignore[import]
+                        ground_and_expand,
+                    )
+                    ground_stats = ground_and_expand(cn)
+                except Exception as e:
+                    if _is_network_error(e):
+                        logging.info(
+                            f"[synapse:vision] grounded_tunneling soft-skip: {e}"
+                        )
+                    else:
+                        logging.warning(
+                            f"[synapse:vision] grounded_tunneling error: {e}"
+                        )
+
                 cn.commit()
             finally:
                 cn.close()
@@ -651,6 +672,9 @@ def _vision_worker() -> None:
                 f"|bridge={bridge_count}|topo={topo_count}"
                 f"|tunnel_added={tunnel_stats.get('edges_added', 0)}"
                 f"|tunnel_opt={tunnel_stats.get('edges_optimised', 0)}"
+                f"|ground_nodes={ground_stats.get('ground_nodes', 0)}"
+                f"|ground_paths={ground_stats.get('paths_opened', 0)}"
+                f"|collapses={ground_stats.get('collapses', 0)}"
                 f"|elapsed={elapsed}s",
             )
             logging.info(
@@ -658,6 +682,9 @@ def _vision_worker() -> None:
                 f"bridge={bridge_count} topo={topo_count} "
                 f"tunnel+={tunnel_stats.get('edges_added', 0)} "
                 f"tunnel~={tunnel_stats.get('edges_optimised', 0)} "
+                f"ground_nodes={ground_stats.get('ground_nodes', 0)} "
+                f"paths={ground_stats.get('paths_opened', 0)} "
+                f"collapses={ground_stats.get('collapses', 0)} "
                 f"elapsed={elapsed}s"
             )
             ok = True
