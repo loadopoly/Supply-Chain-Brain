@@ -918,13 +918,20 @@ def _adam_step(state: dict, gradient: float) -> float:
     state must hold {m, v, t, pressure}.  Mutates state in place and
     returns the new pressure value clamped to [0, 1].
     Learning rate is read from neural_plasticity (anneals as corpus
-    matures) with _TOUCH_LR as the default.
+    matures) with _TOUCH_LR as the default, then scaled by the
+    temporal-spatiality rhythm's lr_factor (syncopatic boost during
+    high-coherence moments, washed back when relational gradients steepen).
     """
     try:
         from .neural_plasticity import get_dial as _pl_get
         lr = float(_pl_get("touch", "learning_rate", _TOUCH_LR))
     except Exception:
         lr = _TOUCH_LR
+    try:
+        from .temporal_spatiality import get_rhythm_factor as _rf
+        lr *= float(_rf("lr_factor", 1.0))
+    except Exception:
+        pass
 
     m_prev = float(state.get("m", 0.0))
     v_prev = float(state.get("v", 0.0))
@@ -1149,6 +1156,14 @@ def surface_effective_signals(*, top_k: int | None = None,
                                     cfg.get("min_seconds_between_rounds", 30.0)))
     except Exception:
         min_seconds = float(cfg.get("min_seconds_between_rounds", 30.0))
+
+    # Temporal-spatiality rhythm: contract the floor when coherence is high,
+    # relax it under the synaptic wash. Bounded by the rhythm's [0.5, 1.5] boost.
+    try:
+        from .temporal_spatiality import get_rhythm_factor as _rf
+        min_seconds *= float(_rf("period_factor", 1.0))
+    except Exception:
+        pass
 
     global _LAST_SURFACE_TS
     with _SURFACE_LOCK:

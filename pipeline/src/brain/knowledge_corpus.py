@@ -2077,6 +2077,14 @@ def refresh_corpus_round() -> dict:
     except Exception:
         min_seconds = float(cfg.get("min_seconds_between_rounds", 60.0))
 
+    # Temporal-spatiality rhythm: shorten the global Vision round floor when
+    # the senses are coherent, lengthen it when the synaptic wash dominates.
+    try:
+        from .temporal_spatiality import get_rhythm_factor as _rf
+        min_seconds *= float(_rf("period_factor", 1.0))
+    except Exception:
+        pass
+
     global _LAST_REFRESH_TS
     with _REFRESH_LOCK:
         if time.monotonic() - _LAST_REFRESH_TS < min_seconds:
@@ -2266,6 +2274,17 @@ def refresh_corpus_round() -> dict:
     except Exception as _e:
         notes.append(f"neural_plasticity: {_e}")
 
+    # ── Temporal-spatiality: cross-sense rhythm coordination ───────────────
+    # After plasticity rewires the dials, measure joint coherence across
+    # all 5 senses, project onto the 1-D Weyl coordinate at the toroidal
+    # centroid, and modulate the syncopatic rhythm of every rADAM agent.
+    rhythm_summary: dict = {}
+    try:
+        from .temporal_spatiality import temporal_step as _tstep
+        rhythm_summary = _tstep() or {}
+    except Exception as _e:
+        notes.append(f"temporal_spatiality: {_e}")
+
     return {
         "ran_at": datetime.now(timezone.utc).isoformat(),
         "entities_added": stats.entities_added,
@@ -2292,6 +2311,14 @@ def refresh_corpus_round() -> dict:
             "knowledge": plasticity_summary.get("knowledge"),
             "dials":     plasticity_summary.get("dials"),
         } if plasticity_summary else None,
+        "rhythm": {
+            "coherence":     rhythm_summary.get("coherence"),
+            "gradient":      rhythm_summary.get("gradient"),
+            "weyl":          rhythm_summary.get("weyl"),
+            "boost":         rhythm_summary.get("boost"),
+            "period_factor": rhythm_summary.get("period_factor"),
+            "lr_factor":     rhythm_summary.get("lr_factor"),
+        } if rhythm_summary and not rhythm_summary.get("skipped") else None,
         "notes": notes,
     }
 

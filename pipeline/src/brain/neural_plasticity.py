@@ -325,7 +325,14 @@ def _smooth_dial(cur: float, target: float, opt_state: dict) -> float:
     # batch_size dial moves by ~hundreds while a learning_rate dial moves
     # by ~hundredths.  We use abs(target) + abs(cur) to set the scale.
     scale = max(1e-3, 0.5 * (abs(target) + abs(cur)))
-    step  = _PL_LR * scale * m_hat / ((v_hat ** 0.5) + _PL_EPS)
+    # Temporal-spatiality rhythm scales the rADAM lr — coherent senses
+    # accelerate plasticity, the synaptic wash damps it during gradient bursts.
+    try:
+        from .temporal_spatiality import get_rhythm_factor as _rf
+        lr = _PL_LR * float(_rf("lr_factor", 1.0))
+    except Exception:
+        lr = _PL_LR
+    step  = lr * scale * m_hat / ((v_hat ** 0.5) + _PL_EPS)
 
     opt_state["m"] = m
     opt_state["v"] = v

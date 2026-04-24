@@ -48,3 +48,14 @@
 - Computes relational distance as time decay (`1.0 - carrier_mass`).
 - Amplifies the relational force (the Touch gradient pushing pressure up from Body directives) by the proportional time decay, pulling the pressure field harder so Vision focuses more budget on gapped edges.
 
+
+## 2026-04-24 — Temporal-Spatiality rhythm coordinator (v1.4.0)
+- New module `pipeline/src/brain/temporal_spatiality.py` — measures joint coherence across all five senses, computes the relational gradient (synaptic wash damper), projects onto a 1-D Weyl coordinate at the toroidal centroid, and emits a rhythm dict.
+- `modulate()` returns `{coherence, gradient, weyl, boost, period_factor, lr_factor}` where `boost = clamp(1 + (coherence - gradient) * 0.5, 0.5, 1.5)`.
+- Three rADAM agents now read the rhythm and modulate their syncopatic period:
+  * Touch ADAM (`brain_body_signals._adam_step`) multiplies its lr by `lr_factor`.
+  * Plasticity ADAM (`neural_plasticity._smooth_dial`) multiplies its lr by `lr_factor`.
+  * Rate-limit floors in `refresh_corpus_round` and `surface_effective_signals` multiply by `period_factor`.
+- `temporal_step()` invoked from the corpus-round tail after plasticity; round summary now exposes `rhythm.{coherence, gradient, weyl, boost, period_factor, lr_factor}`.
+- Validated: uniform high activity boosts to 1.27\u00d7; single-sense saturation washes back to 0.67\u00d7 (clamped at the safe bounds).
+
