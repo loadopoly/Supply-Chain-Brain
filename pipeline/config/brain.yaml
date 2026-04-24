@@ -393,6 +393,67 @@ llms:
     audit_log: 'pipeline/docs/LLM_SCOUT_AUDIT.md'
 
   # -------------------------------------------------------------------------
+  # Candidate Trial System — new models enter here for a scored probationary
+  # period before being promoted into llms.registry via llm_registry.sqlite.
+  # brain.llm_candidate fires each candidate alongside the main ensemble (but
+  # excludes their responses from the authoritative answer). After
+  # `dispatches_required` observations the candidate is auto-promoted
+  # (ema_success >= promote_threshold) or auto-rejected.
+  # Promoted models are written to the llm_registry SQLite table so
+  # brain.llm_router.available_models() picks them up immediately.
+  # scout.accept_rules do NOT apply here; candidates are added manually.
+  # -------------------------------------------------------------------------
+  candidates:
+    trial:
+      dispatches_required: 50        # minimum dispatches before a decision
+      ema_alpha:           0.10      # EMA decay factor (matches ensemble learning.ema_alpha)
+      promote_threshold:   0.72      # ema_success >= this → promoted to llm_registry
+      reject_threshold:    0.45      # ema_success <= this after N dispatches → rejected
+    models:
+      - id: deepseek-v4-pro
+        vendor: deepseek
+        tier: paid
+        params_b: 1600
+        active_b: 49
+        moe: true
+        ctx_window: 1048576
+        license: proprietary
+        released: 2026-04-23
+        endpoint_env: DEEPSEEK_V4_PRO_ENDPOINT
+        capabilities:
+          reasoning:    0.97
+          coding:       0.98
+          long_ctx:     0.97
+          math:         0.97
+          multilingual: 0.87
+          structured:   0.95
+          vision:       0.45
+        cost_per_mtok_in:  1.74
+        cost_per_mtok_out: 3.48
+        median_latency_ms: 4000
+      - id: deepseek-v4-flash
+        vendor: deepseek
+        tier: paid
+        params_b: 284
+        active_b: 13
+        moe: true
+        ctx_window: 1048576
+        license: proprietary
+        released: 2026-04-23
+        endpoint_env: DEEPSEEK_V4_FLASH_ENDPOINT
+        capabilities:
+          reasoning:    0.87
+          coding:       0.88
+          long_ctx:     0.97
+          math:         0.86
+          multilingual: 0.82
+          structured:   0.88
+          vision:       0.40
+        cost_per_mtok_in:  0.14
+        cost_per_mtok_out: 0.28
+        median_latency_ms: 800
+
+  # -------------------------------------------------------------------------
   # Multi-LLM Ensemble (parallel dispatch + learnable weights & biases).
   # The Brain treats every task answer as a weighted combination of K free
   # models running concurrently. Per-(model,task) weights & biases are stored

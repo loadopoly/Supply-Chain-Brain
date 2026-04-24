@@ -31,6 +31,7 @@ Public API:
 from __future__ import annotations
 
 import json
+import logging
 import math
 import sqlite3
 import threading
@@ -40,6 +41,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field, asdict
 from typing import Any, Callable, Iterable
+
+logger = logging.getLogger(__name__)
 
 from . import load_config
 from .local_store import db_path
@@ -71,7 +74,20 @@ CREATE TABLE IF NOT EXISTS llm_dispatch_log (
     validator    REAL,
     decided_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS llm_candidate_trials (
+    model_id    TEXT NOT NULL PRIMARY KEY,
+    dispatches  INTEGER NOT NULL DEFAULT 0,
+    ema_success REAL    NOT NULL DEFAULT 0.5,
+    ema_latency REAL    NOT NULL DEFAULT 0.0,
+    status      TEXT    NOT NULL DEFAULT 'trial',
+    started_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    decided_at  TIMESTAMP
+);
 """
+
+# Module-level counter for periodic candidate evaluation (every 10 dispatches).
+_CANDIDATE_DISPATCH_LOCK = threading.Lock()
+_candidate_dispatch_count: int = 0
 
 
 @contextmanager
@@ -444,7 +460,78 @@ def dispatch_parallel(task: str, payload: Any, *,
         # Even without an explicit validator, telemetry (latency/success) is
         # still useful — update EMAs only.
         _update_telemetry(task, outcomes)
+    _try_dispatch_candidates(task, payload, invoke, cfg)
     return result
+
+
+def _try_dispatch_candidates(task: str, payload: Any,
+                              invoke: Callable, cfg: dict) -> None:
+    """Fire active candidate models as a silent sidecar and tick trial metrics.
+
+    Candidate responses are intentionally discarded; only EMA success/latency
+    stats are accumulated.  After every 10th call this function also runs
+    ``evaluate_candidates()`` to check promote/reject thresholds.
+    """
+    try:
+        from .llm_candidate import (  # noqa: PLC0415
+            get_active_candidates,
+            tick_candidate,
+            evaluate_candidates,
+        )
+    except ImportError:
+        return
+
+    candidates = get_active_candidates()
+    if not candidates:
+        return
+
+    import os  # noqa: PLC0415 — deferred to keep cold-import cost near zero
+    timeout_s = float(cfg.get("request_timeout_s", 45))
+
+    def _run_candidate(spec: dict) -> tuple[str, bool, int]:
+        env_name = str(spec.get("endpoint_env") or "")
+        d = Decision(
+            model_id=spec["id"],
+            vendor=str(spec.get("vendor", "")),
+            score=0.0,
+            passed_filters=True,
+            endpoint_env=env_name,
+            endpoint=os.environ.get(env_name) if env_name else None,
+        )
+        try:
+            object.__setattr__(d, "_task", task)
+        except Exception:
+            pass
+        t0 = time.perf_counter()
+        try:
+            invoke(d, payload, cfg)
+            return spec["id"], True, int((time.perf_counter() - t0) * 1000)
+        except Exception:
+            return spec["id"], False, int((time.perf_counter() - t0) * 1000)
+
+    with ThreadPoolExecutor(max_workers=max(1, len(candidates))) as pool:
+        futures = {pool.submit(_run_candidate, spec): spec for spec in candidates}
+        for fut in as_completed(futures, timeout=timeout_s):
+            spec = futures[fut]
+            try:
+                mid, ok, ms = fut.result(timeout=0)
+            except Exception:
+                mid, ok, ms = spec["id"], False, int(timeout_s * 1000)
+            try:
+                tick_candidate(mid, ok, ms)
+            except Exception as exc:
+                logger.debug("llm_candidate tick failed for %s: %s", mid, exc)
+
+    # Check promote / reject thresholds every 10 candidate dispatches.
+    global _candidate_dispatch_count
+    with _CANDIDATE_DISPATCH_LOCK:
+        _candidate_dispatch_count += 1
+        run_eval = (_candidate_dispatch_count % 10 == 0)
+    if run_eval:
+        try:
+            evaluate_candidates()
+        except Exception as exc:
+            logger.debug("llm_candidate evaluate: %s", exc)
 
 
 def _run_one(invoke: Callable, d: Decision, payload: Any, cfg: dict,

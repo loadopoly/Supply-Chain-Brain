@@ -4,6 +4,61 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.18.0] DeepSeek V4 Candidate Trial System (2026-04-24)
+
+### Added
+
+- **`pipeline/src/brain/llm_candidate.py`** — New module: scored probationary trial system for new LLM candidates
+  - `get_active_candidates()` returns model specs for all models currently in trial
+  - `tick_candidate(model_id, ok, latency_ms)` records one dispatch result via EMA update (α=0.10)
+  - `evaluate_candidates()` checks thresholds after every 10 dispatches; auto-promotes or auto-rejects
+  - `candidate_stats()` returns full trial state for all candidates (used by UI/dashboards)
+  - Promoted models are written to `llm_registry` SQLite table (`promoted=1`); `llm_router.available_models()` picks them up on the next call — no YAML modification required
+  - Every promotion/rejection is appended to `pipeline/docs/LLM_CANDIDATE_AUDIT.md`
+
+- **`pipeline/config/brain.yaml` — `llms.candidates` block** — Declarative trial configuration
+  - `trial.dispatches_required: 50` — minimum observations before a decision
+  - `trial.promote_threshold: 0.72` — ema_success ≥ this → promote to live registry
+  - `trial.reject_threshold: 0.45` — ema_success ≤ this after N dispatches → reject
+  - **DeepSeek V4 Pro** (`deepseek-v4-pro`) — 1.6T/49B MoE, 1M ctx, $1.74/$3.48 per Mtok in/out
+  - **DeepSeek V4 Flash** (`deepseek-v4-flash`) — 284B/13B MoE, 1M ctx, $0.14/$0.28 per Mtok in/out
+
+- **`pipeline/src/brain/llm_ensemble.py`** — Candidate sidecar wired into `dispatch_parallel()`
+  - `llm_candidate_trials` DDL added to `_DDL` so the table is always created on first ensemble use
+  - `_try_dispatch_candidates()` fires active candidates after the main ensemble answers; results are intentionally discarded (not included in `EnsembleResult`); EMA stats accumulate
+  - `evaluate_candidates()` is triggered every 10th candidate dispatch (module-level atomic counter)
+  - `import logging` added; `logger = logging.getLogger(__name__)` available for debug output
+
+## [oracle-schema] Oracle Fusion Schema Mapper + Intersection Map (2026-04-24)
+
+### Added
+
+- **`pipeline/oracle_schema_mapper.py`** — Playwright crawler that navigates all Oracle Fusion DEV13 tabs/tiles, opens task panels, and extracts full task lists into a structured JSON schema
+  - Resume mode: skips modules already having ≥2 real tasks; safe to restart mid-run
+  - Redwood precheck pattern: reads panel content before attempting to open it (threshold ≥3 tasks), avoiding the toggle-close bug on Redwood-UI modules where the panel is already open on page load
+  - Font-weight heuristic (`fontWeight ≥ 600`) for section header detection, replacing obfuscated ADF CSS class names (`xmu`, `x16g`) that change between releases
+  - NOISE task filter: `{'Add Fields', 'Help', 'Done', 'Save', 'Personal Information', 'Refresh'}` excluded from real-task counts
+  - "Keep better data" protection: if a re-probe captures fewer real tasks than existing, retains old data
+  - Incremental JSON/TXT output saved after each module probe
+
+- **`pipeline/oracle_schema_map.json`** / **`pipeline/oracle_schema_map.txt`** — Incremental schema output; 25 modules with confirmed task content as of run 5
+
+- **`pipeline/build_intersection_map.py`** — Cross-references `oracle_schema_map.json` with confirmed write operations for part 80446-04
+  - Classifies each module as Confirmed (4), Adjacent (20), or Low-relevance (31)
+  - 16 confirmed write-op tasks across 4 modules: SCE/Work Execution, SCE/Inventory Management Classic, Procurement/Purchase Orders, Procurement/Approved Supplier List
+
+- **`pipeline/pim_screenshots/80446-04/write_ops/intersection_map.json`** — Part-level intersection data
+- **`pipeline/pim_screenshots/80446-04/write_ops/intersection_map.txt`** — Human-readable intersection report
+- **`Claude/ORACLE_SCHEMA_MAPPER_GUIDE.md`** — Technical guide covering ADF Classic vs Redwood UI detection, known issues, and intersection map methodology
+
+### Known Issues (active as of 2026-04-24)
+
+- Work Execution and Plan Inputs regressed to 1/0 real tasks in run 4 due to false-positive precheck triggering (stray page elements at x>1100); being fixed in run 5 via the ≥3 task threshold
+- 4 modules (Receipt Accounting, Financial Orchestration, Supply Orchestration, Supply Chain Orchestration) navigate to home on tile click — require URL-based navigation, not yet implemented
+- List-view pages (Manage Journals, Manage Price Lists, Plan Inputs data grid) capture saved-search SELECT options instead of real task panel content
+
+---
+
 ## 0.17.0 — UEQGM + AI Knowledge Expansion Research Tracks (2026-04-24)
 
 ### Added
