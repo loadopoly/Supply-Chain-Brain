@@ -297,54 +297,337 @@ if layout_data and HAS_NX:
 
     sel_node = st.session_state.get("kg_selected_node")
     if sel_node and HAS_NX:
-        # Resolve string back to tuple node id
+        import networkx as nx
+
+        # ── Resolve node ──────────────────────────────────────────────────────
         node_match = None
         for n in g.g.nodes():
             if str(n) == str(sel_node) or (isinstance(n, tuple) and n[1] == str(sel_node)):
                 node_match = n; break
-        if node_match is None:
-            st.info(f"Selected node `{sel_node}` not found in graph.")
-        else:
-            st.divider()
-            st.subheader(f"🔍 Discovery: why is `{node_match}` connected?")
-            exp = g.explain_node(node_match)
-            d1, d2, d3 = st.columns(3)
-            d1.metric("Total Degree", exp["degree"])
-            d2.metric("In Degree",    exp["in_degree"] if exp["in_degree"] is not None else "—")
-            d3.metric("Out Degree",   exp["out_degree"] if exp["out_degree"] is not None else "—")
-            cA, cB = st.columns(2)
-            with cA:
-                st.caption("**Neighbor breakdown by kind**")
-                if exp["neighbor_kinds"]:
-                    nb_df = pd.DataFrame(list(exp["neighbor_kinds"].items()),
-                                          columns=["kind","count"]).sort_values("count", ascending=False)
-                    st.dataframe(nb_df, use_container_width=True, hide_index=True)
-            with cB:
-                st.caption("**Edge relations**")
-                if exp["edge_kinds"]:
-                    ek_df = pd.DataFrame(list(exp["edge_kinds"].items()),
-                                          columns=["relation","count"]).sort_values("count", ascending=False)
-                    st.dataframe(ek_df, use_container_width=True, hide_index=True)
 
-            # Edge-level evidence table
-            neighbors = list(g.g.successors(node_match)) + list(g.g.predecessors(node_match))
+        if node_match is None:
+            st.info(f"Selected node `{sel_node}` not found in current graph slice.")
+        else:
+            node_attrs  = g.g.nodes[node_match]
+            node_kind   = node_attrs.get("kind", "node")
+            node_label  = node_attrs.get("label", str(node_match))
+            entity_id   = node_match[1] if isinstance(node_match, tuple) else str(node_match)
+
+            exp            = g.explain_node(node_match)
+            neighbors_all  = list(g.g.successors(node_match)) + list(g.g.predecessors(node_match))
+            neighbors_uniq = list(dict.fromkeys(neighbors_all))
+
+            # Pre-build edge evidence rows (reused across tabs)
             rows_drill = []
-            for nb in neighbors[:80]:
-                edata = g.g.get_edge_data(node_match, nb) or g.g.get_edge_data(nb, node_match) or {}
-                # MultiDiGraph returns {key: {attrs}}; flatten each
-                if edata:
-                    for k, attrs in edata.items():
-                        rows_drill.append({
-                            "neighbor": str(nb),
-                            "kind": g.g.nodes[nb].get("kind","?"),
-                            "relation": attrs.get("kind", str(k)),
-                            "weight": attrs.get("weight", 1.0),
-                            "neighbor_degree": g.g.degree(nb),
+            for _nb in neighbors_uniq[:120]:
+                _edata = g.g.get_edge_data(node_match, _nb) or g.g.get_edge_data(_nb, node_match) or {}
+                for _ek, _ea in _edata.items():
+                    rows_drill.append({
+                        "neighbor":        g.g.nodes[_nb].get("label",
+                                               _nb[1] if isinstance(_nb, tuple) else str(_nb)),
+                        "neighbor_id":     _nb[1] if isinstance(_nb, tuple) else str(_nb),
+                        "kind":            g.g.nodes[_nb].get("kind", "?"),
+                        "relation":        _ea.get("kind", str(_ek)),
+                        "weight":          round(float(_ea.get("weight", 1.0)), 2),
+                        "neighbor_degree": g.g.degree(_nb),
+                    })
+
+            # Degree rank among all graph nodes (O(N), instant)
+            _all_degs = sorted(dict(g.g.degree()).values(), reverse=True)
+            _self_deg = g.g.degree(node_match)
+            _deg_rank = next((i+1 for i, d in enumerate(_all_degs) if d == _self_deg), "—")
+
+            # ── Header strip ───────────────────────────────────────────────────
+            st.divider()
+            _ICONS = {"part": "🔩", "supplier": "🏭", "customer": "🛒"}
+            _hdr_col, _close_col = st.columns([9, 1])
+            _hdr_col.markdown(
+                f"### {_ICONS.get(node_kind,'⚙️')} **{node_label}**  "
+                f"<span style='color:#64748b;font-size:.85rem'>`{node_kind.upper()}` · ID `{entity_id}`</span>",
+                unsafe_allow_html=True)
+            if _close_col.button("✖ Deselect", key="kg_clear"):
+                st.session_state.pop("kg_selected_node", None)
+                st.rerun()
+
+            # ── 5-metric ribbon ────────────────────────────────────────────────
+            _m1, _m2, _m3, _m4, _m5 = st.columns(5)
+            _m1.metric("Degree",       exp["degree"])
+            _m2.metric("In",           exp["in_degree"]  if exp["in_degree"]  is not None else "—")
+            _m3.metric("Out",          exp["out_degree"] if exp["out_degree"] is not None else "—")
+            _m4.metric("Neighbours",   len(neighbors_uniq))
+            _m5.metric("Degree Rank",  f"#{_deg_rank}")
+
+            # ── Tabs ───────────────────────────────────────────────────────────
+            _tab_net, _tab_rel, _tab_2hop, _tab_sql, _tab_find = st.tabs([
+                "🕸 1-hop Network", "📊 Relationships", "🔄 2-hop Network",
+                "🗃 Live Data",     "📌 Findings",
+            ])
+
+            # ── Tab 1: 1-hop neighbourhood ─────────────────────────────────────
+            with _tab_net:
+                _sub_nodes = [node_match] + neighbors_uniq[:60]
+                _subg      = g.g.subgraph(_sub_nodes)
+                if _subg.number_of_nodes() > 1:
+                    _C = {"part":"#38bdf8","supplier":"#f97316",
+                          "customer":"#22c55e","node":"#a855f7"}
+                    _pos_sub = nx.spring_layout(
+                        _subg, k=1.8/max(1, _subg.number_of_nodes()**0.4), seed=7)
+                    _deg_sub = dict(_subg.degree())
+
+                    # edge trace
+                    _ex, _ey = [], []
+                    for _u, _v in _subg.edges():
+                        _x0,_y0=_pos_sub[_u]; _x1,_y1=_pos_sub[_v]
+                        _ex+=[_x0,_x1,None]; _ey+=[_y0,_y1,None]
+
+                    _fig_sub = go.Figure()
+                    _fig_sub.add_trace(go.Scatter(
+                        x=_ex, y=_ey, mode="lines",
+                        line=dict(width=0.8, color="#475569"),
+                        hoverinfo="none", showlegend=False))
+
+                    # one Scatter trace per node kind — preserves per-point customdata
+                    _sub_by_kind: dict = {}
+                    for _nd, _at in _subg.nodes(data=True):
+                        _kd = _at.get("kind","node")
+                        _b  = _sub_by_kind.setdefault(_kd, {
+                            "x":[],"y":[],"text":[],"hover":[],"sz":[],"bw":[],"bc":[],"ids":[]})
+                        _xp, _yp = _pos_sub[_nd]
+                        _lbl = _at.get("label", str(_nd))
+                        _is_sel = _nd == node_match
+                        _b["x"].append(_xp); _b["y"].append(_yp)
+                        _b["text"].append(str(_lbl)[:16])
+                        _b["hover"].append(
+                            f"<b>{_lbl}</b><br>Type: {_kd}<br>"
+                            f"Degree: {_deg_sub.get(_nd,0)}<br>"
+                            f"ID: {_nd[1] if isinstance(_nd,tuple) else _nd}"
+                            + ("<br>⭐ SELECTED" if _is_sel else ""))
+                        _b["sz"].append(26 if _is_sel else 8+min(22, _deg_sub.get(_nd,1)*2))
+                        _b["bw"].append(4 if _is_sel else 1)
+                        _b["bc"].append("#facc15" if _is_sel else "#1e293b")
+                        _b["ids"].append(_nd)
+
+                    for _kd, _b in _sub_by_kind.items():
+                        _fig_sub.add_trace(go.Scatter(
+                            x=_b["x"], y=_b["y"], mode="markers+text",
+                            marker=dict(size=_b["sz"], color=_C.get(_kd,"#a855f7"),
+                                        line=dict(width=_b["bw"], color=_b["bc"])),
+                            text=_b["text"], textposition="top center",
+                            textfont=dict(size=9, color="#e2e8f0"),
+                            hovertemplate="%{hovertext}<extra></extra>",
+                            hovertext=_b["hover"],
+                            customdata=[str(_n) for _n in _b["ids"]],
+                            name=_kd.title(), showlegend=True))
+
+                    _fig_sub.update_layout(
+                        height=440, paper_bgcolor="#0f172a", plot_bgcolor="#0f172a",
+                        xaxis=dict(showgrid=False,zeroline=False,showticklabels=False),
+                        yaxis=dict(showgrid=False,zeroline=False,showticklabels=False),
+                        margin=dict(l=0,r=0,t=35,b=10),
+                        title=dict(
+                            text=f"1-hop neighbourhood · {len(neighbors_uniq)} direct connections · click a node to pivot",
+                            font=dict(color="#94a3b8", size=12)),
+                        hovermode="closest", clickmode="event+select",
+                    )
+                    _sub_click = st.plotly_chart(_fig_sub, use_container_width=True,
+                                                 key="kg_subgraph", on_select="rerun")
+                    if _sub_click and _sub_click.get("selection",{}).get("points"):
+                        _pt2 = _sub_click["selection"]["points"][0]
+                        _nid2 = _pt2.get("customdata")
+                        if _nid2 and _nid2 != str(node_match):
+                            st.session_state["kg_selected_node"] = _nid2
+                            st.rerun()
+                    st.caption("🟡 thick border = selected node · click any neighbour to pivot the drill-down to it")
+                else:
+                    st.info("No neighbours in the current graph slice — increase the graph size in the filter panel.")
+
+            # ── Tab 2: relationships ───────────────────────────────────────────
+            with _tab_rel:
+                _rc1, _rc2 = st.columns(2)
+                with _rc1:
+                    st.caption("**Neighbour breakdown by type**")
+                    if exp["neighbor_kinds"]:
+                        st.dataframe(
+                            pd.DataFrame(list(exp["neighbor_kinds"].items()),
+                                         columns=["kind","count"])
+                              .sort_values("count", ascending=False),
+                            use_container_width=True, hide_index=True)
+                with _rc2:
+                    st.caption("**Edge relation types**")
+                    if exp["edge_kinds"]:
+                        st.dataframe(
+                            pd.DataFrame(list(exp["edge_kinds"].items()),
+                                         columns=["relation","count"])
+                              .sort_values("count", ascending=False),
+                            use_container_width=True, hide_index=True)
+
+                if rows_drill:
+                    st.caption(
+                        f"**All direct connections — {len(rows_drill)} edge rows "
+                        f"(top 120 neighbours, sorted by degree)**")
+                    st.dataframe(
+                        pd.DataFrame(rows_drill).sort_values("neighbor_degree", ascending=False),
+                        use_container_width=True, hide_index=True,
+                        column_config={
+                            "weight":          st.column_config.NumberColumn("Weight", format="%.2f"),
+                            "neighbor_degree": st.column_config.NumberColumn("Degree"),
                         })
-            if rows_drill:
-                st.caption("**Connected nodes (top 80, sorted by degree)**")
-                st.dataframe(pd.DataFrame(rows_drill).sort_values("neighbor_degree",ascending=False),
-                             use_container_width=True, hide_index=True)
+
+            # ── Tab 3: 2-hop network ───────────────────────────────────────────
+            with _tab_2hop:
+                _hop2 = set([node_match])
+                for _nb in neighbors_uniq[:40]:
+                    _hop2.add(_nb)
+                    for _nb2 in (list(g.g.successors(_nb))[:10]
+                                 + list(g.g.predecessors(_nb))[:10]):
+                        _hop2.add(_nb2)
+                _hop2_list = list(_hop2)[:150]
+                _subg2     = g.g.subgraph(_hop2_list)
+
+                if _subg2.number_of_nodes() > 2:
+                    _pos2  = nx.spring_layout(
+                        _subg2, k=2.2/max(1, _subg2.number_of_nodes()**0.4), seed=42)
+                    _deg2  = dict(_subg2.degree())
+                    _C2    = {"part":"#38bdf8","supplier":"#f97316",
+                              "customer":"#22c55e","node":"#a855f7"}
+                    _1hop_set = set(neighbors_uniq)
+
+                    _ex2, _ey2 = [], []
+                    for _u2, _v2 in _subg2.edges():
+                        _x0,_y0=_pos2[_u2]; _x1,_y1=_pos2[_v2]
+                        _ex2+=[_x0,_x1,None]; _ey2+=[_y0,_y1,None]
+
+                    _fig_hop2 = go.Figure()
+                    _fig_hop2.add_trace(go.Scatter(
+                        x=_ex2, y=_ey2, mode="lines",
+                        line=dict(width=0.4, color="#334155"),
+                        hoverinfo="none", showlegend=False))
+
+                    _rings: dict = {
+                        "Selected": {"x":[],"y":[],"hover":[],"sz":[],"col":[],"ids":[],"op":[]},
+                        "1-hop":    {"x":[],"y":[],"hover":[],"sz":[],"col":[],"ids":[],"op":[]},
+                        "2-hop":    {"x":[],"y":[],"hover":[],"sz":[],"col":[],"ids":[],"op":[]},
+                    }
+                    for _nd2, _at2 in _subg2.nodes(data=True):
+                        _kd2 = _at2.get("kind","node")
+                        _lb2 = _at2.get("label", str(_nd2))
+                        _x2, _y2 = _pos2[_nd2]
+                        if _nd2 == node_match:
+                            _ring, _sz2, _col2, _op2 = "Selected", 24, "#facc15", 1.0
+                        elif _nd2 in _1hop_set:
+                            _ring, _sz2, _col2, _op2 = "1-hop",    12, _C2.get(_kd2,"#a855f7"), 0.9
+                        else:
+                            _ring, _sz2, _col2, _op2 = "2-hop",     6, _C2.get(_kd2,"#a855f7"), 0.4
+                        _r = _rings[_ring]
+                        _r["x"].append(_x2); _r["y"].append(_y2)
+                        _r["hover"].append(
+                            f"<b>{_lb2}</b><br>Ring: {_ring}<br>"
+                            f"Type: {_kd2}<br>Degree: {_deg2.get(_nd2,0)}")
+                        _r["sz"].append(_sz2); _r["col"].append(_col2)
+                        _r["op"].append(_op2); _r["ids"].append(_nd2)
+
+                    for _rname, _rb in _rings.items():
+                        if not _rb["x"]: continue
+                        _fig_hop2.add_trace(go.Scatter(
+                            x=_rb["x"], y=_rb["y"], mode="markers",
+                            marker=dict(size=_rb["sz"], color=_rb["col"],
+                                        opacity=_rb["op"],
+                                        line=dict(width=1, color="#1e293b")),
+                            hovertemplate="%{hovertext}<extra></extra>",
+                            hovertext=_rb["hover"],
+                            customdata=[str(_n) for _n in _rb["ids"]],
+                            name=_rname, showlegend=True))
+
+                    _fig_hop2.update_layout(
+                        height=480, paper_bgcolor="#0f172a", plot_bgcolor="#0f172a",
+                        xaxis=dict(showgrid=False,zeroline=False,showticklabels=False),
+                        yaxis=dict(showgrid=False,zeroline=False,showticklabels=False),
+                        margin=dict(l=0,r=0,t=35,b=10),
+                        title=dict(
+                            text=(f"2-hop network — {_subg2.number_of_nodes()} nodes · "
+                                  "yellow=selected · blue=1-hop · grey=2-hop"),
+                            font=dict(color="#94a3b8", size=12)),
+                        hovermode="closest", clickmode="event+select",
+                    )
+                    _hop2_click = st.plotly_chart(_fig_hop2, use_container_width=True,
+                                                  key="kg_hop2", on_select="rerun")
+                    if _hop2_click and _hop2_click.get("selection",{}).get("points"):
+                        _pt3 = _hop2_click["selection"]["points"][0]
+                        _nid3 = _pt3.get("customdata")
+                        if _nid3 and _nid3 != str(node_match):
+                            st.session_state["kg_selected_node"] = _nid3
+                            st.rerun()
+                    st.caption("Click any node to pivot the drill-down to that entity.")
+                else:
+                    st.info("Not enough 2-hop connections with the current graph size — increase Parts/PO/SO limits.")
+
+            # ── Tab 4: live SQL data ───────────────────────────────────────────
+            with _tab_sql:
+                try:
+                    if node_kind == "part":
+                        _wr = f"part_key = '{entity_id}'"
+                        _rr = fetch_logical("azure_sql", "po_receipts",       top=30, where=_wr, timeout_s=25)
+                        _rs = fetch_logical("azure_sql", "sales_order_lines", top=30, where=_wr, timeout_s=25)
+                        if not _rr.empty and "_error" not in _rr.columns:
+                            st.caption(f"📋 PO receipts — part `{entity_id}` ({len(_rr)} rows)")
+                            st.dataframe(_rr, use_container_width=True, hide_index=True)
+                        else:
+                            st.info("No PO receipts found for this part key.")
+                        if not _rs.empty and "_error" not in _rs.columns:
+                            st.caption(f"🛒 SO lines — part `{entity_id}` ({len(_rs)} rows)")
+                            st.dataframe(_rs, use_container_width=True, hide_index=True)
+                        else:
+                            st.info("No SO lines found for this part key.")
+
+                    elif node_kind == "supplier":
+                        _wr = f"supplier_key = '{entity_id}'"
+                        _rr = fetch_logical("azure_sql", "po_receipts", top=50, where=_wr, timeout_s=25)
+                        if not _rr.empty and "_error" not in _rr.columns:
+                            st.caption(f"📋 PO receipts — supplier `{entity_id}` ({len(_rr)} rows)")
+                            st.dataframe(_rr, use_container_width=True, hide_index=True)
+                        else:
+                            st.info("No receipts found for this supplier key.")
+
+                    elif node_kind == "customer":
+                        _wc = f"customer_key = '{entity_id}'"
+                        _rc = fetch_logical("azure_sql", "sales_order_lines", top=50, where=_wc, timeout_s=25)
+                        if not _rc.empty and "_error" not in _rc.columns:
+                            st.caption(f"🛒 SO lines — customer `{entity_id}` ({len(_rc)} rows)")
+                            st.dataframe(_rc, use_container_width=True, hide_index=True)
+                        else:
+                            st.info("No SO lines found for this customer key.")
+                    else:
+                        st.info("Live SQL queries are available for part, supplier, and customer nodes.")
+                except Exception as _se:
+                    st.warning(f"Live SQL query failed: {_se}")
+
+            # ── Tab 5: cross-page findings ─────────────────────────────────────
+            with _tab_find:
+                from src.brain.findings_index import lookup_findings, record_finding
+                _fi = lookup_findings(kind=node_kind, key=entity_id, limit=50)
+                if _fi:
+                    st.caption(f"**{len(_fi)} cross-page findings for this {node_kind}**")
+                    _fdf = pd.DataFrame([{
+                        "page":  _f["page"],
+                        "score": round(float(_f["score"]), 3),
+                        "when":  _f["created_at"],
+                        **_f["payload"],
+                    } for _f in _fi])
+                    st.dataframe(_fdf, use_container_width=True, hide_index=True)
+                else:
+                    st.info(
+                        f"No findings pinned for `{entity_id}` yet.  \n"
+                        "Navigate to **EOQ Deviation**, **OTD**, or **Procurement 360** to generate findings.")
+                if st.button(f"📌 Pin `{node_label}` to findings index",
+                             key=f"kg_pin_{entity_id}"):
+                    record_finding(
+                        page="supply_chain_brain", kind=node_kind, key=entity_id,
+                        score=float(exp["degree"]),
+                        payload={"label": node_label, "degree": exp["degree"],
+                                 "in_degree": exp["in_degree"],
+                                 "out_degree": exp["out_degree"],
+                                 "neighbours": len(neighbors_uniq)})
+                    st.toast(f"Pinned {node_label}", icon="📌")
 else:
     st.info("Graph will render once live data loads. Check connector status above.")
 

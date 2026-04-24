@@ -188,6 +188,54 @@ def dump_fields(page):
         }
     """)
 
+def click_right_rail_icon(page, label):
+    """Click a right-rail icon button by aria-label or title.
+    These Redwood icons use aria-label, not visible text."""
+    c = page.evaluate("""
+        ([lbl]) => {
+            const terms = [lbl, lbl.toLowerCase()];
+            for (const el of document.querySelectorAll('button,a,span,div')) {
+                if (!el.offsetParent) continue;
+                const al = (el.getAttribute('aria-label')||'').trim();
+                const ti = (el.getAttribute('title')||'').trim();
+                if (!terms.some(t => al.toLowerCase().includes(t) || ti.toLowerCase().includes(t))) continue;
+                const r = el.getBoundingClientRect();
+                if (r.x < 1400 || r.width < 5) continue;
+                return {cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2), hint:al||ti};
+            }
+            return null;
+        }
+    """, [label])
+    if c:
+        print(f"   Right-rail '{label}' [{c['hint']}] at ({c['cx']},{c['cy']})")
+        page.mouse.click(c['cx'], c['cy'])
+        page.wait_for_timeout(2000)
+        return True
+    # Fallback: dump all right-rail icons and click first one matching label
+    icons = page.evaluate("""
+        () => {
+            const res = [];
+            for (const el of document.querySelectorAll('button,a,span')) {
+                if (!el.offsetParent) continue;
+                const r = el.getBoundingClientRect();
+                if (r.x < 1400 || r.y < 100 || r.y > 500 || r.width < 5) continue;
+                const al = el.getAttribute('aria-label')||el.getAttribute('title')||el.textContent.trim()||'';
+                if (al.length > 0 && al.length < 60)
+                    res.push({hint:al.slice(0,30), cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2)});
+            }
+            const seen=new Set(); return res.filter(r=>{if(seen.has(r.hint)) return false; seen.add(r.hint); return true;});
+        }
+    """)
+    print(f"   Right-rail icons: {[i['hint'] for i in icons]}")
+    for icon in icons:
+        if label.lower() in icon['hint'].lower():
+            print(f"   Fallback click: '{icon['hint']}' at ({icon['cx']},{icon['cy']})")
+            page.mouse.click(icon['cx'], icon['cy'])
+            page.wait_for_timeout(2000)
+            return True
+    return False
+
+
 def lov_search(page, label_text, search_value, wait_ms=2000):
     """Find an input adjacent to a label, type search_value, trigger LOV."""
     c = page.evaluate("""
@@ -311,21 +359,21 @@ def probe_procurement(page, results):
     ss(page, "p01_po_overview")
     print(f"   Title: {page.title()[:70]}")
 
-    # Open Tasks panel then click Manage Agreements
+    # Open Tasks panel using aria-label icon, then click Manage Agreements
     print("\n2. Tasks panel → Manage Agreements...")
-    tasks_icon = coords(page, "Tasks", sel="a,button,span", x_min=1400)
-    if tasks_icon:
-        page.mouse.click(tasks_icon['cx'], tasks_icon['cy'])
-        page.wait_for_timeout(1500)
-        ss(page, "p02_tasks_panel")
+    page.wait_for_timeout(3000)  # wait for right-rail to render
+    click_right_rail_icon(page, "Tasks")
+    ss(page, "p02_tasks_panel")
 
-    # Click Manage Agreements task
     c = click(page, "Manage Agreements", sel="a,button,li,span")
     if c:
         page.wait_for_timeout(4000)
         try: page.wait_for_load_state("domcontentloaded", timeout=15000)
         except: pass
         page.wait_for_timeout(2000)
+        print(f"   Manage Agreements clicked — Title: {page.title()[:70]}")
+    else:
+        print("   Manage Agreements link not found in Tasks panel")
     ss(page, "p03_manage_agreements")
     print(f"   Title: {page.title()[:70]}")
 
@@ -357,16 +405,15 @@ def probe_procurement(page, results):
     for k, v in list(fields.items())[:12]:
         if v: print(f"   {k}: {v}")
 
-    # Also capture Manage Approved Supplier List as supplemental
-    print("\n5. Back to Overview → Manage Approved Supplier List Entries...")
+    # Supplemental: Manage Approved Supplier List via Navigator
+    print("\n5. Navigator → Procurement → Approved Supplier List...")
     nav_home(page)
     open_navigator(page, "Procurement", "Purchase Orders")
-    tasks_icon = coords(page, "Tasks", sel="a,button,span", x_min=1400)
-    if tasks_icon:
-        page.mouse.click(tasks_icon['cx'], tasks_icon['cy'])
-        page.wait_for_timeout(1500)
-    c = click(page, "Manage Approved Supplier List Entries", sel="a,button,li,span")
-    if c:
+    page.wait_for_timeout(3000)
+    click_right_rail_icon(page, "Tasks")
+    ss(page, "p05_tasks2")
+    c2 = click(page, "Manage Approved Supplier List Entries", sel="a,button,li,span")
+    if c2:
         page.wait_for_timeout(4000)
         try: page.wait_for_load_state("domcontentloaded", timeout=15000)
         except: pass
