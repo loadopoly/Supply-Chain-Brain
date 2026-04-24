@@ -707,8 +707,9 @@ def map_module(page, tab_name: str, tile: dict, schema: dict):
     # Read content BEFORE attempting to click the Tasks icon — clicking it would
     # toggle the panel closed if it's already open.
     precheck = get_task_panel_content(page)
-    if precheck:
-        print(f"    (task panel already open — Redwood layout)")
+    precheck_task_count = sum(len(s.get('tasks', [])) for s in precheck)
+    if precheck_task_count >= 3:
+        print(f"    (task panel already open — Redwood layout, {precheck_task_count} tasks)")
         task_opened = True
     else:
         task_opened = open_task_panel(page)
@@ -761,6 +762,23 @@ def map_module(page, tab_name: str, tile: dict, schema: dict):
                     s2 = "***" if any(k in lo for k in
                                       ['abc','classif','categor','strateg','assign']) else "   "
                     print(f"          {s2} {t['text']}")
+
+    # Only overwrite if the new capture has MORE real tasks than what's already stored.
+    # This prevents precheck false-positives from downgrading previously-good entries.
+    NOISE = {'Add Fields', 'Help', 'Done', 'Save', 'Personal Information', 'Refresh'}
+    existing = schema.get(tab_name, {}).get("modules", {}).get(tile_text, {})
+    existing_count = len([
+        t for secs in existing.get("task_sections", {}).values()
+        for sec in secs for t in sec.get("tasks", []) if t["text"] not in NOISE
+    ])
+    new_count = len([
+        t for secs in module_entry.get("task_sections", {}).values()
+        for sec in secs for t in sec.get("tasks", []) if t["text"] not in NOISE
+    ])
+    if new_count < existing_count:
+        print(f"    (keeping existing {existing_count} tasks — new capture has only {new_count})")
+        go_home(page)
+        return
 
     schema[tab_name]["modules"][tile_text] = module_entry
     go_home(page)

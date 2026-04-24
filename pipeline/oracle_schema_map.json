@@ -140,59 +140,13 @@
                 {
                   "text": "Add Fields",
                   "cx": 1378,
-                  "cy": 411
+                  "cy": 368
                 }
               ]
-            },
-            {
-              "header": "Status",
-              "tasks": []
-            },
-            {
-              "header": "Start Date",
-              "tasks": []
             }
           ],
-          "--------": [
-            {
-              "header": "Personalize Saved Searches",
-              "tasks": [
-                {
-                  "text": "Add Fields",
-                  "cx": 1378,
-                  "cy": 411
-                }
-              ]
-            },
-            {
-              "header": "Status",
-              "tasks": []
-            },
-            {
-              "header": "Start Date",
-              "tasks": []
-            }
-          ],
-          "Personalize...": [
-            {
-              "header": "Unknown",
-              "tasks": [
-                {
-                  "text": "Add Fields",
-                  "cx": 1378,
-                  "cy": 411
-                }
-              ]
-            },
-            {
-              "header": "Status",
-              "tasks": []
-            },
-            {
-              "header": "Start Date",
-              "tasks": []
-            }
-          ]
+          "--------": [],
+          "Personalize...": []
         },
         "raw_visible": [
           "ActionsDownload Spreadsheet to Maintain Price List Data",
@@ -550,6 +504,31 @@
                   "text": "3145_US_MAN_MFG",
                   "cx": 1364,
                   "cy": 110
+                },
+                {
+                  "text": "Manage Work Orders",
+                  "cx": 1448,
+                  "cy": 126
+                },
+                {
+                  "text": "Review Product Genealogy",
+                  "cx": 1448,
+                  "cy": 149
+                },
+                {
+                  "text": "Flow Schedules Execution",
+                  "cx": 1448,
+                  "cy": 198
+                },
+                {
+                  "text": "Review Production Transaction History",
+                  "cx": 1448,
+                  "cy": 221
+                },
+                {
+                  "text": "Print Work Order Traveler",
+                  "cx": 1448,
+                  "cy": 244
                 }
               ]
             }
@@ -921,7 +900,32 @@
             }
           ]
         },
-        "raw_visible": [],
+        "raw_visible": [
+          "Open Shipments by PriorityTop 5 Priorities by Volume",
+          "Open Shipments by Priority",
+          "Open Shipments by Priority",
+          "Top 5 Priorities by Volume",
+          "Top 5 Priorities by Volume",
+          "No data available",
+          "No data available",
+          "Shipment Exceptions0Shipments",
+          "Shipment Exceptions0Shipments",
+          "Shipment Exceptions0Shipments",
+          "Shipment Exceptions",
+          "Shipment Exceptions",
+          "0Shipments",
+          "Shipments",
+          "Shipments",
+          "Shipment Lines for Next 30 Days",
+          "Shipment Lines for Next 30 Days",
+          "4 to 7 Days8 to 14 Days15 to 30 Days311",
+          "Receipt LinesAwaiting Ins…Awaiting Put…131",
+          "Receipt LinesAwaiting Ins…Awaiting Put…131",
+          "Receipt LinesAwaiting Ins…Awaiting Put…131",
+          "Receipt Lines",
+          "Receipt Lines",
+          "Awaiting Ins…Awaiting Put…131"
+        ],
         "task_panel_options": [
           "Inventory",
           "Counts",
@@ -2081,7 +2085,103 @@
         "title": "Demand Management - Oracle Fusion Cloud Applications",
         "tile": "Demand Management",
         "task_sections": {
-          "default": []
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Manage Plans",
+                  "cx": 1433,
+                  "cy": 126
+                },
+                {
+                  "text": "Load Measures from Other Plans",
+                  "cx": 1433,
+                  "cy": 149
+                },
+                {
+                  "text": "Collect Planning Data",
+                  "cx": 1433,
+                  "cy": 198
+                },
+                {
+                  "text": "Load Planning Data from Files",
+                  "cx": 1433,
+                  "cy": 221
+                },
+                {
+                  "text": "Manage Planning Data Collection Processes",
+                  "cx": 1433,
+                  "cy": 244
+                },
+                {
+                  "text": "Maintain Supply Network Model",
+                  "cx": 1433,
+                  "cy": 267
+                },
+                {
+                  "text": "Manage Planning Source Systems",
+                  "cx": 1433,
+                  "cy": 290
+                },
+                {
+                  "text": "Manage Planners",
+                  "cx": 1433,
+                  "cy": 313
+                },
+                {
+                  "text": "Manage Segment Groups and Criteria",
+                  "cx": 1433,
+                  "cy": 336
+                },
+                {
+                  "text": "Manage Segment Members",
+                  "cx": 1433,
+                  "cy": 359
+                },
+                {
+                  "text": "View Segmentation Summary",
+                  "cx": 1433,
+                  "cy": 382
+                },
+                {
+                  "text": "Configure Exceptions",
+                  "cx": 1433,
+                  "cy": 431
+                },
+                {
+                  "text": "Configure Exception Sets",
+                  "cx": 1433,
+                  "cy": 454
+                },
+                {
+                  "text": "Configure Planning Analytics",
+                  "cx": 1433,
+                  "cy": 477
+                },
+                {
+                  "text": "Manage Demand Classes",
+                  "cx": 1433,
+                  "cy": 500
+                },
+                {
+                  "text": "Manage Planning Measures",
+                  "cx": 1433,
+                  "cy": 523
+                },
+                {
+                  "text": "Manage Forecasting Profiles",
+                  "cx": 1433,
+                  "cy": 546
+                },
+                {
+                  "text": "Manage Planning Profile Options",
+                  "cx": 1433,
+                  "cy": 569
+                }
+              ]
+            }
+          ]
         },
         "raw_visible": [
           "PlansManage PlansLoad Measures from Other Plans",
@@ -2274,14 +2374,199 @@
             }
           ]
         },
-        "raw_visible": [],
+        "raw_visible": [
+          "PlansManage Plans",
+          "PlansManage Plans",
+          "Plans",
+          "Plans",
+          "Manage Plans",
+          "Manage Plans",
+          "Manage Plans",
+          "Plan Inputs",
+          "Plan Inputs",
+          "Collect Planning Data",
+          "Collect Planning Data",
+          "Load Planning Data from Files",
+          "Load Planning Data from Files",
+          "Manage Planning Data Collection Processes",
+          "Manage Planning Data Collection Processes",
+          "Maintain Supply Network Model",
+          "Maintain Supply Network Model",
+          "Manage Assignment Sets",
+          "Manage Assignment Sets",
+          "Manage Sourcing Rules",
+          "Manage Sourcing Rules",
+          "Manage Bills of Distribution",
+          "Manage Bills of Distribution",
+          "Manage Planning Source Systems",
+          "Manage Planning Source Systems",
+          "Manage Demand Priority Rules",
+          "Manage Demand Priority Rules",
+          "Manage Planners",
+          "Manage Planners",
+          "Review Planning Calendars",
+          "Review Planning Calendars",
+          "Review Planning Calendar Shifts",
+          "Review Planning Calendar Shifts",
+          "Review Planning Calendar Associations",
+          "Review Planning Calendar Associations",
+          "Manage Planning Attributes",
+          "Manage Planning Attributes",
+          "Manage Project Groups",
+          "Manage Project Groups",
+          "Manage Attribute-Based Netting Rules",
+          "Manage Attribute-Based Netting Rules",
+          "Manage Segment Groups and Criteria",
+          "Manage Segment Groups and Criteria",
+          "Manage Segment Members",
+          "Manage Segment Members",
+          "Manage Supply Planning Policy Assignment Sets",
+          "Manage Supply Planning Policy Assignment Sets",
+          "View Segmentation Summary",
+          "View Segmentation Summary",
+          "Configuration",
+          "Configuration",
+          "Configure Exceptions",
+          "Configure Exceptions",
+          "Configure Exception Sets",
+          "Configure Exception Sets",
+          "Configure Planning Analytics",
+          "Configure Planning Analytics",
+          "Manage Demand Classes",
+          "Manage Demand Classes",
+          "Manage Planning Measures",
+          "Manage Planning Measures",
+          "Manage Planning Profile Options",
+          "Manage Planning Profile Options"
+        ],
         "task_panel_options": []
       },
       "Replenishment Planning": {
         "title": "Replenishment Planning - Oracle Fusion Cloud Applications",
         "tile": "Replenishment Planning",
         "task_sections": {
-          "default": []
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Collect Planning Data",
+                  "cx": 1427,
+                  "cy": 175
+                },
+                {
+                  "text": "Load Planning Data from Files",
+                  "cx": 1427,
+                  "cy": 198
+                },
+                {
+                  "text": "Manage Planning Data Collection Processes",
+                  "cx": 1427,
+                  "cy": 221
+                },
+                {
+                  "text": "Maintain Supply Network Model",
+                  "cx": 1427,
+                  "cy": 244
+                },
+                {
+                  "text": "Manage Assignment Sets",
+                  "cx": 1427,
+                  "cy": 267
+                },
+                {
+                  "text": "Manage Sourcing Rules",
+                  "cx": 1427,
+                  "cy": 290
+                },
+                {
+                  "text": "Manage Bills of Distribution",
+                  "cx": 1427,
+                  "cy": 313
+                },
+                {
+                  "text": "Manage Planning Source Systems",
+                  "cx": 1427,
+                  "cy": 336
+                },
+                {
+                  "text": "Manage Planners",
+                  "cx": 1427,
+                  "cy": 359
+                },
+                {
+                  "text": "Review Planning Calendars",
+                  "cx": 1427,
+                  "cy": 382
+                },
+                {
+                  "text": "Review Planning Calendar Associations",
+                  "cx": 1427,
+                  "cy": 405
+                },
+                {
+                  "text": "Manage Segment Groups and Criteria",
+                  "cx": 1427,
+                  "cy": 428
+                },
+                {
+                  "text": "Manage Segment Members",
+                  "cx": 1427,
+                  "cy": 451
+                },
+                {
+                  "text": "View Segmentation Summary",
+                  "cx": 1427,
+                  "cy": 474
+                },
+                {
+                  "text": "Manage Analysis Hierarchies for Related Items",
+                  "cx": 1427,
+                  "cy": 497
+                },
+                {
+                  "text": "Manage Policy Assignment Sets",
+                  "cx": 1427,
+                  "cy": 520
+                },
+                {
+                  "text": "Manage Planning Clusters",
+                  "cx": 1427,
+                  "cy": 543
+                },
+                {
+                  "text": "Configure Exceptions",
+                  "cx": 1427,
+                  "cy": 592
+                },
+                {
+                  "text": "Configure Exception Sets",
+                  "cx": 1427,
+                  "cy": 615
+                },
+                {
+                  "text": "Configure Planning Analytics",
+                  "cx": 1427,
+                  "cy": 638
+                },
+                {
+                  "text": "Manage Planning Measures",
+                  "cx": 1427,
+                  "cy": 661
+                },
+                {
+                  "text": "Manage Forecasting Profiles",
+                  "cx": 1427,
+                  "cy": 684
+                },
+                {
+                  "text": "Manage Planning Profile Options",
+                  "cx": 1427,
+                  "cy": 707
+                }
+              ]
+            }
+          ]
         },
         "raw_visible": [
           "PlansManage Plans",
@@ -2705,7 +2990,38 @@
         "title": "Overview - Product Development - Oracle Fusion Cloud Applications",
         "tile": "Product Development",
         "task_sections": {
-          "default": []
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Create Item",
+                  "cx": 1476,
+                  "cy": 126
+                },
+                {
+                  "text": "Manage Items",
+                  "cx": 1476,
+                  "cy": 149
+                },
+                {
+                  "text": "View Item Audit Trail",
+                  "cx": 1476,
+                  "cy": 172
+                },
+                {
+                  "text": "Create Manufacturer Part",
+                  "cx": 1476,
+                  "cy": 319
+                },
+                {
+                  "text": "Manage Manufacturer Parts",
+                  "cx": 1476,
+                  "cy": 342
+                }
+              ]
+            }
+          ]
         },
         "raw_visible": [
           "Refresh",
@@ -2770,7 +3086,48 @@
         "title": "Product Information Management - Oracle Fusion Cloud Applications",
         "tile": "Product Information Management",
         "task_sections": {
-          "default": []
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Create Item",
+                  "cx": 1479,
+                  "cy": 126
+                },
+                {
+                  "text": "Manage Items",
+                  "cx": 1479,
+                  "cy": 149
+                },
+                {
+                  "text": "Browse Items",
+                  "cx": 1479,
+                  "cy": 172
+                },
+                {
+                  "text": "Manage Catalogs",
+                  "cx": 1479,
+                  "cy": 195
+                },
+                {
+                  "text": "Manage Item Relationships",
+                  "cx": 1479,
+                  "cy": 218
+                },
+                {
+                  "text": "Manage Change Orders",
+                  "cx": 1479,
+                  "cy": 267
+                },
+                {
+                  "text": "Manage Worklist",
+                  "cx": 1479,
+                  "cy": 290
+                }
+              ]
+            }
+          ]
         },
         "raw_visible": [
           "Item Completeness100%100%76%-100%51%-75%26%-50%0%-25%",
@@ -3345,25 +3702,63 @@
         ]
       },
       "Purchase Requisitions": {
-        "title": "Oracle Fusion Cloud Applications",
+        "title": "Shop - Purchase Requisitions - Oracle Fusion Cloud Applications",
         "tile": "Purchase Requisitions",
-        "task_sections": {},
+        "task_sections": {
+          "default": [
+            {
+              "header": "Unknown",
+              "tasks": [
+                {
+                  "text": "Shopping Lists",
+                  "cx": 1394,
+                  "cy": 119
+                },
+                {
+                  "text": "Manage Requisitions",
+                  "cx": 1225,
+                  "cy": 120
+                },
+                {
+                  "text": "Utilities Expenses",
+                  "cx": 1375,
+                  "cy": 532
+                },
+                {
+                  "text": "Warranty Expenses",
+                  "cx": 1375,
+                  "cy": 555
+                }
+              ]
+            }
+          ]
+        },
         "raw_visible": [
-          "Others",
-          "Others",
-          "Apps",
-          "Purchase Orders",
-          "Purchase Orders",
-          "My Receipts",
-          "My Receipts",
-          "Catalogs",
-          "Catalogs",
-          "Supplier Dashboard",
-          "Supplier Dashboard",
-          "You have no open notifications.",
-          "You have no open notifications.",
-          "You have no open notifications."
-        ]
+          "More Tasks",
+          "More Tasks",
+          "More Tasks",
+          "Manage Requisitions",
+          "Manage Requisitions",
+          "Shopping Lists",
+          "Shopping Lists",
+          "Shopping Lists",
+          "RequesterAdam Gard",
+          "RequesterAdam Gard",
+          "Requester",
+          "Professional Services",
+          "Rental Expenses",
+          "Repairs And Maintenance Expenses",
+          "Repairs And Maintenance Expenses",
+          "Research and Development Expenses",
+          "Research and Development Expenses",
+          "Safety Expenses",
+          "Utilities ExpensesWarranty Expenses",
+          "Utilities Expenses",
+          "Utilities Expenses",
+          "Warranty Expenses",
+          "Warranty Expenses"
+        ],
+        "task_panel_options": []
       },
       "Purchase Requisitions (New)": {
         "title": "Self Service Procurement Home - Search - Oracle Fusion Cloud Applications",
@@ -3742,168 +4137,130 @@
           "Scheduled Time",
           "Submission Time",
           "Submission Time",
-          "22725212",
-          "22725212",
-          "Running",
-          "Running",
-          "4/24/26 12:45 PM EDT",
-          "4/24/26 12:45 PM EDT",
-          "22725211",
-          "22725211",
+          "22725470",
+          "22725470",
           "Wait",
           "Wait",
-          "4/24/26 12:47 PM EDT",
-          "4/24/26 12:47 PM EDT",
-          "4/24/26 12:42 PM EDT",
-          "4/24/26 12:42 PM EDT",
-          "22725210",
-          "22725210",
-          "22725209",
-          "22725209",
-          "4/24/26 12:46 PM EDT",
-          "4/24/26 12:46 PM EDT",
-          "22725208",
-          "22725208",
-          "4/24/26 12:49 PM EDT",
-          "4/24/26 12:49 PM EDT",
-          "4/24/26 12:39 PM EDT",
-          "4/24/26 12:39 PM EDT",
-          "22725207",
-          "22725207",
-          "22725206",
-          "22725206",
+          "4/24/26 1:57 PM EDT",
+          "4/24/26 1:57 PM EDT",
+          "4/24/26 1:52 PM EDT",
+          "4/24/26 1:52 PM EDT",
+          "22725469",
+          "22725469",
+          "22725468",
+          "22725468",
+          "4/24/26 1:56 PM EDT",
+          "4/24/26 1:56 PM EDT",
+          "4/24/26 1:51 PM EDT",
+          "4/24/26 1:51 PM EDT",
+          "22725467",
+          "22725467",
+          "4/24/26 1:59 PM EDT",
+          "4/24/26 1:59 PM EDT",
+          "4/24/26 1:49 PM EDT",
+          "4/24/26 1:49 PM EDT",
+          "22725466",
+          "22725466",
+          "22725465",
+          "22725465",
+          "4/24/26 2:46 PM EDT",
+          "4/24/26 2:46 PM EDT",
+          "4/24/26 1:48 PM EDT",
+          "4/24/26 1:48 PM EDT",
+          "22725464",
+          "22725464",
           "Succeeded",
           "Succeeded",
-          "4/24/26 12:37 PM EDT",
-          "4/24/26 12:37 PM EDT",
-          "22725205",
-          "22725205",
-          "22725204",
-          "22725204",
-          "22725203",
-          "22725203",
-          "22725202",
-          "22725202",
-          "4/24/26 12:41 PM EDT",
-          "4/24/26 12:41 PM EDT",
-          "22725201",
-          "22725201",
-          "4/24/26 12:36 PM EDT",
-          "4/24/26 12:36 PM EDT",
-          "22725200",
-          "22725200",
-          "4/24/26 12:35 PM EDT",
-          "4/24/26 12:35 PM EDT",
-          "22725199",
-          "22725199",
-          "22725198",
-          "22725198",
-          "4/24/26 12:34 PM EDT",
-          "4/24/26 12:34 PM EDT",
-          "22725197",
-          "22725197",
-          "22725196",
-          "22725196",
-          "4/24/26 12:33 PM EDT",
-          "4/24/26 12:33 PM EDT",
-          "22725195",
-          "22725195",
-          "22725194",
-          "22725194",
-          "4/24/26 12:32 PM EDT",
-          "4/24/26 12:32 PM EDT",
-          "22725193",
-          "22725193",
-          "22725192",
-          "22725192",
-          "22725191",
-          "22725191",
-          "4/24/26 12:30 PM EDT",
-          "4/24/26 12:30 PM EDT",
-          "22725190",
-          "22725190",
-          "4/24/26 1:00 PM EDT",
-          "4/24/26 1:00 PM EDT",
-          "22725189",
-          "22725189",
-          "4/24/26 1:30 PM EDT",
-          "4/24/26 1:30 PM EDT",
-          "22725188",
-          "22725188",
-          "4/24/26 12:29 PM EDT",
-          "4/24/26 12:29 PM EDT",
-          "22725187",
-          "22725187",
-          "22725186",
-          "22725186",
-          "4/24/26 12:27 PM EDT",
-          "4/24/26 12:27 PM EDT",
-          "22725185",
-          "22725185",
-          "22725184",
-          "22725184",
-          "22725183",
-          "22725183",
-          "4/24/26 12:31 PM EDT",
-          "4/24/26 12:31 PM EDT",
-          "22725182",
-          "22725182",
-          "22725181",
-          "22725181",
-          "4/24/26 12:22 PM EDT",
-          "4/24/26 12:22 PM EDT",
-          "22725180",
-          "22725180",
-          "22725179",
-          "22725179",
-          "4/24/26 12:26 PM EDT",
-          "4/24/26 12:26 PM EDT",
-          "22725178",
-          "22725178",
-          "4/24/26 12:21 PM EDT",
-          "4/24/26 12:21 PM EDT",
-          "22725177",
-          "22725177",
-          "22725176",
-          "22725176",
-          "4/24/26 12:20 PM EDT",
-          "4/24/26 12:20 PM EDT",
-          "22725175",
-          "22725175",
-          "4/24/26 12:19 PM EDT",
-          "4/24/26 12:19 PM EDT",
-          "22725174",
-          "22725174",
-          "4/24/26 1:17 PM EDT",
-          "4/24/26 1:17 PM EDT",
-          "4/24/26 12:17 PM EDT",
-          "4/24/26 12:17 PM EDT",
-          "22725173",
-          "22725173",
-          "22725172",
-          "22725172",
-          "22725171",
-          "22725171",
-          "22725170",
-          "22725170",
-          "22725169",
-          "22725169",
-          "22725168",
-          "22725168",
-          "22725167",
-          "22725167",
-          "4/24/26 2:16 PM EDT",
-          "4/24/26 2:16 PM EDT",
-          "22725166",
-          "22725166",
-          "22725165",
-          "22725165",
-          "22725164",
-          "22725164",
-          "4/24/26 1:16 PM EDT",
-          "4/24/26 1:16 PM EDT",
-          "22725163",
-          "22725163"
+          "4/24/26 1:47 PM EDT",
+          "4/24/26 1:47 PM EDT",
+          "22725463",
+          "22725463",
+          "22725462",
+          "22725462",
+          "22725461",
+          "22725461",
+          "22725460",
+          "22725460",
+          "22725459",
+          "22725459",
+          "22725458",
+          "22725458",
+          "22725457",
+          "22725457",
+          "22725456",
+          "22725456",
+          "22725455",
+          "22725455",
+          "22725454",
+          "22725454",
+          "22725453",
+          "22725453",
+          "22725452",
+          "22725452",
+          "22725451",
+          "22725451",
+          "22725450",
+          "22725450",
+          "22725449",
+          "22725449",
+          "22725448",
+          "22725448",
+          "22725447",
+          "22725447",
+          "22725446",
+          "22725446",
+          "22725445",
+          "22725445",
+          "22725444",
+          "22725444",
+          "22725443",
+          "22725443",
+          "22725442",
+          "22725442",
+          "22725441",
+          "22725441",
+          "4/24/26 2:17 PM EDT",
+          "4/24/26 2:17 PM EDT",
+          "22725440",
+          "22725440",
+          "22725439",
+          "22725439",
+          "22725438",
+          "22725438",
+          "22725437",
+          "22725437",
+          "22725436",
+          "22725436",
+          "22725435",
+          "22725435",
+          "22725434",
+          "22725434",
+          "22725433",
+          "22725433",
+          "22725432",
+          "22725432",
+          "22725431",
+          "22725431",
+          "22725430",
+          "22725430",
+          "22725429",
+          "22725429",
+          "22725428",
+          "22725428",
+          "22725427",
+          "22725427",
+          "22725426",
+          "22725426",
+          "22725425",
+          "22725425",
+          "22725424",
+          "22725424",
+          "22725423",
+          "22725423",
+          "22725422",
+          "22725422",
+          "22725421",
+          "22725421"
         ]
       }
     }

@@ -32,18 +32,8 @@ TAB: Order Management
     [Application Default]
       Section: Unknown
         - Add Fields
-      Section: Status
-      Section: Start Date
     [--------]
-      Section: Personalize Saved Searches
-        - Add Fields
-      Section: Status
-      Section: Start Date
     [Personalize...]
-      Section: Unknown
-        - Add Fields
-      Section: Status
-      Section: Start Date
 
   MODULE: Manage Discount Lists
     Title: Manage Discount Lists - Pricing Administration - Oracle Fusion Cloud Applications
@@ -100,6 +90,11 @@ TAB: Supply Chain Execution
     [default]
       Section: Unknown
         - 3145_US_MAN_MFG
+        - Manage Work Orders
+        - Review Product Genealogy
+        - Flow Schedules Execution
+        - Review Production Transaction History
+        - Print Work Order Traveler
 
   MODULE: Quality Management
     Title: Overview - Quality Management - Oracle Fusion Cloud Applications
@@ -393,6 +388,25 @@ TAB: Supply Chain Planning
   MODULE: Demand Management
     Title: Demand Management - Oracle Fusion Cloud Applications
     [default]
+      Section: Unknown
+        - Manage Plans
+        - Load Measures from Other Plans
+        - Collect Planning Data
+        - Load Planning Data from Files
+        - Manage Planning Data Collection Processes
+        - Maintain Supply Network Model
+        - Manage Planning Source Systems
+        - Manage Planners
+        - Manage Segment Groups and Criteria
+        - Manage Segment Members
+        - View Segmentation Summary
+        - Configure Exceptions
+        - Configure Exception Sets
+        - Configure Planning Analytics
+        - Manage Demand Classes
+        - Manage Planning Measures
+        - Manage Forecasting Profiles
+        - Manage Planning Profile Options
 
   MODULE: Supply Planning
     Title: Supply Planning - Oracle Fusion Cloud Applications
@@ -428,6 +442,30 @@ TAB: Supply Chain Planning
   MODULE: Replenishment Planning
     Title: Replenishment Planning - Oracle Fusion Cloud Applications
     [default]
+      Section: Unknown
+        - Collect Planning Data
+        - Load Planning Data from Files
+        - Manage Planning Data Collection Processes
+        - Maintain Supply Network Model
+        - Manage Assignment Sets
+        - Manage Sourcing Rules
+        - Manage Bills of Distribution
+        - Manage Planning Source Systems
+        - Manage Planners
+        - Review Planning Calendars
+        - Review Planning Calendar Associations
+        - Manage Segment Groups and Criteria
+        - Manage Segment Members
+        - View Segmentation Summary
+        - Manage Analysis Hierarchies for Related Items
+        - Manage Policy Assignment Sets
+        - Manage Planning Clusters
+        - Configure Exceptions
+        - Configure Exception Sets
+        - Configure Planning Analytics
+        - Manage Planning Measures
+        - Manage Forecasting Profiles
+        - Manage Planning Profile Options
 
 ============================================================
 TAB: Product Management
@@ -497,10 +535,24 @@ TAB: Product Management
   MODULE: Product Development
     Title: Overview - Product Development - Oracle Fusion Cloud Applications
     [default]
+      Section: Unknown
+        - Create Item
+        - Manage Items
+        - View Item Audit Trail
+        - Create Manufacturer Part
+        - Manage Manufacturer Parts
 
   MODULE: Product Information Management
     Title: Product Information Management - Oracle Fusion Cloud Applications
     [default]
+      Section: Unknown
+        - Create Item
+        - Manage Items
+        - Browse Items
+        - Manage Catalogs
+        - Manage Item Relationships
+        - Manage Change Orders
+        - Manage Worklist
 
 ============================================================
 TAB: General Accounting
@@ -588,7 +640,13 @@ TAB: Procurement
     Title: Oracle Fusion Cloud Applications
 
   MODULE: Purchase Requisitions
-    Title: Oracle Fusion Cloud Applications
+    Title: Shop - Purchase Requisitions - Oracle Fusion Cloud Applications
+    [default]
+      Section: Unknown
+        - Shopping Lists
+        - Manage Requisitions
+        - Utilities Expenses
+        - Warranty Expenses
 
   MODULE: Purchase Requisitions (New)
     Title: Self Service Procurement Home - Search - Oracle Fusion Cloud Applications

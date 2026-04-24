@@ -25,6 +25,31 @@ def start_integrated_skill_acquirer():
         logging.error(f"Failed to load integrated skill acquirer: {e}")
         return None
 
+
+def start_systemic_refinement_agent():
+    """Start the Systemic Refinement Agent as a background daemon thread.
+
+    The agent continuously senses all Brain faculties (Heart, Vision, Touch,
+    Smell, Body, DBI) and executes targeted refinement actions (missions,
+    directives, diversity guards, corpus seeds, config nudges) to keep the
+    supply-chain system improving as the corpus grows.  Its cadence adapts
+    via the Brain's own acquisition_drive so it accelerates when stagnant
+    and relaxes when learning is healthy.
+    """
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from src.brain.systemic_refinement_agent import schedule_in_background
+        t = schedule_in_background(interval_s=1200)
+        logging.info(
+            "Systemic Refinement Agent started — adaptive cadence 20 min–2 h "
+            "driven by acquisition_drive."
+        )
+        return t
+    except Exception as e:
+        logging.error(f"Failed to start Systemic Refinement Agent: {e}")
+        return None
+
 def trigger_remote_vpn():
     logging.info("Initiating remote VPN connection + portproxy bridge on physical client laptop...")
     try:
@@ -393,6 +418,13 @@ def autonomous_loop():
     except Exception as e:
         logging.warning(f"compute_grid node failed to start (local fallback only): {e}")
 
+    # Start the Systemic Refinement Agent daemon — runs on its own adaptive
+    # cadence (20 min–2 h) driven by acquisition_drive so it doesn't collide
+    # with the main loop.  Starting it here ensures it runs even when the
+    # autonomous_agent is imported and called programmatically rather than
+    # executed as __main__.
+    start_systemic_refinement_agent()
+
     while True:
         try:
             logging.info("=== STARTING NEW AUTONOMOUS CYCLE ===")
@@ -456,8 +488,12 @@ def autonomous_loop():
 
 if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
-    
+
     # Spin up the skill acquirer alongside the main loop
     acquirer_thread = start_integrated_skill_acquirer()
-    
+
+    # Spin up the Systemic Refinement Agent — continuously revises and
+    # refines the whole supply-chain system as learning expands.
+    refinement_thread = start_systemic_refinement_agent()
+
     autonomous_loop()

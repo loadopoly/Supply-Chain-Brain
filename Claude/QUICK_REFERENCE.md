@@ -1,5 +1,32 @@
 # ORACLE FUSION AUTOMATION - QUICK REFERENCE CARD
 
+---
+
+## Phase 2: Schema Mapping (2026-04-24)
+
+| Task | Status | Files | Commands |
+|------|--------|-------|----------|
+| Schema crawler | 🔄 Run 5 active | `oracle_schema_mapper.py` | `python -u oracle_schema_mapper.py` |
+| Intersection map | ✅ Done | `build_intersection_map.py` | `python build_intersection_map.py` |
+
+### Schema Outputs
+```
+oracle_schema_map.json            ← full module/task schema (25 modules mapped)
+oracle_schema_map.txt             ← human-readable
+pim_screenshots/80446-04/write_ops/
+  intersection_map.json           ← part 80446-04 module cross-reference
+  intersection_map.txt            ← human-readable intersection report
+```
+
+### Part 80446-04 Summary
+- 4 Confirmed modules (16 write-op tasks)
+- 20 Adjacent modules
+- 31 Low-relevance modules
+
+See `Claude/ORACLE_SCHEMA_MAPPER_GUIDE.md` for full technical detail.
+
+---
+
 ## 🎯 Mission Accomplished
 
 All 4 tasks executed to **FULL COMPLETION** ✅
@@ -258,6 +285,6 @@ READY FOR: IMMEDIATE DEPLOYMENT ✅
 
 ---
 
-**Version:** 1.0  
-**Date:** 2026-04-23  
-**Status:** ✅ COMPLETE  
+**Version:** 2.0  
+**Date:** 2026-04-24  
+**Status:** Phase 1 complete; Phase 2 (Schema Mapping) active

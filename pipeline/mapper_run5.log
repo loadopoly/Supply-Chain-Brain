@@ -1,0 +1,680 @@
+[resume] Loaded existing schema (25 modules already mapped)
+[auth] Loaded 41 cached cookies from C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_session.json
+[auth] Page title after cookie load: Oracle Fusion Cloud Applications
+[auth] Session valid: Oracle Fusion Cloud Applications
+Home loaded: Oracle Fusion Cloud Applications
+
+============================================================
+TAB: Sales
+============================================================
+  Tiles (1): ['Analytics']
+  Quick Actions: ['Quick Actions', 'Apps', 'Directory', 'Benefits', 'AppsAnalytics', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets']
+
+    [MODULE] Analytics
+    Title: Analytics - Oracle Fusion Cloud Applications
+    (no task panel found)
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Service
+============================================================
+  Tiles (1): ['Installed Base Assets']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'AppsnewAstec ECN Tracking Application', 'new']
+
+    [MODULE] Installed Base Assets
+    Title: Installed Base Assets - Oracle Fusion Cloud Applications
+    (no task panel found)
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Order Management
+============================================================
+  Tiles (3): ['Manage Price Lists', 'Manage Discount Lists', 'Pricing Administration']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Manage Price Lists', 'Manage Discount Lists']
+
+    [MODULE] Manage Price Lists
+    Title: Manage Price Lists - Pricing Administration - Oracle Fusion Cloud Appl
+    Task panel options: ['Application Default', '--------', 'Personalize...']
+    [Application Default]
+          Section: Unknown (1 tasks)
+              Add Fields
+    [--------]
+    [Personalize...]
+
+    [MODULE] Manage Discount Lists
+    Title: Manage Discount Lists - Pricing Administration - Oracle Fusion Cloud A
+    Task panel options: ['Application Default', 'findByName', '--------', 'Personalize...']
+    [Application Default]
+          Section: Unknown (1 tasks)
+              Add Fields
+    [findByName]
+    [--------]
+    [Personalize...]
+
+    [MODULE] Pricing Administration
+    Title: Overview - Pricing Administration - Oracle Fusion Cloud Applications
+    Task panel options: []
+        Section: Unknown (11 tasks)
+            Manage Price Lists
+            Manage Price Lists - New
+            Manage Returns Price Lists
+            Manage Cost Lists
+            Manage Cost Lists - New
+            Manage Discount Lists
+            Manage Discount Lists - New
+            Manage Customer Pricing Profiles
+            Manage Pricing Segments
+        *** Manage Pricing Strategies
+        *** Manage Pricing Strategy Assignments
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Supply Chain Execution
+============================================================
+  Tiles (14): ['Manufacturing Work Definitions', 'Download Work Definitions to Spreadsheet', 'Work Definition Names', 'Manufacturing Work Centers', 'Manufacturing Work Areas', 'Work Definition', 'Work Execution', 'Quality Management', 'Inventory Management (Classic)', 'Cost Accounting', 'Receipt Accounting', 'Financial Orchestration', 'Supply Orchestration', 'Supply Chain Orchestration']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Pricing Administration', 'Manufacturing Work Definitions']
+
+    [MODULE] Manufacturing Work Definitions
+    Title: Work Definitions - Oracle Fusion Cloud Applications
+    (no task panel found)
+  Could not return to tab 'Supply Chain Execution' — stopping this tab
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Supply Chain Planning
+============================================================
+  Tiles (9): ['Manage Backlog Planning Rules', 'Supply Allocation Rules', 'Demand Priority Rules', 'Maintain Supply Network Model', 'Manage Assignment Sets', 'Plan Inputs', 'Demand Management', 'Supply Planning', 'Replenishment Planning']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Work Definition', 'Receipt Accounting']
+
+    [MODULE] Manage Backlog Planning Rules
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Supply Allocation Rules
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Demand Priority Rules
+    Title: Oracle Fusion Cloud Applications
+    (task panel opened via fallback)
+    Task panel options: ['Additional Attributes', 'All Organizations', '--------', 'Personalize...']
+    [Additional Attributes]
+          Section: Unknown (1 tasks)
+              Add Fields
+          Section: Organization Group (0 tasks)
+          Section: Past Due Supply Days (0 tasks)
+          Section: Past Due Forecast Days (0 tasks)
+          Section: Past Due Sales Order Days (0 tasks)
+          Section: Project Control Level (0 tasks)
+          Section: Plan Subinventories (0 tasks)
+          Section: Order Shipment Cutoff Time (0 tasks)
+          Section: Pick and Pack Lead Time (0 tasks)
+          Section: Notes (0 tasks)
+          Section: Project Enabled (0 tasks)
+    [All Organizations]
+          Section: Unknown (1 tasks)
+              Add Fields
+          Section: Organization Group (0 tasks)
+          Section: Past Due Supply Days (0 tasks)
+          Section: Past Due Forecast Days (0 tasks)
+          Section: Past Due Sales Order Days (0 tasks)
+          Section: Project Control Level (0 tasks)
+          Section: Plan Subinventories (0 tasks)
+          Section: Order Shipment Cutoff Time (0 tasks)
+          Section: Pick and Pack Lead Time (0 tasks)
+          Section: Notes (0 tasks)
+          Section: Project Enabled (0 tasks)
+    [--------]
+          Section: Personalize Saved Searches (1 tasks)
+              Add Fields
+          Section: Organization Group (0 tasks)
+          Section: Past Due Supply Days (0 tasks)
+          Section: Past Due Forecast Days (0 tasks)
+          Section: Past Due Sales Order Days (0 tasks)
+          Section: Project Control Level (0 tasks)
+          Section: Plan Subinventories (0 tasks)
+          Section: Order Shipment Cutoff Time (0 tasks)
+          Section: Pick and Pack Lead Time (0 tasks)
+          Section: Notes (0 tasks)
+          Section: Project Enabled (0 tasks)
+    [Personalize...]
+          Section: Unknown (1 tasks)
+              Add Fields
+          Section: Organization Group (0 tasks)
+          Section: Past Due Supply Days (0 tasks)
+          Section: Past Due Forecast Days (0 tasks)
+          Section: Past Due Sales Order Days (0 tasks)
+          Section: Project Control Level (0 tasks)
+          Section: Plan Subinventories (0 tasks)
+          Section: Order Shipment Cutoff Time (0 tasks)
+          Section: Pick and Pack Lead Time (0 tasks)
+          Section: Notes (0 tasks)
+          Section: Project Enabled (0 tasks)
+
+    [MODULE] Maintain Supply Network Model
+    Title: Oracle Fusion Cloud Applications
+    (task panel opened via fallback)
+    Task panel options: []
+        Section: Unknown (1 tasks)
+            Save
+
+    [MODULE] Manage Assignment Sets
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Plan Inputs
+    Title: Plan Inputs - Oracle Fusion Cloud Applications
+    Task panel options: ['Application Default', '--------', 'Personalize...']
+    [Application Default]
+          Section: Unknown (19 tasks)
+              Collect Planning Data
+              Load Planning Data from Files
+              Save
+              Maintain Supply Network Model
+          *** Manage Assignment Sets
+              Manage Sourcing Rules
+              Manage Bills of Distribution
+              Review Planning Calendars
+              Review Planning Calendar Shifts
+              Review Planning Calendar Associations
+              Manage Planning Data Collection Processes
+              Manage Planning Source Systems
+              Cross-Reference Relationships for Collected Data
+              Manage Planning Attributes
+              Manage Project Groups
+              Manage Attribute-Based Netting Rules
+              Manage Segment Groups and Criteria
+              Manage Segment Members
+              View Segmentation Summary
+          Section: Planning Time Fence Date (0 tasks)
+          Section: Safety Stock Quantity (0 tasks)
+          Section: Calculate ATP (0 tasks)
+          Section: Note (10 tasks)
+              Manage Supply Allocation Rules
+              Lead Time Performance Summary
+              Lead Time Insights Parameter Configuration
+              Administer Planning Security
+              Configure Exceptions
+              Configure Exception Sets
+              Configure Planning Analytics
+              Manage Demand Classes
+              Manage Planning Measures
+              Manage Planning Profile Options
+    [--------]
+          Section: Unknown (19 tasks)
+              Collect Planning Data
+              Load Planning Data from Files
+              Save
+              Maintain Supply Network Model
+          *** Manage Assignment Sets
+              Manage Sourcing Rules
+              Manage Bills of Distribution
+              Review Planning Calendars
+              Review Planning Calendar Shifts
+              Review Planning Calendar Associations
+              Manage Planning Data Collection Processes
+              Manage Planning Source Systems
+              Cross-Reference Relationships for Collected Data
+              Manage Planning Attributes
+              Manage Project Groups
+              Manage Attribute-Based Netting Rules
+              Manage Segment Groups and Criteria
+              Manage Segment Members
+              View Segmentation Summary
+          Section: Planning Time Fence Date (0 tasks)
+          Section: Safety Stock Quantity (0 tasks)
+          Section: Calculate ATP (0 tasks)
+          Section: Note (10 tasks)
+              Manage Supply Allocation Rules
+              Lead Time Performance Summary
+              Lead Time Insights Parameter Configuration
+              Administer Planning Security
+              Configure Exceptions
+              Configure Exception Sets
+              Configure Planning Analytics
+              Manage Demand Classes
+              Manage Planning Measures
+              Manage Planning Profile Options
+    [Personalize...]
+          Section: Unknown (18 tasks)
+              Load Planning Data from Files
+              Save
+              Maintain Supply Network Model
+          *** Manage Assignment Sets
+              Manage Sourcing Rules
+              Manage Bills of Distribution
+              Review Planning Calendars
+              Review Planning Calendar Shifts
+              Review Planning Calendar Associations
+              Manage Planning Data Collection Processes
+              Manage Planning Source Systems
+              Cross-Reference Relationships for Collected Data
+              Manage Planning Attributes
+              Manage Project Groups
+              Manage Attribute-Based Netting Rules
+              Manage Segment Groups and Criteria
+              Manage Segment Members
+              View Segmentation Summary
+          Section: Planning Time Fence Date (0 tasks)
+          Section: Safety Stock Quantity (0 tasks)
+          Section: Calculate ATP (0 tasks)
+          Section: Note (10 tasks)
+              Manage Supply Allocation Rules
+              Lead Time Performance Summary
+              Lead Time Insights Parameter Configuration
+              Administer Planning Security
+              Configure Exceptions
+              Configure Exception Sets
+              Configure Planning Analytics
+              Manage Demand Classes
+              Manage Planning Measures
+              Manage Planning Profile Options
+
+    [MODULE] Demand Management
+    Title: Demand Management - Oracle Fusion Cloud Applications
+    (task panel already open — Redwood layout, 18 tasks)
+    Task panel options: []
+        Section: Unknown (18 tasks)
+            Manage Plans
+            Load Measures from Other Plans
+            Collect Planning Data
+            Load Planning Data from Files
+            Manage Planning Data Collection Processes
+            Maintain Supply Network Model
+            Manage Planning Source Systems
+            Manage Planners
+            Manage Segment Groups and Criteria
+            Manage Segment Members
+            View Segmentation Summary
+            Configure Exceptions
+            Configure Exception Sets
+            Configure Planning Analytics
+            Manage Demand Classes
+            Manage Planning Measures
+            Manage Forecasting Profiles
+            Manage Planning Profile Options
+
+    [MODULE] Supply Planning
+    Title: Supply Planning - Oracle Fusion Cloud Applications
+    (task panel already open — Redwood layout, 26 tasks)
+    Task panel options: []
+        Section: Unknown (26 tasks)
+            Collect Planning Data
+            Load Planning Data from Files
+            Manage Planning Data Collection Processes
+            Maintain Supply Network Model
+        *** Manage Assignment Sets
+            Manage Sourcing Rules
+            Manage Bills of Distribution
+            Manage Planning Source Systems
+            Manage Demand Priority Rules
+            Manage Planners
+            Review Planning Calendars
+            Review Planning Calendar Shifts
+            Review Planning Calendar Associations
+            Manage Planning Attributes
+            Manage Project Groups
+            Manage Attribute-Based Netting Rules
+            Manage Segment Groups and Criteria
+            Manage Segment Members
+        *** Manage Supply Planning Policy Assignment Sets
+            View Segmentation Summary
+            Configure Exceptions
+            Configure Exception Sets
+            Configure Planning Analytics
+            Manage Demand Classes
+            Manage Planning Measures
+            Manage Planning Profile Options
+
+    [MODULE] Replenishment Planning
+    Title: Replenishment Planning - Oracle Fusion Cloud Applications
+    (task panel already open — Redwood layout, 23 tasks)
+    Task panel options: []
+        Section: Unknown (23 tasks)
+            Collect Planning Data
+            Load Planning Data from Files
+            Manage Planning Data Collection Processes
+            Maintain Supply Network Model
+        *** Manage Assignment Sets
+            Manage Sourcing Rules
+            Manage Bills of Distribution
+            Manage Planning Source Systems
+            Manage Planners
+            Review Planning Calendars
+            Review Planning Calendar Associations
+            Manage Segment Groups and Criteria
+            Manage Segment Members
+            View Segmentation Summary
+            Manage Analysis Hierarchies for Related Items
+        *** Manage Policy Assignment Sets
+            Manage Planning Clusters
+            Configure Exceptions
+            Configure Exception Sets
+            Configure Planning Analytics
+            Manage Planning Measures
+            Manage Forecasting Profiles
+            Manage Planning Profile Options
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Product Management
+============================================================
+  Tiles (4): ['Manufacturers (Classic)', 'Browse Commercial Items', 'Product Development', 'Product Information Management']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Plan Inputs', 'Manufacturers (Classic)']
+
+    [MODULE] Manufacturers (Classic)
+    Title: Manufacturers (Classic) - Product Development - Oracle Fusion Cloud Ap
+    Task panel options: ['--------', 'Application Default', '--------', 'Personalize...']
+    [--------]
+          Section: Unknown (5 tasks)
+              Create Item
+              Manage Items
+              View Item Audit Trail
+              Create Manufacturer Part
+              Manage Manufacturer Parts
+          Section: Last Updated By (0 tasks)
+          Section: Creation Date (0 tasks)
+    [Application Default]
+          Section: Unknown (5 tasks)
+              Create Item
+              Manage Items
+              View Item Audit Trail
+              Create Manufacturer Part
+              Manage Manufacturer Parts
+          Section: Last Updated By (0 tasks)
+          Section: Creation Date (0 tasks)
+    [--------]
+          Section: Unknown (4 tasks)
+              Manage Items
+              View Item Audit Trail
+              Create Manufacturer Part
+              Manage Manufacturer Parts
+          Section: Last Updated By (0 tasks)
+          Section: Creation Date (0 tasks)
+    [Personalize...]
+          Section: Unknown (4 tasks)
+              Manage Items
+              View Item Audit Trail
+              Create Manufacturer Part
+              Manage Manufacturer Parts
+          Section: Last Updated By (0 tasks)
+          Section: Creation Date (0 tasks)
+
+    [MODULE] Browse Commercial Items
+    Title: Browse Commercial Items - Product Information Management - Oracle Fusi
+    Task panel options: ['Application Default', 'UnApprovedItemSearchForCCO']
+    [Application Default]
+          Section: Unknown (7 tasks)
+              Create Item
+              Manage Items
+              Browse Items
+              Manage Catalogs
+              Manage Item Relationships
+              Manage Change Orders
+              Manage Worklist
+          Section: Item Status (0 tasks)
+          Section: Long Description (0 tasks)
+          Section: Item Class (0 tasks)
+          Section: Organization (0 tasks)
+    [UnApprovedItemSearchForCCO]
+          Section: Unknown (7 tasks)
+              Create Item
+              Manage Items
+              Browse Items
+              Manage Catalogs
+              Manage Item Relationships
+              Manage Change Orders
+              Manage Worklist
+          Section: Item Status (0 tasks)
+          Section: Long Description (0 tasks)
+          Section: Item Class (0 tasks)
+          Section: Organization (0 tasks)
+
+    [MODULE] Product Development
+    Title: Overview - Product Development - Oracle Fusion Cloud Applications
+    (task panel already open — Redwood layout, 5 tasks)
+    Task panel options: []
+        Section: Unknown (5 tasks)
+            Create Item
+            Manage Items
+            View Item Audit Trail
+            Create Manufacturer Part
+            Manage Manufacturer Parts
+
+    [MODULE] Product Information Management
+    Title: Product Information Management - Oracle Fusion Cloud Applications
+    (task panel already open — Redwood layout, 7 tasks)
+    Task panel options: []
+        Section: Unknown (7 tasks)
+            Create Item
+            Manage Items
+            Browse Items
+            Manage Catalogs
+            Manage Item Relationships
+            Manage Change Orders
+            Manage Worklist
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: General Accounting
+============================================================
+  Tiles (3): ['Manage Journals', 'Manage Approvals for Journals', 'Journals']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Product Development', 'Manage Journals']
+
+    [MODULE] Manage Journals
+    Title: Manage Journals - Journals - Oracle Fusion Cloud Applications
+    (task panel opened via fallback)
+    Task panel options: ['All Journals', "Journals That Haven't Been Reversed", 'Unposted Journals', '--------', 'Personalize...']
+    [All Journals]
+          Section: Unknown (1 tasks)
+              Add Fields
+    [Journals That Haven't Been Reversed]
+          Section: Unknown (1 tasks)
+              Add Fields
+    [Unposted Journals]
+          Section: Unknown (1 tasks)
+              Add Fields
+    [--------]
+          Section: Personalize Saved Searches (1 tasks)
+              Add Fields
+    [Personalize...]
+          Section: Unknown (1 tasks)
+              Add Fields
+
+    [MODULE] Manage Approvals for Journals
+    Title: Manage Approvals for Journals - Journals - Oracle Fusion Cloud Applica
+    (task panel opened via fallback)
+    Task panel options: []
+        Section: Unknown (1 tasks)
+            Help
+        Section: Accounting Period (0 tasks)
+
+    [MODULE] Journals
+    Title: Journals - Oracle Fusion Cloud Applications
+    (task panel opened via fallback)
+    Task panel options: []
+        Section: Unknown (1 tasks)
+            Help
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Procurement
+============================================================
+  Tiles (12): ['Purchase Agreements', 'Suppliers', 'Requisition Lines', 'Approved Supplier List Entries', 'Shop (New)', 'Purchase Requisitions', 'Purchase Requisitions (New)', 'Purchase Orders', 'My Receipts', 'Catalogs', 'Supplier Qualification', 'Supplier Dashboard']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Journals', 'Purchase Agreements']
+
+    [MODULE] Purchase Agreements
+    Title: Purchase Agreements - Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Suppliers
+    Title: Suppliers - Purchase Orders - Oracle Fusion Cloud Applications
+    Task panel options: ['All Suppliers', '--------', 'Personalize...']
+    [All Suppliers]
+          Section: Unknown (3 tasks)
+              Research Suppliers
+              Manage Suppliers
+              Manage Approved Supplier List Entries
+          Section: Tax Registration Number (0 tasks)
+          Section: D-U-N-S Number (0 tasks)
+    [--------]
+          Section: Unknown (3 tasks)
+              Research Suppliers
+              Manage Suppliers
+              Manage Approved Supplier List Entries
+          Section: Tax Registration Number (0 tasks)
+          Section: D-U-N-S Number (0 tasks)
+    [Personalize...]
+          Section: Unknown (3 tasks)
+              Research Suppliers
+              Manage Suppliers
+              Manage Approved Supplier List Entries
+          Section: Tax Registration Number (0 tasks)
+          Section: D-U-N-S Number (0 tasks)
+
+    [MODULE] Requisition Lines
+    Title: Approved Supplier List Entries - Purchase Orders - Oracle Fusion Cloud
+    (task panel already open — Redwood layout, 3 tasks)
+    Task panel options: ['All Approved Supplier List Entries', '--------', 'Personalize...']
+    [All Approved Supplier List Entries]
+    [--------]
+    [Personalize...]
+
+    [MODULE] Approved Supplier List Entries
+    Title: Self Service Procurement Home - Search - Oracle Fusion Cloud Applicati
+    (no task panel found)
+
+    [MODULE] Shop (New)
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Purchase Requisitions
+    Title: Shop - Purchase Requisitions - Oracle Fusion Cloud Applications
+    (task panel already open — Redwood layout, 4 tasks)
+    Task panel options: []
+        Section: Unknown (4 tasks)
+            Shopping Lists
+            Manage Requisitions
+            Utilities Expenses
+            Warranty Expenses
+
+    [MODULE] Purchase Requisitions (New)
+    Title: Self Service Procurement Home - Search - Oracle Fusion Cloud Applicati
+    (no task panel found)
+
+    [MODULE] Purchase Orders
+    Title: Overview - Purchase Orders - Oracle Fusion Cloud Applications
+    Task panel options: []
+        Section: Unknown (3 tasks)
+            Research Suppliers
+            Manage Suppliers
+            Manage Approved Supplier List Entries
+
+    [MODULE] My Receipts
+    Title: Receive Items - My Receipts - Oracle Fusion Cloud Applications
+    Task panel options: ['Items Due in Last 7 Days', '--------', 'Personalize...']
+    [Items Due in Last 7 Days]
+    [--------]
+    [Personalize...]
+
+    [MODULE] Catalogs
+    Title: Overview - Catalogs - Oracle Fusion Cloud Applications
+    Task panel options: []
+        Section: Unknown (9 tasks)
+            Manage Agreements
+            Manage Catalogs
+        *** Manage Catalog Category Hierarchy
+            Manage Content Zones
+            Manage Information Templates
+            Manage Public Shopping Lists
+            Manage Purchasing News
+            Manage Smart Forms
+            Manage Supplier Content Map Sets
+        Section: Agreement (0 tasks)
+        Section: Buyer (0 tasks)
+
+    [MODULE] Supplier Qualification
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Supplier Dashboard
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Tools
+============================================================
+  Tiles (6): ['Notifications', 'B2B Trading Partners', 'Set Preferences', 'Approvals', 'Reports and Analytics', 'Scheduled Processes']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Purchase Requisitions', 'Suppliers']
+
+    [MODULE] Notifications
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] B2B Trading Partners
+    Title: Oracle Fusion Cloud Applications
+    (task panel opened via fallback)
+    Task panel options: []
+        Section: Unknown (1 tasks)
+            Done
+
+    [MODULE] Set Preferences
+    Title: Tasks - Set Preferences - Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Approvals
+    Title: Approvals Tasks - Oracle Fusion Cloud Applications
+    Task panel options: []
+
+    [MODULE] Reports and Analytics
+    Title: Reports and Analytics - Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Scheduled Processes
+    Title: Monitor Processes - Scheduled Processes - Oracle Fusion Cloud Applicat
+    (no task panel found)
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+============================================================
+TAB: Others
+============================================================
+  Tiles (2): ['new', 'Astec ECN Tracking Application']
+  Quick Actions: ['Quick Actions', 'AppsAnalytics', 'Apps', 'Analytics', 'AppsInstalled Base Assets', 'Installed Base Assets', 'Set Preferences', 'AppsnewAstec ECN Tracking Application']
+
+    [MODULE] new
+    Title: Oracle Fusion Cloud Applications
+    (no task panel found)
+
+    [MODULE] Astec ECN Tracking Application
+    Title: Oracle Fusion Cloud Applications
+    (task panel opened via fallback)
+    Task panel options: []
+        Section: Unknown (1 tasks)
+            Personal Information
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+JSON saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.json
+TXT  saved: C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\oracle_schema_map.txt
+
+Schema mapping complete.

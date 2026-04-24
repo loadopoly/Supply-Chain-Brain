@@ -4,6 +4,62 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.18.1] rADAM + Directional Intelligence + Systemic Refinement (2026-04-24)
+
+### Added
+
+- **`pipeline/src/brain/radam_optimizer.py`** — rADAM with toroidal phase coupling
+  - Strict mathematical superset of vanilla Adam; identity-reduces when all extension knobs are at defaults
+  - **Complex bifurcated gradient** `g_re + i·g_im` — real component from Touch/Vision/Body firings; imaginary component from torus gap field
+  - **Pivoted ReLU** `pReLU(x; π, α)` — active region anchored at running mean pressure rather than zero
+  - **Heart-beat momentum modulation** `β1(t) = β1_bar + κ·sin(ω·t)` — phase-locked to `temporal_spatiality` rhythm
+  - **Langevin incoherence noise** scaled by `sqrt(1 − carrier_mass)` — exploration grows when senses are out-of-phase
+  - **T² toroidal pressure projection** `p_t = 0.5·(1 + cos(θ_t)·cos(φ_t))` with internal + external loop phases
+  - Disable via `BRAIN_USE_RADAM=0`; env-var knob overrides for headless testing
+
+- **`pipeline/src/brain/directionality_listener.py`** — Directional snapshot of the entire Symbiotic Entirety
+  - `listen()` returns `DirectionalitySnapshot(expansion, coherence, bifurcation)` triplet
+  - **Expansion** — corpus/network growth rate from entity/edge delta
+  - **Coherence** — mean resultant length `R = |Σ exp(i·φ_s)|/N` across all sense-signal angles on S¹
+  - **Bifurcation** — `Im(grad) / (|Re(grad)| + ε)` — ratio of latent-to-realised gradient magnitude
+  - **Reuptake neighbourhood noise** `CV = σ/μ` of SYMBIOTIC_TUNNEL + GROUNDED_TUNNEL edge weights feeds coherence penalty and Langevin signal
+
+- **`pipeline/src/brain/learning_drive.py`** — Symbiotic internal feedback loop
+  - Reads corpus saturation, self-train quality, learning velocity, and RDT task difficulty from the live SQLite DB
+  - Derives four rADAM knobs: `pivot_alpha`, `heartbeat_kappa`, `noise_sigma`, `acquisition_drive`
+  - `acquisition_drive` injected additively into `grad_imag` in `brain_body_signals._adam_step`; pushes optimizer toward under-explored knowledge when stagnant
+  - `get_drive()` is thread-safe with a 5-minute TTL cache; all formulas reduce to identity when DB is absent
+
+- **`pipeline/src/brain/systemic_refinement_agent.py`** — Continuous adaptive improvement daemon
+  - Five-phase loop: **SENSE** → **DIAGNOSE** → **RANK** → **EXECUTE** → **LEARN**
+  - Senses all six faculties: Brain, Vision, Touch, Smell, Body, Heart, DBI
+  - Ten supply-chain refinement strategies with `[0..1]` priority scores; each non-zero score produces a `RefinementAction`
+  - Actions ranked by `priority × acquisition_drive × rhythm_factor` — effort concentrates where the Brain is hungriest and domain gap widest
+  - Effect types: launch Mission, surface Body directive, drop skill-acquisition trigger, append corpus seed, write brain_kv nudge, record findings row
+  - Feedback-gated deduplication: content hash suppresses re-execution within a window unless Body confirms the action
+  - Adaptive cadence: 20 min floor, up to 2 h; `acquisition_drive` shrinks the sleep so refinement accelerates when learning stalls
+
+### Changed
+
+- **`pipeline/src/brain/brain_body_signals.py`**
+  - `_torus_latent_grad(cn, kind, pressure)` — reads mean `torus_gap` KL-divergence from Endpoint props; returns latent gradient in `[0, 0.30]`
+  - `_adam_step(state, gradient, grad_imag=0.0)` — extended with `grad_imag` parameter; rADAM hook (BRAIN_USE_RADAM) wires in coherence, external phase, heartbeat omega, pivot, acquisition_drive
+
+- **`pipeline/autonomous_agent.py`**
+  - `start_systemic_refinement_agent()` — daemon launcher with adaptive-cadence logging
+  - Wired into `autonomous_loop()` startup and `__main__` so refinement runs whether the agent is imported or executed directly
+
+- **`pipeline/oracle_schema_map.json` / `.txt`** — Run 5 schema refresh; coordinate corrections for Manage Price Lists and Purchase Requisition
+- **`pipeline/oracle_schema_mapper.py`** — Further task-panel hardening
+- **`pipeline/abc_screenshots/schema_map/*`** — 40+ screenshot tiles refreshed (run 5 capture)
+
+### Tests
+
+- **`pipeline/tests/test_radam_optimizer.py`** — proves identity reduction to vanilla Adam; per-knob behaviour (pivoted-ReLU, heartbeat, Langevin, toroidal projection)
+- **`pipeline/tests/test_learning_drive.py`** — 9 tests: identity drive, knob math, corpus saturation, self-train quality, learning velocity, acquisition_drive bounds, thread-safety, env-var override, grad_imag injection
+
+---
+
 ## [0.18.0] DeepSeek V4 Candidate Trial System (2026-04-24)
 
 ### Added

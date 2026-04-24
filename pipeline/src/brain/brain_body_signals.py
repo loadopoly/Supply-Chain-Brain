@@ -912,11 +912,55 @@ def _bayesian_poisson_centroid(state: dict, this_count: int,
     return float(min(1.0, posterior_rate * max(0.0, this_mean_priority)))
 
 
-def _adam_step(state: dict, gradient: float) -> float:
+def _torus_latent_grad(cn, kind: str, pressure: float) -> float:
+    """Imaginary (latent) gradient from the torus gap field.
+
+    Reads the mean ``torus_gap`` (KL divergence from uniform) stored in
+    Endpoint entity props after each ``tick_torus_pressure`` call.  High
+    gap = the manifold is still bunched = unrealized expansion potential.
+
+    The latent gradient is proportional to gap × pressure so kinds that
+    are both high-pressure AND sitting in unexplored torus space receive
+    the strongest imaginary push forward.
+
+    Returns a value in ``[0, 0.30]``.  Zero when no torus data exists yet.
+    """
+    try:
+        rows = cn.execute(
+            "SELECT props_json FROM corpus_entity WHERE entity_type='Endpoint'"
+        ).fetchall()
+        if not rows:
+            return 0.0
+        gaps = []
+        for r in rows:
+            try:
+                props = json.loads(r[0]) if r[0] else {}
+                g = float(props.get("torus_gap", 0.0))
+                if g > 0.0:
+                    gaps.append(g)
+            except Exception:
+                continue
+        if not gaps:
+            return 0.0
+        mean_gap = sum(gaps) / len(gaps)
+        # Normalise: typical KL total on 7 dims uniform deviation is ~0–5
+        normalised = min(1.0, mean_gap / 5.0)
+        return normalised * max(0.0, pressure) * 0.30
+    except Exception:
+        return 0.0
+
+
+def _adam_step(state: dict, gradient: float,
+               grad_imag: float = 0.0) -> float:
     """One ADAM update on a single signal_kind's pressure.
 
     state must hold {m, v, t, pressure}.  Mutates state in place and
     returns the new pressure value clamped to [0, 1].
+
+    grad_imag is the latent (imaginary) component of the bifurcated
+    gradient — derived from the torus gap field by the caller.  Zero
+    collapses to vanilla Adam.
+
     Learning rate is read from neural_plasticity (anneals as corpus
     matures) with _TOUCH_LR as the default, then scaled by the
     temporal-spatiality rhythm's lr_factor (syncopatic boost during
@@ -932,6 +976,99 @@ def _adam_step(state: dict, gradient: float) -> float:
         lr *= float(_rf("lr_factor", 1.0))
     except Exception:
         pass
+
+    # rADAM hook — enabled by default; set BRAIN_USE_RADAM=0 to fall back to
+    # the vanilla Adam path below.  All extension knobs still default to
+    # identity values, so with no other env vars set the trajectory is
+    # bit-for-bit identical to vanilla Adam (verified by
+    # tests/test_radam_optimizer.py::test_identity_reduction_matches_vanilla_adam).
+    import os as _os
+    if _os.environ.get("BRAIN_USE_RADAM", "1") != "0":
+        try:
+            from .radam_optimizer import radam_step as _radam
+            # --- coherence: sense_of_smell carrier_mass ----------------------
+            try:
+                from .sense_of_smell import recent_smell as _rs
+                with _conn() as _cn:
+                    _rows = _rs(_cn, limit=1)
+                _coher = float(_rows[0].get("carrier_mass", 1.0)) if _rows else 1.0
+            except Exception:
+                _coher = 1.0
+
+            # --- external_phase: live Weyl centroid on the torus -------------
+            # temporal_spatiality.weyl_centroid() returns the 1-D condensed
+            # coordinate of the joint sense state projected onto [0, 2π] — the
+            # natural "external loop phase" the original concept described.
+            try:
+                from .temporal_spatiality import weyl_centroid as _wc
+                _ext_phase = float(_wc())
+            except Exception:
+                _ext_phase = float(_os.environ.get("RADAM_EXT_PHASE", "0.0"))
+
+            # --- heartbeat_omega: derived from rhythm period_factor ----------
+            # period_factor > 1 = slow rhythm (longer floors) → low omega
+            # period_factor < 1 = fast rhythm → high omega
+            # Neutral (factor=1): omega ≈ 2π/7 ≈ 0.897 rad/step (one full
+            # oscillation per TORUS_DIMS optimizer steps).
+            import math as _math
+            try:
+                from .temporal_spatiality import get_rhythm_factor as _rfω
+                _period = float(_rfω("period_factor", 1.0))
+                _omega  = (2.0 * _math.pi / 7.0) / max(0.1, _period)
+            except Exception:
+                _omega = float(_os.environ.get("RADAM_HB_OMEGA", "0.0"))
+
+            # --- learning drive: symbiotic internal loop --------------------
+            # get_drive() reads corpus saturation, self-train quality,
+            # learning velocity, and RDT difficulty from the live DB and
+            # derives all four rADAM knobs.  It is cached for 60 s, so the
+            # marginal cost per _adam_step call is a dict lookup + a lock.
+            #
+            # Env vars act as manual overrides: when an env var holds its
+            # identity default the live drive value is used instead, giving
+            # the full symbiotic loop.  Non-default env values take priority
+            # for debugging / tuning.
+            try:
+                from .learning_drive import get_drive as _get_drive
+                _drive = _get_drive()
+            except Exception:
+                _drive = None
+
+            def _knob(env_key: str, default_str: str, drive_val: float) -> float:
+                env_raw = _os.environ.get(env_key, default_str)
+                if env_raw != default_str:
+                    return float(env_raw)   # explicit override
+                return drive_val if _drive is not None else float(default_str)
+
+            _pivot_alpha    = _knob("RADAM_PIVOT_ALPHA", "1.0",
+                                    _drive.pivot_alpha    if _drive else 1.0)
+            _hb_kappa       = _knob("RADAM_HB_KAPPA",    "0.0",
+                                    _drive.heartbeat_kappa if _drive else 0.0)
+            _noise_sigma    = _knob("RADAM_NOISE_SIGMA",  "0.0",
+                                    _drive.noise_sigma    if _drive else 0.0)
+
+            # acquisition_drive is additive on grad_imag: combines the
+            # torus-gap latent gradient (spatial pressure) with the
+            # learning-health directional bias (temporal pressure).
+            _acq = float(_drive.acquisition_drive) if _drive else 0.0
+            _effective_grad_imag = grad_imag + _acq
+
+            return _radam(
+                state, gradient,
+                grad_imag=_effective_grad_imag,
+                lr=lr,
+                beta1=_TOUCH_BETA1, beta2=_TOUCH_BETA2, eps=_TOUCH_EPS,
+                pivot_alpha=_pivot_alpha,
+                heartbeat_kappa=_hb_kappa,
+                heartbeat_omega=_omega,
+                noise_sigma=_noise_sigma,
+                coherence=_coher,
+                external_phase=_ext_phase,
+                use_torus=_os.environ.get("RADAM_USE_TORUS") == "1",
+            )
+        except Exception:
+            # rADAM is best-effort; fall through to vanilla Adam on any error.
+            pass
 
     m_prev = float(state.get("m", 0.0))
     v_prev = float(state.get("v", 0.0))
@@ -1036,7 +1173,12 @@ def _update_touch_field(cn, fresh: list[Directive],
             # Quiet from both sides — pure decay toward 0.
             grad = -0.05 * float(st.get("pressure", 0.0))
 
-        new_p = _adam_step(st, grad)
+        # Latent (imaginary) gradient from the torus gap field.
+        # High KL divergence on the manifold = unrealized expansion potential
+        # that should pull the optimizer forward on this kind's pressure.
+        g_imag = _torus_latent_grad(cn, kind, float(st.get("pressure", 0.0)))
+
+        new_p = _adam_step(st, grad, grad_imag=g_imag)
         full_state[kind] = st
 
         if new_p > 0.005 or kind in counts or kind in resolved_kinds or v_grad != 0.0:

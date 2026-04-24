@@ -414,6 +414,56 @@ For issues or enhancements:
 
 ---
 
-**Document Version:** 1.0  
-**Created:** 2026-04-23  
-**Status:** COMPLETE - All Tasks Delivered ✅
+## Phase 2: Oracle Schema Mapping (2026-04-24) 🔄
+
+### Goal
+Structurally crawl all Oracle Fusion modules to build a complete task-panel schema, then cross-reference that schema against confirmed write operations for specific parts (starting with 80446-04).
+
+### New Scripts
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `oracle_schema_mapper.py` | Playwright crawler — extracts task lists from all module panels | Active (run 5) |
+| `build_intersection_map.py` | Cross-references schema with part write-ops data | Complete |
+
+### New Outputs
+
+| File | Description |
+|------|-------------|
+| `oracle_schema_map.json` | Full schema: all tabs → modules → task_sections → tasks |
+| `oracle_schema_map.txt` | Human-readable flat view of the schema |
+| `pim_screenshots/80446-04/write_ops/intersection_map.json` | Part 80446-04 module intersection data |
+| `pim_screenshots/80446-04/write_ops/intersection_map.txt` | Human-readable intersection report |
+
+### Intersection Results — Part 80446-04
+
+- **4 Confirmed modules** with 16 write-op tasks (directly evidenced)
+- **20 Adjacent modules** (keyword-matched to item type: Procured + manufacturing component)
+- **31 Low-relevance modules**
+
+### Technical Discoveries
+
+1. **Redwood vs ADF Classic task panels require different open strategies** — Redwood renders the panel already open; calling the Tasks button again closes it. Fixed via precheck-before-open with a minimum task threshold of ≥3 to avoid false positives from stray page elements.
+
+2. **Font-weight ≥600 is the reliable section header signal** — ADF CSS class names are release-obfuscated and cannot be relied upon.
+
+3. **List-view pages capture saved-search SELECT instead of task panel** — Affects Manage Journals, Manage Price Lists, Plan Inputs data grid. These modules return 0 real tasks until a more targeted detection approach is built.
+
+4. **4 modules navigate to home on tile click** — Receipt Accounting, Financial Orchestration, Supply Orchestration, Supply Chain Orchestration. Need direct URL navigation.
+
+### How to Run
+
+```bash
+# Run the schema mapper (resumes from prior state)
+cd pipeline
+python -u oracle_schema_mapper.py
+
+# Build the intersection map after mapper completes
+python build_intersection_map.py
+```
+
+Full technical detail: see `Claude/ORACLE_SCHEMA_MAPPER_GUIDE.md`
+
+---
+
+**Document Version:** 2.0
