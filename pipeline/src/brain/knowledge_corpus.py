@@ -2285,6 +2285,17 @@ def refresh_corpus_round() -> dict:
     except Exception as _e:
         notes.append(f"temporal_spatiality: {_e}")
 
+    # ── Recursive knowledge strengthening: condense the n-1..n-k chain into
+    # a 1-D actionable edge that informs n+1 at t0. Reduces structured
+    # recursive dimensionality toward the toroidal centroid while keeping
+    # the unbounded raw potential available to the senses' stretch dials.
+    strengthening_summary: dict = {}
+    try:
+        from .recursive_strengthening import strengthen_step as _strengthen
+        strengthening_summary = _strengthen() or {}
+    except Exception as _e:
+        notes.append(f"recursive_strengthening: {_e}")
+
     return {
         "ran_at": datetime.now(timezone.utc).isoformat(),
         "entities_added": stats.entities_added,
@@ -2319,6 +2330,13 @@ def refresh_corpus_round() -> dict:
             "period_factor": rhythm_summary.get("period_factor"),
             "lr_factor":     rhythm_summary.get("lr_factor"),
         } if rhythm_summary and not rhythm_summary.get("skipped") else None,
+        "strengthening": {
+            "edge":                 strengthening_summary.get("edge"),
+            "instant_edge":         strengthening_summary.get("instant_edge"),
+            "actionable_potential": strengthening_summary.get("actionable_potential"),
+            "weyl_residual":        strengthening_summary.get("weyl_residual"),
+            "chain_depth":          strengthening_summary.get("chain_depth"),
+        } if strengthening_summary and not strengthening_summary.get("skipped") else None,
         "notes": notes,
     }
 

@@ -358,6 +358,19 @@ def modulate(signals: dict | None = None) -> dict:
     # Syncopatic boost: high coherence raises the boost, the synaptic
     # wash (gradient) lowers it. Net effect is bounded.
     raw_boost = _BOOST_NEUTRAL + (coh - grad) * 0.5
+
+    # Recursive strengthening: a productive recent chain can lift the boost
+    # *floor* — even if momentary coherence dips, the n-1 actionable
+    # potential pulls the rhythm up so adaptation at n+1 stays fast.
+    try:
+        from .recursive_strengthening import get_actionable_potential as _ap
+        potential = float(_ap(0.0))
+        # Floor lifts up to +0.25 of the [0.5, 1.5] range when potential = 1.
+        floor = _BOOST_NEUTRAL + 0.25 * potential
+        raw_boost = max(raw_boost, floor)
+    except Exception:
+        pass
+
     boost     = max(_BOOST_MIN, min(_BOOST_MAX, raw_boost))
 
     # period_factor multiplies floor seconds — boost > 1 → smaller floor.

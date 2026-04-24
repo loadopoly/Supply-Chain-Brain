@@ -241,6 +241,18 @@ def compute_capability_targets(state: dict[str, float]) -> dict[str, dict[str, f
     # natural single-axis driver (Brain, Body cadence).
     richness = (s_ent + s_edg + s_lrn) / 3.0
 
+    # Recursive strengthening: a productive recent chain (n-1 actionable
+    # potential) lifts the effective richness so the n+1 dial targets
+    # stretch further toward their maxima. Capped so a single hot streak
+    # cannot pin every dial at saturation.
+    try:
+        from .recursive_strengthening import get_actionable_potential as _ap
+        potential = float(_ap(0.0))
+        # Lerp halfway from current richness to 1.0, weighted by potential.
+        richness = richness + (1.0 - richness) * (0.5 * potential)
+    except Exception:
+        pass
+
     def lerp(lo: float, hi: float, t: float) -> float:
         return lo + (hi - lo) * max(0.0, min(1.0, t))
 

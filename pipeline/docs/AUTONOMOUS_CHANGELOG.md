@@ -59,3 +59,14 @@
 - `temporal_step()` invoked from the corpus-round tail after plasticity; round summary now exposes `rhythm.{coherence, gradient, weyl, boost, period_factor, lr_factor}`.
 - Validated: uniform high activity boosts to 1.27\u00d7; single-sense saturation washes back to 0.67\u00d7 (clamped at the safe bounds).
 
+
+## 2026-04-24 \u2014 Recursive knowledge strengthening (v1.5.0)
+- New module `pipeline/src/brain/recursive_strengthening.py` \u2014 reads the chain of recent `corpus_round_log` memories, condenses them via \u03b3-weighted L2 norm into a 1-D *strengthening edge* with unbounded raw potential, and saturates to `actionable_potential` \u2208 [0, 1) for use as a stretch multiplier.
+- The edge accumulator is itself ADAM-smoothed (\u03b21=0.9, \u03b22=0.999, lr=0.25) and participates in temporal-spatiality's syncopatic rhythm via `lr_factor`.
+- `weyl_residual()` reports the orthogonal entropy lost when collapsing the chain to 1-D \u2014 the toroidal-centroid information loss.
+- Wiring:
+  * `neural_plasticity.compute_capability_targets` lifts effective `richness` toward 1.0 by `0.5 \u00d7 actionable_potential`, stretching dial targets when the n-1 chain has been productive.
+  * `temporal_spatiality.modulate` uses the actionable potential as a *boost floor* so a strong recent chain pulls rhythm up even when momentary coherence dips.
+  * `knowledge_corpus.refresh_corpus_round` invokes `strengthen_step()` after temporal_step; round summary now exposes `strengthening.{edge, instant_edge, actionable_potential, weyl_residual, chain_depth}`.
+- Validated: live 16-round chain yields instant_edge 8.33 (potential 0.62); ADAM accumulator climbs gradient-bounded; uniform synthetic chain shows weyl_residual ~0.05 (low information loss); heterogeneous live chain shows ~2.87 (real entropy at the centroid).
+
