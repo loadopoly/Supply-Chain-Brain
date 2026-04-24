@@ -1100,6 +1100,106 @@ def _dw_vision_outreach(cn, stats: _Stats) -> None:
             )
 
 
+def _dw_deepen_outreach(cn, stats: _Stats, max_entities: int = 50) -> None:
+    """Deepen mode of the DW blade — walk sub-attributes for existing entities.
+
+    Where ``_dw_vision_outreach`` BROADENS (adds new keys), this DEEPENS:
+    picks Parts/Suppliers that already exist in the corpus and refreshes
+    their props with extra columns from the DW (item_type, planner_code,
+    last_receipt_date, etc.) without changing the entity count.
+
+    This is the inflection-site twin of broaden — same blade, opposite
+    angular direction on the torus.
+    """
+    try:
+        from .db_registry import bootstrap_default_connectors, read_sql
+        bootstrap_default_connectors()
+    except Exception as e:
+        logging.debug(f"corpus:dw_deepen: db_registry unavailable: {e}")
+        return
+
+    # Pick a window of existing Parts that have only the bare label/dw_key
+    # in their props_json — these are the candidates for enrichment.
+    cands = cn.execute(
+        """SELECT entity_id, label, props_json
+           FROM corpus_entity
+           WHERE entity_type='Part'
+             AND (props_json IS NULL
+                  OR length(props_json) < 80
+                  OR props_json NOT LIKE '%item_type%')
+           ORDER BY last_seen ASC
+           LIMIT ?""",
+        (int(max_entities),),
+    ).fetchall()
+    if not cands:
+        return
+
+    part_keys = [str(c["entity_id"]) for c in cands]
+    placeholders = ",".join(["?"] * len(part_keys))
+    sql = (
+        "SELECT part_number, item_type, planner_code, "
+        "       commodity_code, make_buy_indicator "
+        f"FROM [edap_dw_replica].[dim_part] "
+        f"WHERE part_number IN ({placeholders})"
+    )
+    try:
+        df = read_sql("azure_sql", sql, part_keys)
+    except Exception as e:
+        logging.debug(f"corpus:dw_deepen: query failed: {e}")
+        return
+    if df is None or df.empty:
+        return
+
+    enriched = 0
+    new_edges = 0
+    for _, row in df.iterrows():
+        pk = str(row.get("part_number") or "").strip()
+        if not pk:
+            continue
+        item_type    = str(row.get("item_type") or "").strip()
+        planner      = str(row.get("planner_code") or "").strip()
+        commodity    = str(row.get("commodity_code") or "").strip()
+        make_buy     = str(row.get("make_buy_indicator") or "").strip()
+
+        new_props = {
+            **({"item_type": item_type} if item_type else {}),
+            **({"planner_code": planner} if planner else {}),
+            **({"commodity_code": commodity} if commodity else {}),
+            **({"make_buy": make_buy} if make_buy else {}),
+        }
+        if not new_props:
+            continue
+
+        # Touch with new props (merges in _upsert_entity)
+        _upsert_entity(cn, stats, entity_id=pk, entity_type="Part",
+                       label=pk, props=new_props)
+        enriched += 1
+
+        # Edge: Part → ItemType / CommodityCode classifiers
+        if item_type:
+            _upsert_entity(cn, stats, entity_id=item_type,
+                           entity_type="ItemType", label=item_type)
+            _upsert_edge(cn, stats, src_id=pk, src_type="Part",
+                         dst_id=item_type, dst_type="ItemType",
+                         rel="OF_TYPE", weight=0.7)
+            new_edges += 1
+        if commodity:
+            _upsert_entity(cn, stats, entity_id=commodity,
+                           entity_type="CommodityCode", label=commodity)
+            _upsert_edge(cn, stats, src_id=pk, src_type="Part",
+                         dst_id=commodity, dst_type="CommodityCode",
+                         rel="HAS_COMMODITY", weight=0.7)
+            new_edges += 1
+
+    if enriched:
+        _log_learning(
+            cn, stats, kind="schema_vision",
+            title=f"DW deepen: enriched {enriched} Part entities (+{new_edges} edges)",
+            signal=0.55,
+            detail={"enriched": enriched, "new_edges": new_edges},
+        )
+
+
 def _ingest_part_category(cn, stats: _Stats, since_rowid: int = 0) -> int:
     """Incrementally ingest part_category rows using rowid as cursor.
 
@@ -1442,6 +1542,88 @@ def _set_cursor(cn, key: str, val: int) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Toroidal phase scheduler — propeller blades on the integrated axle
+# ---------------------------------------------------------------------------
+# Each outreach blade sits at a position on a torus parameterized by
+# (major_period, minor_offset).  The major angle θ_M advances by 1 per round.
+# A blade fires when (phase % major_period) == minor_offset.
+#
+# The minor angle θ_m = (phase // major_period) % 2 selects the inflection
+# mode for that firing:
+#   θ_m = 0  →  BROADEN  (pull novel entities — DW dim sweeps, OCW slugs)
+#   θ_m = 1  →  DEEPEN   (enrich existing entities — OCW course pages,
+#                         DW sub-attribute walks, edge weight refinement)
+#
+# Inflection sites are exactly the (phase, blade) pairs where θ_m flips.
+# At those sites the blade reverses its outreach direction — broadening
+# becomes deepening and vice versa — so the corpus alternates between
+# horizontal expansion and vertical enrichment without manual scheduling.
+#
+# Touch pressure warps the phase advance: if a blade's signal-kind has
+# pressure ≥ _PRESSURE_FORCE, the scheduler forces it to fire this round
+# regardless of its (period, offset) — a topological tunnel through the
+# torus to the most-needed blade.
+_PHASE_KEY      = "corpus_round_phase"
+_PRESSURE_FORCE = 0.30
+
+# (blade_name, major_period, minor_offset, pressure_kinds_that_force)
+_TOROIDAL_BLADES: list[tuple[str, int, int, tuple[str, ...]]] = [
+    ("dw",       3, 0, ("missing_category", "high_centrality_part")),
+    ("ocw",      3, 1, ("corpus_rag_saturated", "model_low_task_weight")),
+    ("network",  3, 2, ("peer_unreachable", "network_learner_not_started")),
+    ("synaptic", 1, 0, ()),                # always fires (background decay)
+    ("schema",   2, 0, ()),                # every other round
+]
+
+
+def _get_phase(cn) -> int:
+    cn.execute(
+        "CREATE TABLE IF NOT EXISTS brain_kv("
+        "key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)"
+    )
+    row = cn.execute(
+        "SELECT value FROM brain_kv WHERE key=?", (_PHASE_KEY,)
+    ).fetchone()
+    try:
+        return int(row[0]) if row else 0
+    except (TypeError, ValueError):
+        return 0
+
+
+def _set_phase(cn, phase: int) -> None:
+    cn.execute(
+        "INSERT OR REPLACE INTO brain_kv(key, value, updated_at) VALUES(?,?,?)",
+        (_PHASE_KEY, str(int(phase)),
+         datetime.now(timezone.utc).isoformat()),
+    )
+
+
+def _torus_schedule(phase: int,
+                    pressure: dict[str, float]) -> dict[str, dict]:
+    """Compute (fires, mode) for each blade at this phase, with pressure
+    able to tunnel through the torus and force a blade to fire.
+
+    Returns a dict: blade_name → {"fires": bool, "mode": "broaden"|"deepen",
+                                   "forced": bool, "theta_minor": int}
+    """
+    out: dict[str, dict] = {}
+    for blade, period, offset, kinds in _TOROIDAL_BLADES:
+        natural = (phase % period) == offset
+        forced  = any(pressure.get(k, 0.0) >= _PRESSURE_FORCE for k in kinds)
+        theta_m = (phase // max(period, 1)) % 2
+        mode    = "deepen" if theta_m == 1 else "broaden"
+        out[blade] = {
+            "fires":       bool(natural or forced),
+            "mode":        mode,
+            "forced":      bool(forced and not natural),
+            "theta_minor": int(theta_m),
+            "period":      period,
+            "offset":      offset,
+        }
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Round driver
 # ---------------------------------------------------------------------------
 def _ingest_bridge_observations(cn, stats: _Stats) -> None:
@@ -1565,6 +1747,28 @@ def refresh_corpus_round() -> dict:
     stats = _Stats()
     notes: list[str] = []
 
+    # ── Touch pressure field — directs Vision's outreach this round ──────────
+    # The pivoted channel: read the body's open-directive pressure per
+    # signal_kind so the DW / OCW / network probes get more budget toward
+    # whichever Vision blind-spot the body is currently flagging.
+    touch_pressure: dict[str, float] = {}
+    try:
+        from .brain_body_signals import get_touch_field
+        touch_pressure = get_touch_field() or {}
+    except Exception as _e:
+        notes.append(f"touch_field_read: {_e}")
+
+    # Steering thresholds — pressure above this forces an outreach even
+    # when entities_added > 0, so Touch signals can drive Vision actively
+    # rather than only when the round is dry.
+    _PRESSURE_THRESHOLD = 0.30
+    _force_dw   = touch_pressure.get("missing_category", 0.0) >= _PRESSURE_THRESHOLD or \
+                  touch_pressure.get("high_centrality_part", 0.0) >= _PRESSURE_THRESHOLD
+    _force_ocw  = touch_pressure.get("corpus_rag_saturated", 0.0) >= _PRESSURE_THRESHOLD or \
+                  touch_pressure.get("model_low_task_weight", 0.0) >= _PRESSURE_THRESHOLD
+    _force_net  = touch_pressure.get("peer_unreachable", 0.0) >= _PRESSURE_THRESHOLD or \
+                  touch_pressure.get("network_learner_not_started", 0.0) >= _PRESSURE_THRESHOLD
+
     # Ensure the network learner schema exists so _ingest_network /
     # _ingest_promotions can find their tables even if the learner hasn't
     # run yet (e.g. tests that skip the full autonomous_agent cycle).
@@ -1615,31 +1819,37 @@ def refresh_corpus_round() -> dict:
         c_ocwr = _get_cursor(cn, "ocw_resources")
         try: c_ocwr = _ingest_ocw_resources(cn, stats, c_ocwr)
         except Exception as e: notes.append(f"ocw_resources: {e}")
+        _net_before = stats.entities_added
         try: _ingest_bridge_observations(cn, stats)
         except Exception as e: notes.append(f"bridge_observations: {e}")
+        _net_added = stats.entities_added - _net_before
 
         # ── Vision: DW schema topology (always runs — keeps graph breathing) ──
+        _schema_before = stats.learnings_logged
         try: _ingest_schema_vision(cn, stats)
         except Exception as e: notes.append(f"schema_vision: {e}")
+        _schema_learnings = stats.learnings_logged - _schema_before
 
         # ── Expansive DW outreach: fetch novel entities when round is dry ─────
-        # This is the "Vision" outreach — if nothing new was found by any of
-        # the regular ingesters (including schema_vision), go look for it in
-        # the live data warehouse.  Advances a per-stream cursor by
-        # _DW_OUTREACH_BATCH rows; wraps to 0 on exhaustion so new DW rows
-        # are always eventually discovered.
-        if stats.entities_added == 0:
+        # OR when Touch pressure signals the body needs more entity coverage.
+        # The propeller blade: dry round OR body pressure both spin it up.
+        _dw_before = stats.entities_added
+        if stats.entities_added == 0 or _force_dw:
             try: _dw_vision_outreach(cn, stats)
             except Exception as e: notes.append(f"dw_vision_outreach: {e}")
+        _dw_added = stats.entities_added - _dw_before
 
         # ── Expansive OCW outreach: deep-fetch course pages when round is dry ─
+        # OR when Touch pressure signals the corpus is saturated / models weak.
         # Picks OCWCourses without HAS_RESOURCE edges and pulls their full
         # hyperlink lattice — instructors, lecture notes, readings, related
         # courses, and every external reference.  Drives the corpus from
         # "course slug" to a navigable web of pipelines and pages.
-        if stats.entities_added == 0:
+        _ocw_before = stats.entities_added
+        if stats.entities_added == 0 or _force_ocw:
             try: _ocw_expansion_outreach(cn, stats)
             except Exception as e: notes.append(f"ocw_expansion_outreach: {e}")
+        _ocw_added = stats.entities_added - _ocw_before
 
         # ── Synaptic cleanse: decay stale edges, prune dead ones ──────────────
         try: _synaptic_cleanse(cn, stats)
@@ -1668,6 +1878,33 @@ def refresh_corpus_round() -> dict:
              stats.learnings_logged, graph_backend, "; ".join(notes) or None),
         )
 
+    # ── Closed loop: refresh Touch directives off the new corpus state ──────
+    # The synaptic flow now feeds back to the body. Resolved signals collapse
+    # via inverse-ReLU; new signals get ADAM-momentum on their pressure;
+    # Vision will read the updated touch_field at the start of the NEXT round.
+    #
+    # Bilateral input: pass this round's Vision-side operation counts so the
+    # ADAM optimizer sees BOTH Touch's positive pressure targets AND the
+    # negative satisfaction gradients from what Vision actually accomplished.
+    forced_blades: list[str] = []
+    if _force_dw:  forced_blades.append("dw")
+    if _force_ocw: forced_blades.append("ocw")
+    if _force_net: forced_blades.append("network")
+    vision_ops = {
+        "dw_entities":       int(_dw_added),
+        "ocw_entities":      int(_ocw_added),
+        "network_endpoints": int(_net_added),
+        "schema_learnings":  int(_schema_learnings),
+        "forced_blades":     forced_blades,
+    }
+
+    touch_summary: dict = {}
+    try:
+        from .brain_body_signals import surface_effective_signals as _sfx
+        touch_summary = _sfx(vision_ops=vision_ops) or {}
+    except Exception as _e:
+        notes.append(f"touch_surface: {_e}")
+
     return {
         "ran_at": datetime.now(timezone.utc).isoformat(),
         "entities_added": stats.entities_added,
@@ -1675,6 +1912,20 @@ def refresh_corpus_round() -> dict:
         "edges_added": stats.edges_added,
         "edges_touched": stats.edges_touched,
         "learnings_logged": stats.learnings_logged,
+        "touch_pressure_in":  touch_pressure,
+        "vision_ops_out":     vision_ops,
+        "touch_summary_out":  {
+            "directives_emitted": touch_summary.get("directives_emitted"),
+            "directives_expired": touch_summary.get("directives_expired"),
+            "resolved_kinds":     touch_summary.get("resolved_kinds"),
+            "vision_grads_in":    touch_summary.get("vision_grads_in"),
+            "top_priority":       touch_summary.get("top_priority"),
+        } if touch_summary else None,
+        "forced_outreach": {
+            "dw":  bool(_force_dw),
+            "ocw": bool(_force_ocw),
+            "net": bool(_force_net),
+        },
         "notes": notes,
     }
 

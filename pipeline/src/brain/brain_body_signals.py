@@ -801,10 +801,322 @@ _GENERATORS: list[Callable] = [
 
 
 # ---------------------------------------------------------------------------
+# Synaptic field — full ADAM with Bayesian-Poisson centroid targets
+# ---------------------------------------------------------------------------
+# Revised from the conversation-corpus pattern (used in EOQ centroid sensing
+# and bullwhip demand smoothing): each signal_kind has a Poisson firing-rate
+# whose Bayesian centroid (Gamma posterior mean) is the gradient *target*
+# for the ADAM optimizer.  The optimizer then walks pressure toward that
+# centroid with first/second-moment momentum and bias correction.
+#
+#   Prior:        rate ~ Gamma(α₀, β₀)  with α₀=1.0, β₀=2.0
+#   Likelihood:   directive_count_t  ~  Poisson(rate)
+#   Posterior:    rate_t = (α₀ + Σ counts) / (β₀ + n_rounds)
+#   Centroid:     λ_t = posterior_mean × mean_priority_t
+#                 (rate-weighted urgency — a kind that fires often AND
+#                  with high priority gets a larger target)
+#
+#   ADAM step:    g_t   = λ_t − pressure_{t-1}
+#                 m_t   = β1·m_{t-1} + (1−β1)·g_t
+#                 v_t   = β2·v_{t-1} + (1−β2)·g_t²
+#                 m̂_t   = m_t / (1 − β1^t)        ← bias correction
+#                 v̂_t   = v_t / (1 − β2^t)
+#                 p_t   = p_{t-1} + lr · m̂_t / (√v̂_t + ε)
+#                 p_t   ∈ [0, 1]                   ← saturating clamp
+#
+# Resolved kinds get a *negative* synthetic gradient through the same ADAM
+# machinery — the inverted-ReLU floor of the dual.  Because m and v retain
+# their history, a kind that oscillates fire→resolve→fire develops high v
+# (variance) which damps the effective step size — the optimizer becomes
+# cautious about flapping signals exactly the way real ADAM does on noisy
+# gradients.  This is the propeller's torsional damping.
+_TOUCH_BETA1   = 0.85       # 1st moment momentum
+_TOUCH_BETA2   = 0.999      # 2nd moment momentum (real-ADAM scale)
+_TOUCH_LR      = 0.30       # learning rate per round
+_TOUCH_EPS     = 1e-6       # numerical floor for √v
+_BAYES_ALPHA0  = 1.0        # Gamma prior shape
+_BAYES_BETA0   = 2.0        # Gamma prior rate
+_RESOLVED_GRAD = -0.50      # synthetic negative gradient for resolved kinds
+_TOUCH_FIELD_KEY      = "touch_field_state"        # consumer-facing {kind: p}
+_TOUCH_FIELD_FULL_KEY = "touch_field_full_state"   # internal optimizer state
+
+
+def _kv_read(cn, key: str) -> dict:
+    try:
+        row = cn.execute(
+            "SELECT value FROM brain_kv WHERE key=?", (key,)
+        ).fetchone()
+        if row and row[0]:
+            return json.loads(row[0])
+    except (sqlite3.OperationalError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+def _kv_write(cn, key: str, val: dict) -> None:
+    cn.execute(
+        "CREATE TABLE IF NOT EXISTS brain_kv("
+        "key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)"
+    )
+    cn.execute(
+        "INSERT OR REPLACE INTO brain_kv(key, value, updated_at) VALUES(?,?,?)",
+        (key, json.dumps(val, default=str),
+         datetime.now(timezone.utc).isoformat()),
+    )
+
+
+def _resolve_stale_directives(cn, fresh_fingerprints: set[str]) -> int:
+    """Mark open directives as `expired` when their generator no longer fires.
+
+    The dual floor: each open directive is the inverse of a Vision observation.
+    When Vision's next round shows the signal has resolved (the generator
+    didn't re-emit a directive with the same fingerprint), we collapse that
+    directive — closing the inward arm of the closed loop.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    rows = cn.execute(
+        "SELECT id, fingerprint, signal_kind FROM body_directives "
+        "WHERE status IN ('open','ack')"
+    ).fetchall()
+    expired = 0
+    for r in rows:
+        if r["fingerprint"] not in fresh_fingerprints:
+            cn.execute(
+                "UPDATE body_directives SET status='expired', "
+                "last_status_at=? WHERE id=?",
+                (now, int(r["id"])),
+            )
+            expired += 1
+    return expired
+
+
+def _bayesian_poisson_centroid(state: dict, this_count: int,
+                               this_mean_priority: float) -> float:
+    """Posterior mean of a Gamma-Poisson conjugate model, scaled by the
+    round's mean priority. Returns the ADAM gradient target.
+
+    state carries 'sum_counts' and 'n_rounds' across all prior observations
+    so the centroid evolves as more data arrives — exactly the EOQ centroid
+    pattern adapted to directive firing rates.
+    """
+    sum_counts = float(state.get("sum_counts", 0.0)) + float(this_count)
+    n_rounds   = float(state.get("n_rounds",   0.0)) + 1.0
+    posterior_rate = (_BAYES_ALPHA0 + sum_counts) / (_BAYES_BETA0 + n_rounds)
+
+    # Update state in place for next round
+    state["sum_counts"] = sum_counts
+    state["n_rounds"]   = n_rounds
+
+    # Rate-weighted urgency target ∈ [0, 1] (clamped because both factors
+    # can be > 1 in extreme bursts but we don't want pressure unbounded)
+    return float(min(1.0, posterior_rate * max(0.0, this_mean_priority)))
+
+
+def _adam_step(state: dict, gradient: float) -> float:
+    """One ADAM update on a single signal_kind's pressure.
+
+    state must hold {m, v, t, pressure}.  Mutates state in place and
+    returns the new pressure value clamped to [0, 1].
+    """
+    m_prev = float(state.get("m", 0.0))
+    v_prev = float(state.get("v", 0.0))
+    t_prev = int(state.get("t", 0))
+    p_prev = float(state.get("pressure", 0.0))
+    t      = t_prev + 1
+
+    m = _TOUCH_BETA1 * m_prev + (1.0 - _TOUCH_BETA1) * gradient
+    v = _TOUCH_BETA2 * v_prev + (1.0 - _TOUCH_BETA2) * (gradient * gradient)
+
+    # Bias correction (real ADAM)
+    m_hat = m / (1.0 - _TOUCH_BETA1 ** t)
+    v_hat = v / (1.0 - _TOUCH_BETA2 ** t)
+
+    step  = _TOUCH_LR * m_hat / ((v_hat ** 0.5) + _TOUCH_EPS)
+    p_new = max(0.0, min(1.0, p_prev + step))
+
+    state["m"]        = m
+    state["v"]        = v
+    state["t"]        = t
+    state["pressure"] = p_new
+    return p_new
+
+
+def _update_touch_field(cn, fresh: list[Directive],
+                        resolved_kinds: set[str],
+                        vision_grads: dict[str, float] | None = None
+                        ) -> dict[str, float]:
+    """Bayesian-Poisson-centroid ADAM optimizer over per-signal-kind pressure.
+
+    Inputs come from BOTH sides of the closed loop:
+      * Touch side  — `fresh` directives (positive pressure-target gradient
+        via Bayesian-Poisson centroid) and `resolved_kinds` (synthetic
+        negative gradient).
+      * Vision side — `vision_grads`: per-kind gradients derived from what
+        Vision actually accomplished this round (entities discovered,
+        blades fired, learnings logged).  These are negative — successful
+        Vision operations relieve pressure on the kinds they served.
+
+    All three streams pass through the SAME ADAM update so m and v see
+    every input source and the variance accumulator captures noise across
+    all of them — Vision overshoot, Touch overreaction, and resolution
+    flapping all damp the next step uniformly.
+
+    Returns the consumer-facing {kind: pressure} dict; also persists the
+    full optimizer state (m, v, t, sum_counts, n_rounds, pressure) so each
+    round picks up exactly where the last left off.
+    """
+    full_state = _kv_read(cn, _TOUCH_FIELD_FULL_KEY) or {}
+    vision_grads = vision_grads or {}
+
+    # Aggregate per-kind firing for this round.
+    counts: dict[str, int]   = {}
+    sums:   dict[str, float] = {}
+    for d in fresh:
+        counts[d.signal_kind] = counts.get(d.signal_kind, 0) + 1
+        sums[d.signal_kind]   = sums.get(d.signal_kind, 0.0) + float(d.priority)
+
+    pressure_view: dict[str, float] = {}
+    all_kinds = (
+        set(full_state.keys())
+        | set(counts.keys())
+        | set(resolved_kinds)
+        | set(vision_grads.keys())
+    )
+
+    for kind in all_kinds:
+        st = dict(full_state.get(kind) or {})
+        v_grad = float(vision_grads.get(kind, 0.0))
+
+        if kind in counts:
+            # Touch firing: Bayesian-Poisson centroid drives the gradient.
+            mean_p   = sums[kind] / counts[kind]
+            target   = _bayesian_poisson_centroid(st, counts[kind], mean_p)
+            t_grad   = target - float(st.get("pressure", 0.0))
+            grad     = t_grad + v_grad        # Touch + Vision in one step
+        elif kind in resolved_kinds:
+            # Resolved this round: synthetic negative gradient + Vision relief.
+            grad = _RESOLVED_GRAD * float(st.get("pressure", 0.0)) + v_grad
+            _ = _bayesian_poisson_centroid(st, 0, 0.0)
+        elif v_grad != 0.0:
+            # Vision did work for a kind Touch isn't tracking this round —
+            # still apply the relief (e.g., DW added entities even though no
+            # missing_category directive fired).
+            decay = -0.05 * float(st.get("pressure", 0.0))
+            grad  = decay + v_grad
+            _ = _bayesian_poisson_centroid(st, 0, 0.0)
+        else:
+            # Quiet from both sides — pure decay toward 0.
+            grad = -0.05 * float(st.get("pressure", 0.0))
+
+        new_p = _adam_step(st, grad)
+        full_state[kind] = st
+
+        if new_p > 0.005 or kind in counts or kind in resolved_kinds or v_grad != 0.0:
+            pressure_view[kind] = round(new_p, 4)
+
+    _kv_write(cn, _TOUCH_FIELD_FULL_KEY, full_state)
+    _kv_write(cn, _TOUCH_FIELD_KEY,      pressure_view)
+    return pressure_view
+
+
+def get_touch_field() -> dict[str, float]:
+    """Public read accessor — Vision calls this at the start of each round
+    to see which signal_kinds the body is most pressured by, and bias its
+    outreach budget accordingly. The pivoted channel that locks Vision and
+    Touch into a single dimensional axis."""
+    init_schema()
+    with _conn() as cn:
+        return _kv_read(cn, _TOUCH_FIELD_KEY) or {}
+
+
+def get_touch_field_full() -> dict:
+    """Diagnostic accessor — returns the full ADAM state per signal_kind
+    (m, v, t, sum_counts, n_rounds, pressure) so you can inspect how the
+    optimizer is converging."""
+    init_schema()
+    with _conn() as cn:
+        return _kv_read(cn, _TOUCH_FIELD_FULL_KEY) or {}
+
+
+# ---------------------------------------------------------------------------
+# Vision-ops → gradient mapping
+# ---------------------------------------------------------------------------
+# Vision operations (entities discovered, blades fired, learnings logged) are
+# *negative* evidence on the corresponding Touch signal_kinds — they prove
+# that the body's outreach actually moved the corpus, so the pressure that
+# triggered them should relax.  This gives the closed loop a true bilateral
+# input: Touch's directives push pressure UP, Vision's discoveries push it
+# DOWN, and ADAM mediates between them with momentum and variance damping.
+#
+# A blade's discovery effort produces a "satisfaction gradient" sized by
+# how much it accomplished, scaled by an empirical weight per kind.
+_VISION_OPS_MAP: dict[str, tuple[str, float]] = {
+    # vision_op_key      → (signal_kind that it relieves, weight per unit)
+    "dw_entities":         ("missing_category",            -0.015),
+    "dw_deepen_entities":  ("high_centrality_part",        -0.020),
+    "ocw_entities":        ("corpus_rag_saturated",        -0.010),
+    "ocw_resources":       ("model_low_task_weight",       -0.012),
+    "network_endpoints":   ("peer_unreachable",            -0.025),
+    "network_endpoints2":  ("network_learner_not_started", -0.025),
+    "schema_learnings":    ("self_train_drift",            -0.008),
+    "rag_chunks":          ("doc_rag_coverage",            -0.015),
+    "mission_signals":     ("mission_signals",             -0.020),
+}
+
+
+def _vision_ops_gradients(vision_ops: dict) -> dict[str, float]:
+    """Translate a Vision round's operation counts into per-signal_kind
+    negative gradients (relief).  Multiple ops may target the same kind;
+    contributions are summed.
+
+    vision_ops example:
+        {"dw_entities": 32, "ocw_entities": 369, "network_endpoints": 8,
+         "schema_learnings": 12, "forced_blades": ["ocw"]}
+    """
+    grads: dict[str, float] = {}
+    if not vision_ops:
+        return grads
+    for op_key, (kind, weight_per_unit) in _VISION_OPS_MAP.items():
+        n = float(vision_ops.get(op_key, 0) or 0)
+        if n <= 0:
+            continue
+        # Saturating: 50 entities is "fully relieved", more doesn't help.
+        relief = weight_per_unit * min(n, 50.0)
+        grads[kind] = grads.get(kind, 0.0) + relief
+
+    # Forced-blade firing is a confirmation signal — Vision believed Touch
+    # enough to override its natural schedule.  Bump confidence (lower
+    # variance push) on the kinds that drove that force.
+    for blade in (vision_ops.get("forced_blades") or []):
+        # Heuristic: each forced blade gives a small extra relief to its
+        # primary kind so the optimizer learns "yes, that was real".
+        if blade == "dw":
+            grads["missing_category"] = grads.get("missing_category", 0.0) - 0.05
+        elif blade == "ocw":
+            grads["corpus_rag_saturated"] = grads.get("corpus_rag_saturated", 0.0) - 0.05
+        elif blade == "network":
+            grads["peer_unreachable"] = grads.get("peer_unreachable", 0.0) - 0.05
+    return grads
+
+
+# ---------------------------------------------------------------------------
 # Round driver
 # ---------------------------------------------------------------------------
-def surface_effective_signals(*, top_k: int | None = None) -> dict:
-    """Run every generator, dedupe by fingerprint, persist, return summary."""
+def surface_effective_signals(*, top_k: int | None = None,
+                              vision_ops: dict | None = None) -> dict:
+    """Run every generator, dedupe by fingerprint, persist, return summary.
+
+    Closed-loop pass — bilateral inputs:
+      1. Run every generator → collect fresh Directive set      (Touch in)
+      2. Translate `vision_ops` → per-kind relief gradients     (Vision in)
+      3. Mark any open directive whose fingerprint is NOT fresh as `expired`
+         (the inverse-ReLU floor: signal resolved → directive collapses)
+      4. Apply ADAM-style update to per-signal-kind pressure field, fed
+         simultaneously by Touch's positive Bayesian-Poisson targets and
+         Vision's negative satisfaction gradients
+      5. Persist new directives + pressure field to brain_kv
+      6. Vision reads the pressure field next round to steer outreach
+    """
     if not _enabled():
         return {"enabled": False}
 
@@ -831,6 +1143,17 @@ def surface_effective_signals(*, top_k: int | None = None) -> dict:
         all_directives.sort(key=lambda d: -d.priority)
         cap = int(top_k or cfg.get("max_directives_per_round", 25))
         all_directives = all_directives[:cap]
+
+        # ── Stale-directive collapse (inverse-ReLU floor) ─────────────────
+        fresh_fps = {d.fingerprint() for d in all_directives}
+        previously_open = cn.execute(
+            "SELECT signal_kind, fingerprint FROM body_directives "
+            "WHERE status IN ('open','ack')"
+        ).fetchall()
+        prev_open_kinds = {r["signal_kind"] for r in previously_open}
+        expired = _resolve_stale_directives(cn, fresh_fps)
+        firing_kinds = {d.signal_kind for d in all_directives}
+        resolved_kinds = prev_open_kinds - firing_kinds
 
         emitted = 0
         deduped = 0
@@ -866,6 +1189,17 @@ def surface_effective_signals(*, top_k: int | None = None) -> dict:
             emitted += 1
 
         top_p = max((d.priority for d in all_directives), default=0.0)
+
+        # ── ADAM-style synaptic pressure update ───────────────────────────
+        # The propeller axle: this field is what Vision reads next round
+        # to bias outreach budget per signal_kind. Resolved kinds get an
+        # inverted-ReLU cooldown so Vision stops wasting cycles on them.
+        # Bilateral input: Touch directives (positive targets) AND Vision
+        # operation counts (negative relief) both pass through ADAM here.
+        v_grads = _vision_ops_gradients(vision_ops or {})
+        touch_field = _update_touch_field(cn, all_directives,
+                                          resolved_kinds, v_grads)
+
         cn.execute(
             """INSERT INTO body_round_log(ran_at, directives_emitted,
                   directives_deduped, top_priority, notes)
@@ -878,8 +1212,12 @@ def surface_effective_signals(*, top_k: int | None = None) -> dict:
         "ran_at": datetime.now(timezone.utc).isoformat(),
         "directives_emitted": emitted,
         "directives_deduped": deduped,
+        "directives_expired": expired,
         "top_priority":       top_p,
         "considered":         len(all_directives),
+        "touch_field":        touch_field,
+        "resolved_kinds":     sorted(resolved_kinds),
+        "vision_grads_in":    v_grads,
         "notes":              notes,
     }
 
