@@ -716,14 +716,73 @@ else:
             "score": round(float(r["score"]), 3), "when": r["created_at"], **r["payload"],
         } for r in rows])
         import plotly.express as px
+
+        # Score filter driven by histogram click (default = show all)
+        _fi_score_min = st.session_state.get("fi_score_min", None)
+        _fi_score_max = st.session_state.get("fi_score_max", None)
+
         if "score" in fi_df.columns and len(fi_df) > 1:
             fig_fi = px.histogram(fi_df, x="score", color="page", nbins=30,
-                                  title="Finding Score Distribution",
+                                  title="Finding Score Distribution — click a bar to filter the table",
                                   template="plotly",
                                   color_discrete_sequence=px.colors.qualitative.Vivid)
-            fig_fi.update_layout(paper_bgcolor="#0f172a", height=250)
-            st.plotly_chart(fig_fi, use_container_width=True)
-        st.dataframe(fi_df, use_container_width=True, hide_index=True)
+            fig_fi.update_layout(
+                paper_bgcolor="#0f172a", plot_bgcolor="#162032", height=260,
+                clickmode="event+select",
+                xaxis=dict(title="Score"),
+                yaxis=dict(title="Count"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02),
+            )
+            _hist_click = st.plotly_chart(fig_fi, use_container_width=True,
+                                          key="fi_hist", on_select="rerun")
+            if _hist_click and _hist_click.get("selection", {}).get("points"):
+                _hpt = _hist_click["selection"]["points"][0]
+                # histogram points carry x (bin centre) — derive ±half bin width
+                _bin_x  = float(_hpt.get("x", 0))
+                _bin_w  = float(fi_df["score"].max() - fi_df["score"].min()) / 30 if len(fi_df) > 1 else 1.0
+                st.session_state["fi_score_min"] = _bin_x - _bin_w
+                st.session_state["fi_score_max"] = _bin_x + _bin_w
+                st.rerun()
+
+        # Apply histogram filter
+        _display_df = fi_df.copy()
+        if _fi_score_min is not None and _fi_score_max is not None:
+            _mask = (_display_df["score"] >= _fi_score_min) & (_display_df["score"] <= _fi_score_max)
+            _display_df = _display_df[_mask]
+            _fc1, _fc2 = st.columns([6, 1])
+            _fc1.caption(
+                f"🔍 Filtered to score **{_fi_score_min:.3f} – {_fi_score_max:.3f}** "
+                f"· {len(_display_df)} of {len(fi_df)} findings")
+            if _fc2.button("✖ Clear filter", key="fi_clear_filter"):
+                st.session_state.pop("fi_score_min", None)
+                st.session_state.pop("fi_score_max", None)
+                st.rerun()
+
+        st.caption(
+            "**Click a row** to open the full relational drill-down for that entity in the graph above.")
+        _fi_sel = st.dataframe(
+            _display_df, use_container_width=True, hide_index=True,
+            key="fi_table", on_select="rerun", selection_mode="single-row",
+            column_config={
+                "score": st.column_config.ProgressColumn(
+                    "Score",
+                    min_value=0,
+                    max_value=float(fi_df["score"].max() or 1.0),
+                    format="%.3f",
+                ),
+            },
+        )
+        _sel_rows = getattr(getattr(_fi_sel, "selection", None), "rows", []) or []
+        if _sel_rows:
+            _sel_finding = _display_df.iloc[_sel_rows[0]]
+            _sel_key     = str(_sel_finding.get("key", ""))
+            if _sel_key:
+                st.session_state["kg_selected_node"] = _sel_key
+                # Scroll hint — the drill-down panel renders below the graph above
+                st.info(
+                    f"🔗 Navigating to **{pick_kind}** `{_sel_key}` — "
+                    "scroll up to the graph drill-down panel.")
+                st.rerun()
 
 # ── Brain Expert TODO List (semantic value-weighting) ───────────────────────
 st.divider()

@@ -62,9 +62,7 @@ def coords(page, text, exact=True, sel="a,button,li,div,span,td", x_max=99999, x
                 if (r.width<2||r.height<2) continue;
                 const cx = Math.round(r.x+r.width/2), cy = Math.round(r.y+r.height/2);
                 if (cx<xMin||cx>xMax||cy<yMin||cy>yMax) continue;
-                el.scrollIntoView({block:'center',behavior:'instant'});
-                const r2 = el.getBoundingClientRect();
-                return {cx:Math.round(r2.x+r2.width/2), cy:Math.round(r2.y+r2.height/2)};
+                return {cx, cy};
             }
             return null;
         }
@@ -123,7 +121,16 @@ def open_navigator(page, *path):
     page.wait_for_timeout(1500)
 
     for label in path:
-        c = coords(page, label, x_max=700)
+        try:
+            c = coords(page, label, x_max=700)
+        except Exception as e:
+            # Clicking a previous item caused navigation — context destroyed
+            print(f"   [nav] '{label}' — context destroyed (navigation in progress): {str(e)[:60]}")
+            # Wait for new page to settle
+            try: page.wait_for_load_state("domcontentloaded", timeout=15000)
+            except: pass
+            page.wait_for_timeout(3000)
+            return False
         if not c:
             print(f"   [nav] '{label}' not found in panel")
             return False
@@ -190,7 +197,8 @@ def dump_fields(page):
 
 def click_right_rail_icon(page, label):
     """Click a right-rail icon button by aria-label or title.
-    These Redwood icons use aria-label, not visible text."""
+    These Redwood icons use aria-label, not visible text.
+    Right-rail is at x>1700 (far right of 1920px viewport)."""
     c = page.evaluate("""
         ([lbl]) => {
             const terms = [lbl, lbl.toLowerCase()];
@@ -200,7 +208,7 @@ def click_right_rail_icon(page, label):
                 const ti = (el.getAttribute('title')||'').trim();
                 if (!terms.some(t => al.toLowerCase().includes(t) || ti.toLowerCase().includes(t))) continue;
                 const r = el.getBoundingClientRect();
-                if (r.x < 1400 || r.width < 5) continue;
+                if (r.x < 1700 || r.width < 5) continue;
                 return {cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2), hint:al||ti};
             }
             return null;
@@ -211,14 +219,14 @@ def click_right_rail_icon(page, label):
         page.mouse.click(c['cx'], c['cy'])
         page.wait_for_timeout(2000)
         return True
-    # Fallback: dump all right-rail icons and click first one matching label
+    # Fallback: dump all right-rail icons (x>1700) and click first one matching label
     icons = page.evaluate("""
         () => {
             const res = [];
             for (const el of document.querySelectorAll('button,a,span')) {
                 if (!el.offsetParent) continue;
                 const r = el.getBoundingClientRect();
-                if (r.x < 1400 || r.y < 100 || r.y > 500 || r.width < 5) continue;
+                if (r.x < 1700 || r.y < 100 || r.y > 500 || r.width < 5) continue;
                 const al = el.getAttribute('aria-label')||el.getAttribute('title')||el.textContent.trim()||'';
                 if (al.length > 0 && al.length < 60)
                     res.push({hint:al.slice(0,30), cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2)});
@@ -226,7 +234,7 @@ def click_right_rail_icon(page, label):
             const seen=new Set(); return res.filter(r=>{if(seen.has(r.hint)) return false; seen.add(r.hint); return true;});
         }
     """)
-    print(f"   Right-rail icons: {[i['hint'] for i in icons]}")
+    print(f"   Right-rail icons (x>1700): {[i['hint'] for i in icons]}")
     for icon in icons:
         if label.lower() in icon['hint'].lower():
             print(f"   Fallback click: '{icon['hint']}' at ({icon['cx']},{icon['cy']})")
@@ -241,10 +249,11 @@ def lov_search(page, label_text, search_value, wait_ms=2000):
     c = page.evaluate("""
         ([lbl, val]) => {
             // Find label by text, then locate input in same row or nearby
-            for (const el of document.querySelectorAll('label,span,td,div')) {
+            // Try exact match first, then prefix match (e.g. "Item" matches "Item Number")
+            for (const el of document.querySelectorAll('label,span,td,th,div')) {
                 if (!el.offsetParent) continue;
                 const t = el.textContent.trim().replace(/\\s+/g,' ');
-                if (t !== lbl) continue;
+                if (t !== lbl && !t.startsWith(lbl+' ') && !t.startsWith(lbl+':')) continue;
                 const r = el.getBoundingClientRect();
                 // Look for input in same row
                 const row = el.closest('tr,div[role="row"]');
@@ -408,18 +417,33 @@ def probe_procurement(page, results):
     # Supplemental: Manage Approved Supplier List via Navigator
     print("\n5. Navigator → Procurement → Approved Supplier List...")
     nav_home(page)
-    open_navigator(page, "Procurement", "Purchase Orders")
-    page.wait_for_timeout(3000)
-    click_right_rail_icon(page, "Tasks")
-    ss(page, "p05_tasks2")
-    c2 = click(page, "Manage Approved Supplier List Entries", sel="a,button,li,span")
-    if c2:
+    # Try Navigator path directly to ASL
+    asl_nav = open_navigator(page, "Procurement", "Approved Supplier List")
+    ss(page, "p05_asl_nav")
+    print(f"   Nav: {asl_nav} | Title: {page.title()[:70]}")
+
+    if not asl_nav or "Supplier" not in page.title():
+        # Fallback: open Tasks panel from PO Overview (known working position)
+        print("   Fallback: PO Overview → Tasks (1883,255)...")
+        nav_home(page)
+        open_navigator(page, "Procurement", "Purchase Orders")
         page.wait_for_timeout(4000)
-        try: page.wait_for_load_state("domcontentloaded", timeout=15000)
-        except: pass
-        page.wait_for_timeout(2000)
+        # Directly click the known Tasks icon position
+        page.mouse.click(1883, 255)
+        page.wait_for_timeout(2500)
+        ss(page, "p05_tasks_direct")
+        # Look for ASL link in opened panel
+        c2_asl = coords(page, "Manage Approved Supplier List Entries",
+                        exact=False, sel="a,li,span,div")
+        if c2_asl:
+            print(f"   ASL link at ({c2_asl['cx']},{c2_asl['cy']})")
+            page.mouse.click(c2_asl['cx'], c2_asl['cy'])
+            page.wait_for_timeout(4000)
+            try: page.wait_for_load_state("domcontentloaded", timeout=15000)
+            except: pass
+            page.wait_for_timeout(2000)
     ss(page, "p05_asl")
-    print(f"   Title: {page.title()[:70]}")
+    print(f"   ASL page: {page.title()[:70]}")
 
     lov_search(page, "Item", PART, wait_ms=2500)
     search_button(page)
@@ -569,14 +593,44 @@ def probe_work_execution(page, results):
     print("\n5. Opening first work order result...")
     first_wo = page.evaluate("""
         () => {
-            // Work order links are in the result table, typically y>480
-            for (const el of document.querySelectorAll('a')) {
-                if (!el.offsetParent) continue;
-                const r = el.getBoundingClientRect();
-                if (r.y < 480 || r.y > 700) continue;
-                const t = el.textContent.trim();
-                if (t.length > 2 && t.length < 50)
-                    return {cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2), text:t.slice(0,50)};
+            const skip = new Set(['View','Edit','Delete','Create','Search','Go',
+                                  'Actions','Release','Save','Cancel','Reset','Export',
+                                  'Format','Freeze','Detach','Wrap','Mass Action',
+                                  'Select','Show','Hide','More','Less','Reorder',
+                                  'Print to PDF','Print','Download','Upload']);
+            // Pass 1: all-digit numeric link in <td>/<gridcell> y>550 (below toolbar)
+            for (const cell of document.querySelectorAll('tbody td,[role="gridcell"]')) {
+                if (!cell.offsetParent) continue;
+                const r = cell.getBoundingClientRect();
+                if (r.y < 550 || r.y > 750) continue;
+                const link = cell.querySelector('a,[role="link"]');
+                if (!link || !link.offsetParent) continue;
+                const t = link.textContent.trim();
+                if (/^[0-9]+$/.test(t) || /^WO[-][0-9]+$/i.test(t)) {
+                    const lr = link.getBoundingClientRect();
+                    return {cx:Math.round(lr.x+lr.width/2), cy:Math.round(lr.y+lr.height/2), text:t.slice(0,50)};
+                }
+            }
+            // Pass 2: any non-skip link in <td>/<gridcell> y>550
+            for (const cell of document.querySelectorAll('tbody td,[role="gridcell"]')) {
+                if (!cell.offsetParent) continue;
+                const r = cell.getBoundingClientRect();
+                if (r.y < 550 || r.y > 750) continue;
+                const link = cell.querySelector('a,[role="link"]');
+                if (!link || !link.offsetParent) continue;
+                const t = link.textContent.trim();
+                if (!t || t.length > 60 || skip.has(t)) continue;
+                const lr = link.getBoundingClientRect();
+                return {cx:Math.round(lr.x+lr.width/2), cy:Math.round(lr.y+lr.height/2), text:t.slice(0,50)};
+            }
+            // Pass 3: Oracle ADF uses span inside td — look for first non-toolbar td text y>550
+            for (const cell of document.querySelectorAll('tbody td,[role="gridcell"]')) {
+                if (!cell.offsetParent) continue;
+                const r = cell.getBoundingClientRect();
+                if (r.y < 550 || r.y > 750 || r.width < 20) continue;
+                const t = cell.textContent.trim().slice(0,60);
+                if (!t || skip.has(t) || t.length < 2) continue;
+                return {cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2), text:t.slice(0,50)};
             }
             return null;
         }
@@ -589,6 +643,23 @@ def probe_work_execution(page, results):
         ss(page, "w05_wo_detail")
         print(f"   Detail: {page.title()[:70]}")
         detail_actions = dump_write_actions(page, "WO Detail")
+    else:
+        # Diagnostic: dump elements at y=540-700 to understand table structure
+        diag = page.evaluate("""
+            () => {
+                const res=[];
+                for (const el of document.querySelectorAll('a,[role="link"],td,tr,[role="gridcell"],[role="row"]')) {
+                    if (!el.offsetParent) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.y<540||r.y>700||r.height<5) continue;
+                    const t=(el.textContent||'').trim().slice(0,40);
+                    if (t) res.push({tag:el.tagName,role:el.getAttribute('role')||'',
+                                     text:t,cx:Math.round(r.x+r.width/2),cy:Math.round(r.y+r.height/2)});
+                }
+                const seen=new Set(); return res.filter(r=>{if(seen.has(r.text)) return false; seen.add(r.text); return true;}).slice(0,25);
+            }
+        """)
+        print(f"   Diag y=540-700: {diag}")
 
     results["work_execution"] = {
         "module": "SCE > Work Execution > Manage Work Orders (Item=80446-04)",
@@ -607,89 +678,87 @@ def probe_inventory(page, results):
     print("MODULE 3: Inventory Management (Classic) > Transactions")
     print("="*70)
     nav_home(page)
+    opened_task = None
 
-    # Use Navigator directly — "Inventory Management (Classic)" is in the panel
-    print("\n1. Navigator → Inventory Management (Classic)...")
-    nav_ok = open_navigator(page, "Supply Chain Execution", "Inventory Management (Classic)")
+    # Use Navigator directly — try to land on a specific task page
+    print("\n1. Navigator → Inventory Management (Classic) → Manage Item Quantities...")
+    nav_ok = open_navigator(page, "Supply Chain Execution", "Inventory Management (Classic)",
+                            "Manage Item Quantities")
     ss(page, "i01_inv_nav")
     print(f"   Nav ok: {nav_ok} | Title: {page.title()[:70]}")
 
-    if not nav_ok or "Inventory" not in page.title():
-        # Fallback: SCE tab then tile
-        print("   Fallback: SCE tab → Inventory Management (Classic) tile...")
+    on_inv = "Inventory" in page.title() or "Item Quantit" in page.title()
+
+    if not on_inv:
+        # Fallback: 2-step Navigator to Overview, then look for task links
+        print("   Fallback: IM(C) Overview via Navigator...")
         nav_home(page)
-        nav_tab(page, "Supply Chain Execution")
-        show_more(page)
-        tile = click_tile(page, ["Inventory Management (Classic)", "Inventory Management"])
-        print(f"   Tile: '{tile}' | Title: {page.title()[:70]}")
+        open_navigator(page, "Supply Chain Execution", "Inventory Management (Classic)")
+        ss(page, "i01b_overview")
+        on_inv = "Inventory" in page.title()
+        print(f"   On IM(C) Overview: {on_inv} | {page.title()[:70]}")
+
     ss(page, "i02_inv_home")
     print(f"   On: {page.title()[:70]}")
 
-    # Task panel (select at x>900)
-    task_panel = page.evaluate("""
-        () => {
-            for (const sel of document.querySelectorAll('select')) {
-                if (!sel.offsetParent) continue;
-                const r = sel.getBoundingClientRect();
-                if (r.x < 900) continue;
-                const opts = Array.from(sel.options).map(o=>({text:o.text.trim(), idx:o.index}));
-                return {cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2), opts};
+    if on_inv and "Item Quantit" not in page.title():
+        # We're on IM(C) Overview — find task links in the LEFT panel (classic ADF x<450)
+        print("\n2. Looking for task links in left panel (x<450)...")
+        left_tasks = page.evaluate("""
+            () => {
+                const res=[];
+                for (const el of document.querySelectorAll('a,li')) {
+                    if (!el.offsetParent) continue;
+                    const r = el.getBoundingClientRect();
+                    if (r.x > 450 || r.y < 150) continue;
+                    const t = el.textContent.trim().replace(/\\s+/g,' ');
+                    if (t.length>3&&t.length<80) res.push({text:t,cx:Math.round(r.x+r.width/2),cy:Math.round(r.y+r.height/2)});
+                }
+                const seen=new Set(); return res.filter(r=>{if(seen.has(r.text)) return false; seen.add(r.text); return true;});
             }
-            return null;
-        }
-    """)
-    if task_panel:
-        print(f"\n2. Task panel options: {[o['text'] for o in task_panel['opts']]}")
-        # Select "Transactions" category
-        for opt in task_panel['opts']:
-            if 'transact' in opt['text'].lower() or 'item' in opt['text'].lower():
-                page.mouse.click(task_panel['cx'], task_panel['cy'])
-                page.wait_for_timeout(200)
-                page.keyboard.press("Home")
-                for _ in range(opt['idx']):
-                    page.keyboard.press("ArrowDown")
-                    page.wait_for_timeout(50)
-                page.keyboard.press("Enter")
-                page.wait_for_timeout(1500)
-                print(f"   Selected: '{opt['text']}'")
+        """)
+        print(f"   Left panel tasks: {[t['text'] for t in left_tasks[:20]]}")
+
+        opened_task = None
+        for task_name in ["Manage Item Quantities", "View Item Quantities",
+                          "Manage Transactions", "Create Miscellaneous Transaction"]:
+            for t in left_tasks:
+                if task_name.lower() in t['text'].lower():
+                    print(f"\n3. Clicking left task: '{t['text']}'")
+                    page.mouse.click(t['cx'], t['cy'])
+                    page.wait_for_timeout(4000)
+                    opened_task = t['text']
+                    break
+            if opened_task:
                 break
-        ss(page, "i03_task_panel")
 
-    # List all right-panel task links
-    right_tasks = page.evaluate("""
-        () => {
-            const res=[];
-            for (const el of document.querySelectorAll('a,li,span')) {
-                if (!el.offsetParent) continue;
-                const r = el.getBoundingClientRect();
-                if (r.x < 900) continue;
-                const t = el.textContent.trim().replace(/\\s+/g,' ');
-                if (t.length>2&&t.length<80) res.push({text:t, cx:Math.round(r.x+r.width/2), cy:Math.round(r.y+r.height/2)});
-            }
-            return res;
-        }
-    """)
-    print(f"\n3. Right-panel tasks: {[t['text'] for t in right_tasks]}")
+        if not opened_task:
+            # Also try right-rail Tasks icon on IM(C) Overview
+            print("   Trying right-rail Tasks icon on IM(C) Overview...")
+            click_right_rail_icon(page, "Tasks")
+            page.wait_for_timeout(1500)
+            for task_name in ["Manage Item Quantities", "Manage Transactions",
+                              "Create Miscellaneous Transaction"]:
+                c_t = coords(page, task_name, exact=False, sel="a,li,span")
+                if c_t:
+                    print(f"   Tasks panel: clicking '{task_name}'")
+                    page.mouse.click(c_t['cx'], c_t['cy'])
+                    # Wait for navigation away from Overview
+                    try:
+                        page.wait_for_function(
+                            "() => !document.title.includes('Overview')", timeout=8000)
+                    except: pass
+                    try: page.wait_for_load_state("domcontentloaded", timeout=10000)
+                    except: pass
+                    page.wait_for_timeout(3000)
+                    opened_task = task_name
+                    break
 
-    # Try Manage Item Quantities first (read data then show write ops)
-    opened_task = None
-    for task_name in [
-        "Manage Item Quantities",
-        "View Item Quantities",
-        "Manage Transactions",
-        "Create Miscellaneous Transaction",
-        "Create Movement Request",
-    ]:
-        c = coords(page, task_name, x_min=900)
-        if c:
-            print(f"\n4. Opening: '{task_name}'")
-            page.mouse.click(c['cx'], c['cy'])
-            page.wait_for_timeout(4000)
-            opened_task = task_name
-            break
+        ss(page, "i03_task_opened")
+        print(f"   Task: '{opened_task}' | Title: {page.title()[:70]}")
 
-    ss(page, "i04_task_opened")
-    print(f"   Task opened: '{opened_task}' | Title: {page.title()[:70]}")
+    print(f"\n4. After navigation — Title: {page.title()[:70]}")
+    ss(page, "i04_inv_page")
 
     # Handle org selection dialog
     org_dlg = page.evaluate("""
