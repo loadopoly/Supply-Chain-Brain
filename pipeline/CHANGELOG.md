@@ -4,6 +4,43 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.17.0 — UEQGM + AI Knowledge Expansion Research Tracks (2026-04-24)
+
+### Added
+- **`src/brain/ml_research.py`** — `_EXTENDED_RESEARCH_TOPICS` list (47 arXiv/
+  OpenAlex queries across 8 discipline clusters), derived from the user's active
+  Grok 3 research thread ("Introduction to Grok 3 and Capabilities", 553
+  responses):
+  - **Quantum Dynamics & Wavefunction Models** — UEQGM observer model, Floquet
+    systems, loop quantum gravity, holographic entropy, dissipative Kerr
+    resonators, parity-time symmetry photonics, quantum fluctuations EFT
+  - **Quantum Computing Architectures** — superconducting qubit/resonator
+    coupling, niobium cavity QED, Weyl semimetal circuits, Bayesian quantum
+    state tomography, surface-code error correction, ST-GCN
+  - **Topological & Condensed Matter Physics** — moiré superlattices, skyrmion
+    plasmonics, Weyl node 1-D lattice duality, levitated optomechanics backaction
+    suppression
+  - **Biohybrid & Biological Quantum Systems** — biohybrid QC vesicle transport,
+    cryptochrome quantum coherence, axonal presynapse nanodisk lipid membranes
+  - **Astrophysical & Cosmological Timing** — FRB cosmological timing, muonic
+    decay precision, gravitational wave memory (BNS), millisecond pulsar timing,
+    Hubble constant local distance, neutrino superradiance BEC, parity-violating
+    dispersion
+  - **AI Knowledge Graph & Self-Referential Systems** — knowledge graph AI
+    introspection, recursive LLM feedback, centroidal ontology construction,
+    meta-learning, ensemble LLM/RAG, archival AI training quality, RDF graph
+    databases, document intelligence OCR→KG
+  - **Advanced ML Architectures (UEQGM-adjacent)** — spatio-temporal Bayesian
+    graph physics, neural ODEs, physics-informed NNs, quantum ML variational
+    circuits, geometric deep learning equivariance
+  - **Organic & Topological Data Structures** — quipu/torsion computation,
+    persistent homology, fractal self-similar encoding
+- **`_EXTENDED_TOPICS_PER_CYCLE = 5`** and **`_EXTENDED_PAPERS_PER_TOPIC = 8`**
+  constants; cursor persisted in `brain_kv` under key `extended_topic_cursor`
+- Extended sweep positioned **before** the SC per-topic loop so foundational
+  physics/AI context is already in the corpus when supply chain systems
+  engineering topics are processed each cycle
+
 ## 0.16.0 — Symbiotic Dynamic Tunneling + Torus-Touch (T^7) (2026-04-24)
 
 ### Added

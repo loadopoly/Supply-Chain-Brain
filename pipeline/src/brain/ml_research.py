@@ -46,21 +46,176 @@ log = logging.getLogger(__name__)
 #   domains as new papers land on HuggingFace and Semantic Scholar.
 # ---------------------------------------------------------------------------
 _SUPPLY_CHAIN_TOPICS: list[str] = [
+    # ── Demand & Forecasting ────────────────────────────────────────────────
     "demand forecasting supply chain transformer",
+    "probabilistic demand forecasting uncertainty quantification",
+    "intermittent demand forecasting sparse time series",
+    "causal demand forecasting external signals",
+    "hierarchical forecasting reconciliation",
+    # ── Inventory & Replenishment ───────────────────────────────────────────
     "inventory optimization deep learning",
+    "safety stock optimization stochastic demand",
+    "multi-echelon inventory policy reinforcement learning",
+    "vendor managed inventory machine learning",
+    "spare parts inventory forecasting",
+    # ── Delivery & Logistics ────────────────────────────────────────────────
     "on-time delivery prediction logistics",
+    "last mile delivery optimization neural network",
+    "dynamic vehicle routing deep reinforcement learning",
+    "freight cost prediction machine learning",
+    "carrier performance analytics predictive",
+    # ── Manufacturing & Production ──────────────────────────────────────────
     "time series forecasting manufacturing",
-    "procurement analytics machine learning",
-    "supplier risk prediction neural network",
     "production scheduling reinforcement learning",
+    "predictive maintenance industrial IoT machine learning",
+    "yield prediction semiconductor manufacturing deep learning",
+    "lean manufacturing digital twin simulation",
+    # ── Procurement & Sourcing ──────────────────────────────────────────────
+    "procurement analytics machine learning",
+    "purchase order anomaly detection",
+    "spend analysis natural language processing",
+    "contract risk extraction large language model",
+    "supplier selection multi-criteria decision making",
+    # ── Supplier & Risk ─────────────────────────────────────────────────────
+    "supplier risk prediction neural network",
+    "supply chain disruption detection graph neural network",
+    "geopolitical risk supply chain natural language processing",
+    "supply chain resilience stress testing simulation",
+    "multi-tier supplier visibility knowledge graph",
+    # ── Network & Optimization ──────────────────────────────────────────────
     "logistics route optimization graph neural network",
+    "distribution network design optimization",
+    "warehouse slotting optimization machine learning",
+    "cross-docking scheduling optimization",
+    "port congestion prediction deep learning",
+    # ── Planning & S&OP ─────────────────────────────────────────────────────
+    "sales operations planning machine learning",
+    "integrated business planning AI",
+    "collaborative planning forecasting replenishment digital",
+    "constraint-based production planning optimization",
+    "master production schedule neural network",
+    # ── Pricing & Revenue ───────────────────────────────────────────────────
+    "dynamic pricing supply chain reinforcement learning",
+    "price elasticity machine learning retail",
+    "markdown optimization deep learning",
+    "promotion uplift modeling causal inference",
+    # ── Sustainability & ESG ────────────────────────────────────────────────
+    "sustainable supply chain carbon footprint machine learning",
+    "circular economy supply chain optimization",
+    "scope 3 emissions supply chain analytics",
+    "green logistics decarbonization AI",
+    # ── Digital Twin & Simulation ───────────────────────────────────────────
+    "supply chain digital twin simulation machine learning",
+    "agent-based supply chain simulation",
+    "discrete event simulation warehouse optimization",
+    "scenario planning supply chain Monte Carlo",
+    # ── Graph & Network Intelligence ────────────────────────────────────────
+    "supply chain knowledge graph entity extraction",
+    "supply chain network graph neural network link prediction",
+    "trade flow network analysis deep learning",
+    "bill of materials graph transformer",
+    # ── NLP & Document Intelligence ─────────────────────────────────────────
+    "invoice processing natural language processing",
+    "purchase order extraction large language model",
+    "supply chain news event extraction NLP",
+    "supplier contract clause classification BERT",
+    # ── Anomaly & Quality ───────────────────────────────────────────────────
+    "supply chain anomaly detection unsupervised learning",
+    "product quality prediction defect detection deep learning",
+    "returns prediction reverse logistics machine learning",
+    "counterfeit detection supply chain machine learning",
+    # ── Emerging Technology ─────────────────────────────────────────────────
+    "large language model supply chain planning",
+    "retrieval augmented generation enterprise knowledge",
+    "foundation model time series forecasting supply chain",
+    "generative AI procurement automation",
+    "federated learning supply chain privacy",
 ]
 
 # Rotate through topics in round-robin so every cycle covers different ground.
 # The cursor is persisted in brain_kv between runs.
-_TOPICS_PER_CYCLE = 5   # cover more ground per fetch; corpus ingests every round
-_PAPERS_PER_TOPIC = 8
-_DATASETS_PER_TOPIC = 5
+_TOPICS_PER_CYCLE = 8   # increased from 5 — broader per-cycle coverage
+_PAPERS_PER_TOPIC = 10  # increased from 8 — deeper per-topic acquisition
+_DATASETS_PER_TOPIC = 8 # increased from 5 — more dataset signals per cycle
+
+# ---------------------------------------------------------------------------
+# Extended Research Topics — derived from the user's active Grok 3 research
+# thread ("Introduction to Grok 3 and Capabilities", 553 responses).
+#
+# Two major tracks surface in that conversation:
+#
+#   1. UEQGM (Unified Equilibrium Quantum Gravity Model) — a theoretical
+#      physics framework combining quantum wavefunction dynamics, biohybrid
+#      quantum computing, topological materials, astrophysical timing signals
+#      (FRBs, pulsars, muonic decay), and holographic entropy.
+#
+#   2. AI Knowledge Expansion — knowledge graph self-reference, ensemble LLM
+#      architectures, RAG systems, archival data for AI training, and
+#      spatio-temporal graph networks.
+#
+# The Brain fetches papers across these tracks in a separate round-robin so
+# they do not crowd out the supply-chain rotation above.
+# ---------------------------------------------------------------------------
+_EXTENDED_RESEARCH_TOPICS: list[str] = [
+    # ── Quantum Dynamics & Wavefunction Models ──────────────────────────────
+    "unified quantum gravity model wavefunction observer",
+    "Floquet quantum systems modulation photonic",
+    "loop quantum gravity Ashtekar variables quantization",
+    "holographic entropy Bekenstein-Hawking black hole information",
+    "quantum phase transitions dissipative Kerr resonator",
+    "parity-time symmetry photonic quantum entanglement filtering",
+    "quantum fluctuations effective field theory vacuum",
+    # ── Quantum Computing Architectures ────────────────────────────────────
+    "superconducting qubit resonator coupling microwave",
+    "niobium cavity quantum electrodynamics cryogenic",
+    "Weyl semimetal topological nodal quantum circuit",
+    "Bayesian quantum state tomography neural network",
+    "quantum error correction surface code logical qubit",
+    "spatio-temporal graph convolutional network ST-GCN",
+    # ── Topological & Condensed Matter Physics ──────────────────────────────
+    "moire superlattice topological moiré bilayer",
+    "skyrmion plasmonic moire superlattice photonic",
+    "Weyl node 1D lattice duality quantum circuit",
+    "magnetic coupling qubit resonator proximity effect",
+    "levitated optomechanics backaction suppression reflective",
+    # ── Biohybrid & Biological Quantum Systems ──────────────────────────────
+    "biohybrid quantum computing vesicle transport neural",
+    "cryptochrome quantum coherence avian magnetic sensing",
+    "vesicle axonal transport presynapse assembly phosphatidylinositol",
+    "nanodisk lipid membrane quantum coherence",
+    "biological vesicle flux electron transport quantum",
+    # ── Astrophysics & Cosmological Timing ─────────────────────────────────
+    "fast radio burst FRB timing cosmology millisecond",
+    "muonic decay precision measurement quantum",
+    "gravitational wave memory binary neutron star merger",
+    "pulsar timing millisecond globular cluster",
+    "Hubble constant local distance network measurement precision",
+    "neutrino superradiance radioactive Bose-Einstein condensate laser",
+    "gamma ray beta decay active galactic nucleus jet",
+    "parity violating dispersion electron scattering weak force",
+    # ── AI Knowledge Graph & Self-Referential Systems ───────────────────────
+    "knowledge graph self-referential AI introspection",
+    "recursive LLM feedback knowledge accumulation",
+    "AI centroidal knowledge graph construction ontology",
+    "meta-learning continual learning knowledge expansion",
+    "ensemble LLM local inference RAG retrieval augmented",
+    "archival data AI training historical corpus quality",
+    "graph database knowledge representation RDF ontology",
+    "document intelligence OCR knowledge graph construction",
+    # ── Advanced ML Architectures (UEQGM-adjacent) ─────────────────────────
+    "spatio-temporal neural network Bayesian graph physics",
+    "neural ordinary differential equation physical system",
+    "physics-informed neural network PDE constraint",
+    "quantum machine learning variational circuit",
+    "geometric deep learning symmetry equivariant",
+    # ── Quipu & Organic Data Structures ─────────────────────────────────────
+    "quipu data structure torsion organic computation",
+    "topological data structure persistent homology",
+    "fractal data structure self-similar information encoding",
+]
+
+_EXTENDED_TOPICS_PER_CYCLE = 5  # sweep 5 extended topics alongside SC topics
+_EXTENDED_PAPERS_PER_TOPIC = 8  # papers per extended topic
 
 # ---------------------------------------------------------------------------
 # MIT OpenCourseWare — supply chain as systems engineering
@@ -75,30 +230,68 @@ _OCW_SEARCH_URL = "https://ocw.mit.edu/search/"
 _OCW_COURSE_BASE = "https://ocw.mit.edu"
 
 _OCW_TOPICS: list[str] = [
-    # Core supply chain
+    # ── Core supply chain ───────────────────────────────────────────────────
     "supply chain management",
     "supply chain planning",
     "logistics systems",
-    # Systems engineering (the parent discipline)
+    "global supply chains",
+    "humanitarian logistics",
+    # ── Systems engineering (parent discipline) ─────────────────────────────
     "systems engineering",
     "engineering systems design",
     "complex systems",
-    # Operations research / optimization
+    "system dynamics",
+    "sociotechnical systems",
+    # ── Operations research / optimization ──────────────────────────────────
     "operations research",
     "network optimization",
     "stochastic processes",
-    # Manufacturing & production
+    "integer programming",
+    "convex optimization",
+    "dynamic programming",
+    "combinatorial optimization",
+    # ── Manufacturing & production ───────────────────────────────────────────
     "manufacturing systems",
     "production planning",
     "industrial engineering",
-    # Adjacent analytical foundations
+    "lean production",
+    "quality management",
+    "advanced manufacturing",
+    # ── Data science & machine learning ─────────────────────────────────────
+    "machine learning",
+    "deep learning",
+    "data science",
+    "reinforcement learning",
+    "natural language processing",
+    "time series analysis",
+    "probabilistic systems",
+    # ── Analytical foundations ───────────────────────────────────────────────
     "inventory theory",
     "queuing theory",
     "simulation modeling",
+    "decision analysis",
+    "risk analysis",
+    "game theory",
+    # ── Finance, economics & markets ────────────────────────────────────────
+    "microeconomics",
+    "econometrics",
+    "financial engineering",
+    "commodity markets",
+    "pricing strategy",
+    # ── Sustainability & policy ──────────────────────────────────────────────
+    "sustainable development",
+    "environmental engineering",
+    "energy systems",
+    "climate policy",
+    # ── Digital & emerging tech ─────────────────────────────────────────────
+    "digital transformation",
+    "internet of things",
+    "blockchain technology",
+    "artificial intelligence",
 ]
 
-_OCW_TOPICS_PER_CYCLE = 4   # OCW is slow-changing; 4 topics/cycle is plenty
-_OCW_COURSES_PER_QUERY = 8
+_OCW_TOPICS_PER_CYCLE = 6   # increased from 4 — more OCW depth per cycle
+_OCW_COURSES_PER_QUERY = 10 # increased from 8
 
 # External API endpoints — all verified accessible through corporate SSL inspection
 _ARXIV_API    = "https://export.arxiv.org/api/query"    # Atom XML, no auth
@@ -1224,6 +1417,11 @@ def research_supply_chain_topics(
     and CORE; datasets from Zenodo; plus MIT OCW courses and NASA NTRS reports
     for systems-engineering topics.
 
+    A second rotation sweeps :data:`_EXTENDED_RESEARCH_TOPICS` — topics derived
+    from the user's active Grok 3 research thread covering the UEQGM quantum
+    physics model, biohybrid computing, astrophysical timing, and AI knowledge
+    graph expansion.
+
     Args:
         topics: Override ML topic list (``None`` uses the built-in rotation).
         topics_per_cycle: How many ML topics to research this cycle.
@@ -1273,6 +1471,60 @@ def research_supply_chain_topics(
         if trending:
             all_papers.extend(trending)
             log.debug(f"ml_research: fetched {len(trending)} recent arXiv papers")
+
+    # -----------------------------------------------------------------------
+    # Extended research sweep — UEQGM physics + AI knowledge expansion topics
+    # Runs FIRST so that quantum/physics/AI context is already in the corpus
+    # when the supply-chain loop executes.  The Brain can then understand SC
+    # systems engineering within the broader totality of those disciplines.
+    # Uses its own round-robin cursor stored as 'extended_topic_cursor'.
+    # -----------------------------------------------------------------------
+    try:
+        db = _get_db_path()
+        with sqlite3.connect(db) as cn:
+            row = cn.execute(
+                "SELECT value FROM brain_kv WHERE key='extended_topic_cursor'",
+            ).fetchone()
+        ext_cursor = int(row[0]) if row else 0
+    except Exception:
+        ext_cursor = 0
+
+    n_ext = len(_EXTENDED_RESEARCH_TOPICS)
+    ext_selected = [
+        _EXTENDED_RESEARCH_TOPICS[(ext_cursor + i) % n_ext]
+        for i in range(_EXTENDED_TOPICS_PER_CYCLE)
+    ]
+    new_ext_cursor = (ext_cursor + _EXTENDED_TOPICS_PER_CYCLE) % n_ext
+
+    for ext_topic in ext_selected:
+        log.debug(f"ml_research: extended topic '{ext_topic}'")
+
+        # arXiv — primary source for physics + CS preprints
+        ax = search_papers_arxiv(ext_topic, limit=_EXTENDED_PAPERS_PER_TOPIC)
+        all_papers.extend(ax)
+
+        # OpenAlex — cross-disciplinary coverage including physics journals
+        oa = search_papers_openalex(ext_topic, limit=_EXTENDED_PAPERS_PER_TOPIC)
+        all_papers.extend(oa)
+
+        # Zenodo — open datasets including physics simulation data
+        zd = discover_zenodo_datasets(ext_topic, limit=3)
+        all_datasets.extend(zd)
+
+        topics_researched.append(ext_topic)
+        time.sleep(0.5)
+
+    try:
+        db = _get_db_path()
+        with sqlite3.connect(db) as cn:
+            cn.execute(
+                """INSERT INTO brain_kv(key, value) VALUES(?,?)
+                   ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
+                ("extended_topic_cursor", str(new_ext_cursor)),
+            )
+            cn.commit()
+    except Exception:
+        pass
 
     # Per-topic paper + dataset search across four open sources
     for topic in selected:
