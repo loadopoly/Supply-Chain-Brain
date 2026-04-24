@@ -1671,88 +1671,217 @@ def _torus_schedule(phase: int,
 # SCB document corpus ingestor — Grok conversation export
 # ---------------------------------------------------------------------------
 
-# Static SCB topic → existing Task/Quest cross-links
-# Each entry: topic_slug → list of (entity_id, entity_type, weight)
+# ---------------------------------------------------------------------------
+# SCB corpus constants — operational SC tier (direct Task/Quest cross-links)
+# ---------------------------------------------------------------------------
+
 _SCB_TOPIC_TASK_MAP: dict[str, list[tuple[str, str, float]]] = {
     "cycle count": [
-        ("abc_classify",               "Task",  0.80),
-        ("cc_reason_classify",         "Task",  0.75),
-        ("cc_reason_classify_syteline","Task",  0.72),
+        ("abc_classify",                "Task",  0.80),
+        ("cc_reason_classify",          "Task",  0.75),
+        ("cc_reason_classify_syteline", "Task",  0.72),
         ("quest:optimize_supply_chains","Quest", 0.70),
     ],
     "abc classification": [
-        ("abc_classify",               "Task",  0.85),
-        ("fast_classify",              "Task",  0.70),
+        ("abc_classify",                "Task",  0.85),
+        ("fast_classify",               "Task",  0.70),
         ("quest:optimize_supply_chains","Quest", 0.65),
     ],
     "vendor consolidation": [
-        ("vendor_consolidation",       "Task",  0.90),
+        ("vendor_consolidation",        "Task",  0.90),
         ("quest:optimize_supply_chains","Quest", 0.70),
     ],
     "on-time delivery": [
-        ("otd_root_cause",             "Task",  0.85),
-        ("otd_classify",               "Task",  0.80),
-        ("quest:fulfillment",          "Quest", 0.75),
+        ("otd_root_cause",              "Task",  0.85),
+        ("otd_classify",                "Task",  0.80),
+        ("quest:fulfillment",           "Quest", 0.75),
     ],
     "procurement": [
-        ("vendor_consolidation",       "Task",  0.75),
-        ("cross_dataset_review",       "Task",  0.65),
+        ("vendor_consolidation",        "Task",  0.75),
+        ("cross_dataset_review",        "Task",  0.65),
     ],
     "freight logistics": [
-        ("quest:fulfillment",          "Quest", 0.80),
-        ("cross_dataset_review",       "Task",  0.60),
+        ("quest:fulfillment",           "Quest", 0.80),
+        ("cross_dataset_review",        "Task",  0.60),
     ],
     "inventory management": [
-        ("abc_classify",               "Task",  0.75),
+        ("abc_classify",                "Task",  0.75),
         ("quest:optimize_supply_chains","Quest", 0.70),
     ],
     "demand planning": [
         ("quest:optimize_supply_chains","Quest", 0.80),
-        ("cross_dataset_review",       "Task",  0.65),
+        ("cross_dataset_review",        "Task",  0.65),
     ],
     "erp oracle": [
-        ("cross_dataset_review",       "Task",  0.75),
+        ("cross_dataset_review",        "Task",  0.75),
         ("quest:optimize_supply_chains","Quest", 0.65),
     ],
     "supply chain analytics": [
         ("quest:optimize_supply_chains","Quest", 0.85),
-        ("cross_dataset_review",       "Task",  0.70),
-        ("vendor_consolidation",       "Task",  0.60),
+        ("cross_dataset_review",        "Task",  0.70),
+        ("vendor_consolidation",        "Task",  0.60),
     ],
     "cycle count reason": [
-        ("cc_reason_classify",         "Task",  0.85),
-        ("cc_reason_classify_syteline","Task",  0.82),
-        ("abc_classify",               "Task",  0.65),
+        ("cc_reason_classify",          "Task",  0.85),
+        ("cc_reason_classify_syteline", "Task",  0.82),
+        ("abc_classify",                "Task",  0.65),
     ],
 }
 
-# Keyword sets used to detect each topic in conversation text
+# Operational SC topic keywords (multi-word phrases preferred for precision)
 _SCB_TOPIC_KEYWORDS: dict[str, set[str]] = {
-    "cycle count":          {"cycle", "count", "counting", "cycle count"},
-    "abc classification":   {"abc", "abc class", "abc classification", "abc assign"},
-    "vendor consolidation": {"vendor", "consolidat", "supplier consolid"},
-    "on-time delivery":     {"otd", "on-time", "on time delivery", "delivery performance", "promised"},
-    "procurement":          {"procurement", "purchase order", "po ", "sourcing"},
-    "freight logistics":    {"freight", "logistics", "shipping", "carrier"},
-    "inventory management": {"inventory", "stock", "warehouse", "on-hand"},
-    "demand planning":      {"demand", "planning", "forecast", "mrp"},
-    "erp oracle":           {"erp", "oracle fusion", "oracle inventory", "oracle cloud"},
-    "supply chain analytics":{"supply chain", "scb", "analytics", "data", "dashboard"},
-    "cycle count reason":   {"cycle count reason", "count reason", "discrepancy reason"},
+    "cycle count":           {"cycle count", "cycle counting", "physical count", "inventory count"},
+    "abc classification":    {"abc class", "abc classification", "abc category", "abc analysis", "abc assign", "pareto classif"},
+    "vendor consolidation":  {"vendor consolid", "supplier consolid", "vendor reduction", "supplier rationali"},
+    "on-time delivery":      {"otd", "on-time delivery", "on time delivery", "delivery performance", "promise date", "shipped on time", "late delivery", "delivery date"},
+    "procurement":           {"procurement", "purchase order", "po approval", "sourcing strategy", "requisition", "rfq", "request for quote"},
+    "freight logistics":     {"freight", "logistics", "shipping", "carrier", "3pl", "inbound freight", "outbound freight"},
+    "inventory management":  {"inventory management", "inventory level", "stock level", "safety stock", "reorder point", "min/max", "on-hand inventory"},
+    "demand planning":       {"demand planning", "demand forecast", "mrp", "s&op", "sales and operations", "demand signal"},
+    "erp oracle":            {"oracle fusion", "oracle inventory", "oracle cloud", "oracle ebs", "oracle scm", "erp system"},
+    "supply chain analytics":{"supply chain analytic", "supply chain metric", "supply chain brain", "scb dashboard"},
+    "cycle count reason":    {"cycle count reason", "count discrepancy", "count reason", "adjustment reason"},
 }
 
-# Academic topic cross-links for SC conversations
+# ---------------------------------------------------------------------------
+# Type 5 Civilization Domain taxonomy
+# ---------------------------------------------------------------------------
+# ALL 106 conversations are ingested. Non-operational-SC conversations carry
+# cross-domain systems-engineering knowledge vital to a supply chain that
+# operates at civilisation scale (Kardashev Type 5 — multiversal resource
+# manipulation).  Each CivilizationDomain aggregates conversations whose text
+# intersects its keyword set and then propagates via TRANSCENDS_TO to
+# quest:type5_sc and (where relevant) existing operational Quests/Tasks.
+# ---------------------------------------------------------------------------
+
+_SCB_CIVILIZATION_DOMAINS: dict[str, set[str]] = {
+    # Quantum-scale material / energy behaviour
+    "quantum_physics": {
+        "quantum", "qubit", "superposition", "entanglement", "wave function",
+        "eigenvalue", "polariton", "neutrino", "gamma decay", "planck",
+        "coherence", "decoherence", "schrodinger", "uncertainty principle",
+        "quantum field", "quantum dynamics", "wavefunction", "ueqgm",
+    },
+    # Molecular manufacturing: bio-chemical processes that define material
+    # feasibility at civilisation scale
+    "biochemical_manufacturing": {
+        "biochem", "enzyme", "protein", "dna", "rna", "atp", "nadh", "nad",
+        "metabolism", "coenzyme", "cellular", "coenzyme q", "adenine",
+        "ribose", "xenon anesthesia", "beta-alanine", "bmp synthesis",
+        "neurodegenerat", "24-methyl", "zeta-vanad",
+    },
+    # Physical materials and extractive supply chains
+    "energy_materials_science": {
+        "mineral recovery", "solvent extraction", "seigniorage", "americium",
+        "nuclear", "gamma ramp", "crystal structure", "polymer", "lithium",
+        "antimony", "vanadium", "semiconductor", "nanotechnology", "alloy",
+        "tariff", "commodity", "rare earth", "uamy", "mining",
+    },
+    # Intelligence systems that manage complexity at scale
+    "computational_intelligence": {
+        "machine learning", "neural network", "neural-symbolic", "algorithm",
+        "optimization", "inference", "kernel regression", "transformer",
+        "embedding", "gradient", "backpropagation", "deep learning",
+        "reinforcement learning", "llm", "hyperon", "asymptotic", "temporal gradient",
+    },
+    # Macro-scale physical structures; resource positioning at stellar scale
+    "cosmological_systems": {
+        "cosmolog", "dark matter", "dark energy", "spacetime", "multiverse",
+        "galactic", "stellar", "black hole", "galaxy", "astral-temporal",
+        "great circle", "lupus", "puppis", "canis major", "lmc",
+        "darpa compass", "rank-1 matri", "4d wavef",
+    },
+    # Engineering systems — how complex systems are designed, reviewed, optimised
+    "systems_engineering_design": {
+        "systems requirement", "preliminary design review", "critical design review",
+        "pdr", "cdr", "sdr", "darpa", "systems turbulence", "phd program",
+        "asymptotically dynamic", "temporal gradient", "rank-1 matrix",
+        "systems design", "system architect", "engineering system",
+    },
+    # Software / data infrastructure enabling SC visibility
+    "software_data_systems": {
+        "github", "repo", "commit", "api key", "sql statement", "power query",
+        "excel formula", "latex", "pdf", "python", "javascript", "debug",
+        "vite build", "node", "ocr", "archival document", "scan document",
+        "data dictionary", "data classification",
+    },
+    # Economic flows, trade policy, asset allocation at civilisation scale
+    "economic_trade_systems": {
+        "tariff war", "trade policy", "seigniorage", "defi asset", "wallet",
+        "asset apprais", "repossession", "trust beneficiar", "403b",
+        "satellite deployment", "visa restriction", "executive procurement",
+        "supply chain finance", "arbitrage", "negative seigniorage",
+    },
+    # Human capital — the intelligent actors who run civilisation-scale SC
+    "human_career_systems": {
+        "resume", "cover letter", "interview", "job offer", "linkedin",
+        "hiring", "salary negotiation", "mit ctl", "associate director",
+        "thank you email", "cold introduction", "executive search",
+    },
+}
+
+# Civilization domain → Quest / Task edges.
+# All non-trivial domains ultimately inform quest:type5_sc.
+_SCB_CIVILIZATION_DOMAIN_INFORMS: dict[str, list[tuple[str, str, float]]] = {
+    "quantum_physics": [
+        ("quest:type5_sc",              "Quest", 0.95),
+        ("quest:optimize_supply_chains","Quest", 0.48),
+    ],
+    "biochemical_manufacturing": [
+        ("quest:type5_sc",    "Quest", 0.88),
+        ("cross_dataset_review","Task", 0.52),
+    ],
+    "energy_materials_science": [
+        ("quest:type5_sc",              "Quest", 0.92),
+        ("vendor_consolidation",        "Task",  0.58),
+        ("quest:optimize_supply_chains","Quest", 0.55),
+    ],
+    "computational_intelligence": [
+        ("quest:type5_sc",              "Quest", 0.87),
+        ("cross_dataset_review",        "Task",  0.75),
+        ("quest:optimize_supply_chains","Quest", 0.70),
+    ],
+    "cosmological_systems": [
+        ("quest:type5_sc", "Quest", 0.98),
+    ],
+    "systems_engineering_design": [
+        ("quest:type5_sc",              "Quest", 0.95),
+        ("quest:optimize_supply_chains","Quest", 0.72),
+        ("cross_dataset_review",        "Task",  0.65),
+    ],
+    "software_data_systems": [
+        ("quest:type5_sc",       "Quest", 0.78),
+        ("cross_dataset_review", "Task",  0.85),
+    ],
+    "economic_trade_systems": [
+        ("quest:type5_sc",              "Quest", 0.85),
+        ("quest:optimize_supply_chains","Quest", 0.78),
+        ("quest:fulfillment",           "Quest", 0.65),
+    ],
+    "human_career_systems": [
+        ("quest:type5_sc",              "Quest", 0.72),
+        ("quest:optimize_supply_chains","Quest", 0.55),
+    ],
+}
+
+# Academic topic cross-links (SC + broad systems-engineering)
 _SCB_ACADEMIC_HINTS: list[tuple[str, str]] = [
+    # Operational supply chain
     ("inventory",      "inventory theory"),
     ("supply chain",   "supply chain management"),
     ("logistics",      "logistics systems"),
     ("procurement",    "operations research"),
     ("manufacturing",  "manufacturing systems"),
     ("demand",         "production planning"),
-    ("erp",            "engineering systems design"),
+    ("oracle",         "engineering systems design"),
     ("warehouse",      "inventory theory"),
     ("vendor",         "operations research"),
     ("freight",        "logistics systems"),
+    # Broad systems engineering
+    ("optimization",   "operations research"),
+    ("simulation",     "manufacturing systems"),
+    ("network",        "engineering systems design"),
+    ("system design",  "engineering systems design"),
 ]
 
 _SCB_DOCS_PATH = (_PIPELINE_ROOT / "docs" / "Introduction to SCB"
@@ -1760,11 +1889,12 @@ _SCB_DOCS_PATH = (_PIPELINE_ROOT / "docs" / "Introduction to SCB"
                   / "9826f3fc-ec86-4751-8129-de43d903e27e"
                   / "prod-grok-backend.json")
 
-# Minimum SC keyword hit-density (hits/1000 chars of assistant text) to count a
-# conversation as supply-chain relevant.
-_SCB_DENSITY_THRESHOLD = 0.40
+# SC density threshold: separates Tier 1 (operational SC, ≥ threshold) from
+# Tier 2 (cross-domain systems engineering, < threshold).
+# ALL conversations are ingested regardless of tier.
+_SCB_OPERATIONAL_THRESHOLD = 0.40
 
-# Supply chain keyword set for fast density calculation
+# Supply chain keyword set for density scoring
 _SC_KEYWORDS = frozenset([
     "supply chain", "inventory", "vendor", "procurement", "otd", "erp",
     "oracle", "on-time", "cycle count", "abc", "pfep", "parts", "warehouse",
@@ -1775,7 +1905,7 @@ _SC_KEYWORDS = frozenset([
 
 
 def _scb_keyword_density(text: str) -> float:
-    """Return SC keyword hits per 1 000 chars of *text*."""
+    """SC keyword hits per 1 000 chars of *text*."""
     if not text:
         return 0.0
     lower = text.lower()
@@ -1784,54 +1914,89 @@ def _scb_keyword_density(text: str) -> float:
 
 
 def _scb_detected_topics(text: str) -> list[str]:
-    """Return sorted list of SCB topic slugs whose keywords appear in *text*."""
+    """Sorted list of operational SC topic slugs detected in *text*."""
     lower = text.lower()
-    found: list[str] = []
-    for topic, kwset in _SCB_TOPIC_KEYWORDS.items():
-        if any(kw in lower for kw in kwset):
-            found.append(topic)
-    return sorted(found)
+    return sorted(t for t, kws in _SCB_TOPIC_KEYWORDS.items()
+                  if any(kw in lower for kw in kws))
+
+
+def _scb_detected_civilization_domains(text: str) -> list[str]:
+    """Sorted list of CivilizationDomain slugs detected in *text*.
+
+    Applied to ALL conversations — including non-SC ones — to surface
+    cross-domain knowledge relevant to Type 5 civilisation-scale supply chains.
+    """
+    lower = text.lower()
+    return sorted(d for d, kws in _SCB_CIVILIZATION_DOMAINS.items()
+                  if any(kw in lower for kw in kws))
 
 
 def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
-    """Ingest the Grok conversation export from ``docs/Introduction to SCB``.
+    """Ingest ALL conversations from the Grok export into the corpus.
 
-    Reads ``prod-grok-backend.json`` (the full Grok data export).  Uses an
-    integer file-mtime cursor so the full parse only re-runs when the export
-    file is replaced / updated.
+    Two-tier classification — ALL conversations are ingested:
 
-    Upserts:
-    * ``Document``         — one entity for the Grok export file itself
-    * ``GrokConversation`` — one entity per supply-chain-relevant conversation
-    * ``SCBTopic``         — one entity per detected SC topic slug
+    **Tier 1 — Operational SC** (SC keyword density ≥ 0.40)
+      DISCUSSES edges → SCBTopic → INFORMS existing Tasks/Quests.
 
-    Edges:
-    * ``Document          ─CONTAINS──► GrokConversation``
-    * ``GrokConversation  ─DISCUSSES──► SCBTopic``
-    * ``GrokConversation  ─EXPLORES──► AcademicTopic``  (existing AT cross-links)
-    * ``SCBTopic          ─INFORMS───► Task / Quest``   (static mapping above)
+    **Tier 2 — Cross-domain Systems Engineering** (density < 0.40)
+      Every conversation captures a different knowledge domain — quantum
+      physics, biochemistry, materials science, cosmology, systems
+      engineering — each necessary for a Type 5 civilisation-scale supply
+      chain that manipulates resources at multiversal scope.
+      CROSS_POLLINATES edges → CivilizationDomain → TRANSCENDS_TO quest:type5_sc.
 
-    Returns the new mtime int (to be stored as cursor for next round).
+    Both tiers also emit INFORMS_VISION → quest:type5_sc so the aspirational
+    multiversal quest accumulates signal from every exchange.
+
+    Cursor key: ``scb_docs_mtime_v2`` (force full re-ingest vs. v1).
     """
     if not _SCB_DOCS_PATH.exists():
         return since_mtime
 
     current_mtime = int(_SCB_DOCS_PATH.stat().st_mtime)
     if current_mtime == since_mtime:
-        return since_mtime  # no change since last ingest
+        return since_mtime  # file unchanged
 
-    # ── Load Grok export ──────────────────────────────────────────────────────
     try:
         raw = json.loads(_SCB_DOCS_PATH.read_text(encoding="utf-8"))
-    except Exception as e:
-        logging.debug(f"corpus:scb_docs: could not parse JSON: {e}")
+    except Exception as exc:
+        logging.debug(f"corpus:scb_docs: JSON parse error: {exc}")
         return since_mtime
 
     conversations = raw.get("conversations", [])
     if not conversations:
         return current_mtime
 
-    # ── Document root entity (the export file) ────────────────────────────────
+    # ── Ensure quest:type5_sc exists ─────────────────────────────────────────
+    # Kardashev Type 5: civilisation manipulates energy/matter at multiversal
+    # scale. This quest grounds all cross-domain learning into a coherent
+    # aspirational target that the Brain works toward.
+    _upsert_entity(
+        cn, stats,
+        entity_id="quest:type5_sc",
+        entity_type="Quest",
+        label="Type 5 Civilization Supply Chain: Multiversal Resource Manipulation",
+        props={
+            "kardashev_level": 5,
+            "description": (
+                "Aspirational quest: model and optimise supply chains spanning "
+                "quantum material flows, bio-manufacturing, energy logistics, "
+                "cosmological resource allocation and intelligent civilisation-"
+                "level coordination. Grounded in operational Astec SC research."
+            ),
+            "source": "scb_grok_ingestor_v2",
+        },
+    )
+    # Anchor quest:type5_sc in operational SC reality
+    for op_id, op_w in [("quest:optimize_supply_chains", 0.88), ("quest:fulfillment", 0.82)]:
+        if cn.execute("SELECT 1 FROM corpus_entity WHERE entity_id=?", (op_id,)).fetchone():
+            _upsert_edge(cn, stats,
+                         src_id="quest:type5_sc", src_type="Quest",
+                         dst_id=op_id, dst_type="Quest",
+                         rel="GROUNDS_IN", weight=op_w)
+
+    # ── Document root entity ──────────────────────────────────────────────────
     doc_id = "scb_docs:grok_export"
     _upsert_entity(cn, stats, entity_id=doc_id, entity_type="Document",
                    label="Introduction to SCB — Grok Conversation Export",
@@ -1842,7 +2007,7 @@ def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
                        "export_date": "2026-04-24",
                    })
 
-    # ── Pre-fetch existing AcademicTopics for cross-linking ───────────────────
+    # ── Pre-fetch existing AcademicTopics ─────────────────────────────────────
     try:
         at_rows = cn.execute(
             "SELECT entity_id FROM corpus_entity WHERE entity_type='AcademicTopic'"
@@ -1851,16 +2016,17 @@ def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
     except Exception:
         academic_topic_ids = {}
 
-    # ── Process each conversation ─────────────────────────────────────────────
-    sc_conv_count = 0
-    topic_conv_map: dict[str, list[str]] = {}  # topic → [conv_ids] for logging
+    # ── Process ALL 106 conversations — no density gate ──────────────────────
+    topic_conv_map:  dict[str, list[str]] = {}   # SCBTopic slug  → [conv_ids]
+    domain_conv_map: dict[str, list[str]] = {}   # CivDomain slug → [conv_ids]
+    n_tier1 = 0
+    n_tier2 = 0
 
     for i, conv_wrapper in enumerate(conversations):
-        conv_meta  = conv_wrapper.get("conversation", {})
-        responses  = conv_wrapper.get("responses", [])
-        conv_uuid  = conv_meta.get("_id") or conv_meta.get("id") or f"conv_{i}"
+        conv_meta = conv_wrapper.get("conversation", {})
+        responses = conv_wrapper.get("responses", [])
+        conv_uuid = conv_meta.get("_id") or conv_meta.get("id") or f"conv_{i}"
 
-        # Collect all text from this conversation
         all_assistant = " ".join(
             r.get("response", {}).get("message", "")
             for r in responses
@@ -1872,29 +2038,41 @@ def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
             if r.get("response", {}).get("sender") == "human"
         )
         full_text = all_assistant + " " + all_human
+        if not full_text.strip():
+            continue
 
-        density = _scb_keyword_density(full_text)
-        if density < _SCB_DENSITY_THRESHOLD:
-            continue  # not SC-relevant enough
+        density  = _scb_keyword_density(full_text)
+        is_tier1 = density >= _SCB_OPERATIONAL_THRESHOLD
+        topics   = _scb_detected_topics(full_text) if is_tier1 else []
+        domains  = _scb_detected_civilization_domains(full_text)
+        tier     = "operational_sc" if is_tier1 else "cross_domain"
 
-        sc_conv_count += 1
-        topics = _scb_detected_topics(full_text)
-        signal = min(0.95, 0.55 + density * 0.08)  # density → [0.55, 0.95]
+        # Signal: tier-1 scales with SC density; tier-2 scales with domain breadth
+        if is_tier1:
+            signal = min(0.95, 0.55 + density * 0.08)
+            n_tier1 += 1
+        else:
+            # Base 0.50 + 0.05 per detected civilisation domain (cap 0.88)
+            signal = min(0.88, 0.50 + len(domains) * 0.05)
+            n_tier2 += 1
+
+        conv_id = f"grok:conv_{i}"
+        first_q = all_human[:120].strip().replace("\n", " ")
+        n_asst  = sum(1 for r in responses
+                      if r.get("response", {}).get("sender") == "assistant")
 
         # Conversation entity
-        conv_id   = f"grok:conv_{i}"
-        first_q   = all_human[:100].strip().replace("\n", " ")
-        n_asst    = sum(1 for r in responses
-                        if r.get("response", {}).get("sender") == "assistant")
         _upsert_entity(cn, stats, entity_id=conv_id,
                        entity_type="GrokConversation",
                        label=first_q or conv_id,
                        props={
-                           "conv_uuid":  conv_uuid,
-                           "topics":     topics,
-                           "density":    round(density, 3),
-                           "n_responses":n_asst,
-                           "signal":     round(signal, 3),
+                           "conv_uuid":   conv_uuid,
+                           "tier":        tier,
+                           "density":     round(density, 3),
+                           "topics":      topics,
+                           "domains":     domains,
+                           "n_responses": n_asst,
+                           "signal":      round(signal, 3),
                        })
 
         # Document → Conversation
@@ -1902,18 +2080,36 @@ def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
                      dst_id=conv_id, dst_type="GrokConversation",
                      rel="CONTAINS", weight=signal)
 
-        # ── Topic entities + DISCUSSES edges ──────────────────────────────────
+        # ALL conversations inform the aspirational Type 5 quest
+        _upsert_edge(cn, stats, src_id=conv_id, src_type="GrokConversation",
+                     dst_id="quest:type5_sc", dst_type="Quest",
+                     rel="INFORMS_VISION", weight=round(signal * 0.72, 3))
+
+        # ── Tier 1: operational SC topics ─────────────────────────────────────
         for topic in topics:
             topic_conv_map.setdefault(topic, []).append(conv_id)
             _upsert_entity(cn, stats, entity_id=f"scb_topic:{topic}",
                            entity_type="SCBTopic", label=topic,
-                           props={"source": "grok_export"})
+                           props={"source": "grok_export", "tier": "operational"})
             _upsert_edge(cn, stats,
-                         src_id=conv_id,  src_type="GrokConversation",
+                         src_id=conv_id, src_type="GrokConversation",
                          dst_id=f"scb_topic:{topic}", dst_type="SCBTopic",
                          rel="DISCUSSES", weight=signal)
 
-        # ── AcademicTopic cross-links from this conversation ──────────────────
+        # ── All tiers: civilisation-domain cross-pollination ─────────────────
+        for domain in domains:
+            domain_eid = f"civ_domain:{domain}"
+            domain_conv_map.setdefault(domain, []).append(conv_id)
+            _upsert_entity(cn, stats, entity_id=domain_eid,
+                           entity_type="CivilizationDomain",
+                           label=domain.replace("_", " ").title(),
+                           props={"source": "scb_grok_v2", "kardashev_relevance": "type5"})
+            _upsert_edge(cn, stats,
+                         src_id=conv_id, src_type="GrokConversation",
+                         dst_id=domain_eid, dst_type="CivilizationDomain",
+                         rel="CROSS_POLLINATES", weight=round(signal * 0.88, 3))
+
+        # ── Academic cross-links (both tiers) ────────────────────────────────
         lower_full = full_text.lower()
         for hint_kw, at_label in _SCB_ACADEMIC_HINTS:
             if hint_kw in lower_full:
@@ -1922,37 +2118,51 @@ def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
                     _upsert_edge(cn, stats,
                                  src_id=conv_id, src_type="GrokConversation",
                                  dst_id=at_id, dst_type="AcademicTopic",
-                                 rel="EXPLORES", weight=round(signal * 0.9, 3))
+                                 rel="EXPLORES", weight=round(signal * 0.90, 3))
 
-        # Log one learning per SC conversation
+        # Learning log — one entry per conversation
         _log_learning(cn, stats, kind="scb_doc",
-                      title=f"SCB Grok conv[{i}]: {first_q[:60]}",
+                      title=f"SCB [{tier}] conv[{i}]: {first_q[:60]}",
                       signal=signal,
                       detail={
                           "conv_id":  conv_id,
-                          "topics":   topics,
+                          "tier":     tier,
                           "density":  round(density, 3),
+                          "topics":   topics,
+                          "domains":  domains,
                           "n_asst":   n_asst,
                       })
 
-    # ── SCBTopic → Task / Quest static cross-links ────────────────────────────
-    for topic, linked_convs in topic_conv_map.items():
+    # ── Operational SCBTopic → Task / Quest (INFORMS) ─────────────────────────
+    for topic in topic_conv_map:
         topic_eid = f"scb_topic:{topic}"
         for (target_id, target_type, weight) in _SCB_TOPIC_TASK_MAP.get(topic, []):
-            # Only link if the target Task/Quest actually exists in the corpus
-            exists = cn.execute(
+            if cn.execute(
                 "SELECT 1 FROM corpus_entity WHERE entity_id=? AND entity_type=?",
                 (target_id, target_type),
-            ).fetchone()
-            if exists:
+            ).fetchone():
                 _upsert_edge(cn, stats,
-                             src_id=topic_eid,  src_type="SCBTopic",
-                             dst_id=target_id,  dst_type=target_type,
+                             src_id=topic_eid, src_type="SCBTopic",
+                             dst_id=target_id, dst_type=target_type,
                              rel="INFORMS", weight=weight)
 
+    # ── CivilizationDomain → Quest / Task (TRANSCENDS_TO) ─────────────────────
+    for domain in domain_conv_map:
+        domain_eid = f"civ_domain:{domain}"
+        for (target_id, target_type, weight) in _SCB_CIVILIZATION_DOMAIN_INFORMS.get(domain, []):
+            if cn.execute(
+                "SELECT 1 FROM corpus_entity WHERE entity_id=? AND entity_type=?",
+                (target_id, target_type),
+            ).fetchone():
+                _upsert_edge(cn, stats,
+                             src_id=domain_eid, src_type="CivilizationDomain",
+                             dst_id=target_id, dst_type=target_type,
+                             rel="TRANSCENDS_TO", weight=weight)
+
     logging.info(
-        f"corpus:scb_docs: {sc_conv_count}/{len(conversations)} SC-relevant "
-        f"conversations; {len(topic_conv_map)} topics detected"
+        f"corpus:scb_docs v2: {n_tier1} operational-SC + {n_tier2} cross-domain "
+        f"conversations; {len(topic_conv_map)} SC topics, "
+        f"{len(domain_conv_map)} civilization domains"
     )
     return current_mtime
 
@@ -2172,7 +2382,8 @@ def refresh_corpus_round() -> dict:
         try: c_ocwr = _ingest_ocw_resources(cn, stats, c_ocwr)
         except Exception as e: notes.append(f"ocw_resources: {e}")
         # ── SCB docs: Grok conversation export from docs/Introduction to SCB ──
-        c_scb = _get_cursor(cn, "scb_docs_mtime")
+        # v2 cursor forces full re-ingest (all 106 convs, CivilizationDomain layer)
+        c_scb = _get_cursor(cn, "scb_docs_mtime_v2")
         try: c_scb = _ingest_scb_docs(cn, stats, c_scb)
         except Exception as e: notes.append(f"scb_docs: {e}")
         _net_before = stats.entities_added
@@ -2221,7 +2432,7 @@ def refresh_corpus_round() -> dict:
         _set_cursor(cn, "ml_research", c_mlr)
         _set_cursor(cn, "ocw_courses", c_ocw)
         _set_cursor(cn, "ocw_resources", c_ocwr)
-        _set_cursor(cn, "scb_docs_mtime", c_scb)
+        _set_cursor(cn, "scb_docs_mtime_v2", c_scb)
 
         graph_backend = ((load_config().get("graph") or {}).get("backend")) or "networkx"
 
