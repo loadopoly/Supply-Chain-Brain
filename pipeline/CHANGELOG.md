@@ -4,6 +4,67 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## 0.16.0 — Symbiotic Dynamic Tunneling + Torus-Touch (T^7) (2026-04-24)
+
+### Added
+- **`src/brain/symbiotic_tunnel.py`** — discrete horizontal-expansion kernel
+  for the corpus graph:
+  - `BayesianPoissonCentroids` — 1-D Poisson/Gamma(α,β) conjugate clustering;
+    empty clusters are pulled toward `α/β = 1.0` instead of NaN
+  - `InvertedReluAdam` — ADAM whose pre-activation gradient is `−ReLU(g) +
+    sgd_mix · g`, used to nudge edge weights toward their assigned centroid
+  - `DualFloorMirror` — returns `(+x, −x)` clipped to `1 − max(|w|)` so
+    freshly minted edges always carry usable signal in both polarities
+  - `PropellerRouter` — softmax over weights → axel + blade selection,
+    skips existing pairs, joint-probability coupling
+  - `touch_couple(a, b) = exp(ln(1+|a|)+ln(1+|b|)) − 1` — exp/ln identity
+    coupling (numerically stable at small weights)
+  - `vision_horizontal_expand(cn)` — orchestrates the above against
+    `corpus_edge` rows whose `rel ∈ {REACHABLE, BRIDGES_TO, SERVES}` and
+    inserts new `SYMBIOTIC_TUNNEL` edges
+- **`src/brain/torus_touch.py`** — continuous boundary-pressure agent on
+  `T^7 = (S^1)^7`:
+  - `CatGapField` — per-dim categorical PMF (default 16 bins/dim) with
+    Laplace smoothing; KL-from-uniform measures the informational gap
+  - `TouchPressure` — momentum + step + jitter, wrapped mod 2π each tick
+  - `tick_torus_pressure(cn)` — reads every `Endpoint`, builds the gap
+    field, walks each endpoint up `∇G`, persists `torus_angles`,
+    `torus_gap`, and per-endpoint velocity in `kv_store`
+  - `touch_couple_torus(θ_a, θ_b)` — wrap-aware angular Touch
+  - `endpoint_angles()`, `gap_field_summary()` helpers
+- **`src/brain/synaptic_workers.py`** — registered `_torus_touch_worker` as a
+  30-second daemon thread alongside the existing five workers; added
+  `synapse_torus_last` heartbeat (`endpoints | moved | gap | spread%`) and
+  `_vision_worker` Step 4 calls `vision_horizontal_expand` after each
+  bridge/network probe pass
+- **`tests/test_symbiotic_torus.py`** — 29 unit tests covering primitives,
+  horizontal expansion, manifold geometry, DB-driven ticks, and cross-module
+  manifold-aware coupling
+
+### Closed-loop architecture
+```
+torus_touch (30 s)            vision_horizontal_expand (5 min)
+─────────────────             ────────────────────────────────
+read Endpoints                read Endpoints + corpus_edge
+build CAT pmf                 cluster weights via Bayesian/Poisson centroids
+∇G gap field                  propeller route over top-tier
+push θ_i along ∇G ──► writes  ─► touch_couple_torus(θ_a, θ_b) ◄── consumes T^7
+torus_angles into             write SYMBIOTIC_TUNNEL edges weighted by
+corpus_entity.props_json      manifold proximity, not just scalar weight
+```
+
+### Test Results (2026-04-24)
+```
+tests/test_symbiotic_torus.py ......................... 29/29 PASS
+  TestPrimitives                  11/11
+  TestHorizontalExpansion          4/4
+  TestTorusGeometry                9/9
+  TestTorusTick                    4/4
+  TestTunnelManifoldCoupling       1/1
+```
+
+---
+
 ## 1.4.1 — DBI Playwright Suite · LLM timeout · Procurement 360 expanders (2026-04-23)
 
 ### Added

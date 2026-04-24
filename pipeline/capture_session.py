@@ -38,18 +38,32 @@ def main():
         print("\n>>> Log in manually in the browser window.")
         print(">>> Waiting for Oracle Fusion home page to load (up to 5 minutes)...")
 
-        # Poll until the home page loads (title changes from "Sign In")
+        # Poll until the home page loads — must reach Oracle FuseWelcome
         import time
         deadline = time.time() + 600  # 10 minutes
         while time.time() < deadline:
-            title = page.title()
-            url = page.url
-            if "FuseWelcome" in url or ("Sign In" not in title and title.strip()):
+            try:
+                url = page.url
+                title = page.title()
+            except Exception:
+                time.sleep(2)
+                continue
+            if "FuseWelcome" in url:
                 break
-            print(f"  Waiting... ({title[:50]})")
+            # Also accept any Oracle Fusion page that isn't a login/SSO page
+            if ("fa-eqtl-dev13" in url and
+                    "sign" not in title.lower() and
+                    "microsoft" not in url.lower() and
+                    title.strip()):
+                break
+            print(f"  Waiting... url={url[:70]}")
             time.sleep(5)
 
-        print(f"Page after login: {page.title()}")
+        try:
+            title_final = page.title()
+        except Exception:
+            title_final = "(navigating)"
+        print(f"Page after login: {title_final} | url: {page.url[:80]}")
 
         # Grab all cookies from the context
         cookies = ctx.cookies()
