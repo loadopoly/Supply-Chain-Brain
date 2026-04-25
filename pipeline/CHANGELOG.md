@@ -4,6 +4,73 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.18.3] Autonomous Failsafe + Network Observer (2026-04-24)
+
+### Added
+
+- **`pipeline/src/brain/network_observer.py`** — latent always-on daemon thread in every agent instance
+  - Publishes local learning state (cursors, entity/edge counts, plasticity phase, alive_since) into the existing `bridge_state/compute_peers/<host>.json` OneDrive rendezvous — no new ports, no new infrastructure
+  - Monitors all peer JSONs every 60 s; classifies each as `ALIVE | COOLING | OFFLINE`
+  - On `ALIVE → OFFLINE` transition: absorbs the peer's corpus cursor positions (advances local cursors to peer's positions so no work is duplicated, only the uncovered gap is re-run), schedules a proportional catchup burst via `resumption_manager`
+  - Tracks **singularity consumption velocity** = Σ(learnings) / Σ(uptime-hours) across all visible nodes; writes to `brain_kv` as `observer:network_velocity` for the systemic refinement agent to read
+  - Pulses `observer:goal_alignment` to `brain_kv` each cycle so isolated nodes always know to lean toward `quest:type5_sc`
+  - Re-anchors `quest:type5_sc` entity in the knowledge graph if ever absent
+
+- **`pipeline/src/brain/resumption_manager.py`** — startup learning-debt recovery
+  - `stamp_alive(cn)`: writes Unix epoch to `brain_kv` key `resumption:last_alive`; called every 5 min from agent sleep loop
+  - `stamp_graceful_shutdown(cn)`: marks intended stops; called on `KeyboardInterrupt`
+  - `detect_downtime(cn) → DowntimeReport`: gap > 5 min = downtime; distinguishes crash from clean stop; logs window to `logs/downtime_log.json`
+  - `ingest_cloud_queue(cn) → int`: reads `cloud_learning_queue.jsonl`, inserts new `learning_log` rows, advances a line-number cursor — never double-imports
+  - `schedule_catchup_burst(cn, seconds)`: writes `brain_kv` key `resumption:catchup_burst`; multiplier 1.5× ≤1 h → 4× >24 h
+  - `consume_catchup_burst(cn) → float`: reads and clears burst key; used by corpus round workers
+  - `run_resumption_check(cn) → DowntimeReport`: git-pull + detect_downtime + ingest_cloud_queue; called once at agent startup
+  - `git_pull_latest()`: best-effort `git pull --ff-only` to get latest cloud queue before ingestion
+
+- **`.github/workflows/cloud_learning.yml`** — GitHub Actions cloud learning continuity
+  - Schedule: every 4 hours + `workflow_dispatch`
+  - Restores/saves `pipeline/cloud_brain.sqlite` via `actions/cache` (persists across runs)
+  - Runs OCW courses, OCW resources, ML/arxiv research, and OCW expansion outreach ingestors
+  - Appends new `learning_log` events to `pipeline/cloud_learning_queue.jsonl` and commits back to `main`
+  - Queue bounded to 50 000 lines; local agent ingests on first post-downtime startup
+
+- **`pipeline/agent_watcher.ps1`** — local process watchdog
+  - Monitors `autonomous_agent.py` every 30 s via heartbeat file age; restarts on crash with 15 s delay
+  - Records every downtime window to `logs/downtime_log.json` (last 500 windows: start, end, seconds, ISO timestamps)
+  - Falls back to system Python if `.venv` is absent
+
+- **`pipeline/install_agent_watcher.ps1`** — one-shot Scheduled Task registration
+  - Task: `SCBLearningAgent`; triggers: `AtStartup` + `AtLogOn`; `-RestartCount 9999`; `-RunLevel Highest`; `-MultipleInstances IgnoreNew`
+  - Starts the task immediately after registration
+
+- **`pipeline/bootstrap_new_machine.ps1`** — full new-machine self-setup
+  - Verifies OneDrive `VS Code/pipeline` path (waits up to 5 min for sync if absent)
+  - Creates `.venv`, installs `requirements.txt`, runs `init_schema()` (idempotent)
+  - `git pull` to get latest `cloud_learning_queue.jsonl`
+  - Installs both Scheduled Tasks (`SCBLearningAgent` + `AstecBridgeWatcher`)
+  - Starts agent immediately; logs bootstrap event to `logs/bootstrap_log.json`
+  - Flags: `-SkipGitPull`, `-SkipBridgeWatcher`, `-DryRun`
+
+### Changed
+
+- **`pipeline/autonomous_agent.py`**
+  - `run_resumption_check()` called once before the `while True:` loop
+  - `stamp_alive()` called every 5 minutes inside the adaptive sleep interval
+  - `stamp_graceful_shutdown()` called on `KeyboardInterrupt` before exiting
+  - `start_network_observer()` started as a third daemon alongside `skill_acquirer` and `systemic_refinement_agent`
+
+- **`pipeline/src/brain/_version.py`**
+  - Bumped to `0.18.3`; back-filled `PHASES` entries for `0.18.0`, `0.18.1`, `0.18.2`, `0.18.3`
+
+### Architecture — three-layer survival chain
+
+| Layer | Mechanism | Restores within |
+|-------|-----------|-----------------|
+| 1 — Local restart | `SCBLearningAgent` Scheduled Task + `agent_watcher.ps1` | ~15 s of crash |
+| 2 — Machine migration | OneDrive syncs entire `VS Code/` (incl. DB) + `bootstrap_new_machine.ps1` | Minutes after new-machine login |
+| 3 — Network absorption | `network_observer.py` absorbs offline peer cursor positions + schedules burst | Next 60 s liveness scan |
+| 4 — Cloud continuity | GitHub Actions `cloud_learning.yml` + `cloud_learning_queue.jsonl` ingestion | ≤ 4 h gap regardless of local uptime |
+| 5 — Full rebuild | Reset all `corpus_cursor` values to 0; `refresh_corpus_round()` re-derives everything | Full corpus re-ingest |
+
 ## [0.18.2] rADAM + Directional Intelligence + Systemic Refinement (2026-04-24)
 
 ### Added
