@@ -1,0 +1,47 @@
+# Supply Chain Brain — Streamlit server hardening
+# This file is the single source of truth for all runtime security controls.
+# The app holds live credentials (Entra/Azure SQL, Oracle session cookies) and
+# must NEVER be reachable from outside the local machine.
+#
+# Threat model: any Astec employee on the corporate network who can reach
+# port 8501 would get full access to edap-replica-cms-sqldb and Oracle DEV13
+# without any MFA challenge. The only mitigation is loopback binding.
+
+[server]
+# Hard-bind to loopback — refuses all connections from non-localhost origins.
+# This is the primary security control; every other setting is defence-in-depth.
+address = "localhost"
+port = 8501
+
+# headless = true — suppress the "Open in browser" popup when running as a
+# background service (autonomous_agent launches it via subprocess).
+headless = true
+
+# enableCORS = true — Streamlit enforces same-origin on WebSocket upgrade
+# requests. With address = "localhost" this is belt-and-suspenders: even if
+# an attacker crafts a cross-origin WebSocket request from another process on
+# the same machine, the origin check will reject it.
+enableCORS = true
+
+# XSRF protection on — prevents form-reuse attacks via forged POST bodies.
+enableXsrfProtection = true
+
+# Cap upload size (MB). None of the Supply Chain Brain pages need large uploads;
+# keeping this small limits the denial-of-service surface.
+maxUploadSize = 10
+
+[browser]
+# Disable all Streamlit telemetry. This app processes proprietary ERP data
+# (part numbers, supplier names, inventory values, OTD metrics). No usage
+# signal should leave the machine.
+gatherUsageStats = false
+
+# Tell the Streamlit client where to find the server. Must match [server]
+# address above so the WebSocket upgrade goes to the right origin.
+serverAddress = "localhost"
+serverPort = 8501
+
+[logger]
+# Suppress INFO noise in production; WARNING and above still surface real issues.
+level = "warning"
+messageFormat = "%(asctime)s %(levelname) -8s %(name)s: %(message)s"

@@ -1,4 +1,4 @@
-"""Brain → Body bridge.
+﻿"""Brain → Body bridge.
 
 Premise: the **User is the body of the Brain**. Every signal the Brain
 produces — bounded self-training rounds, ensemble validators, network
@@ -787,6 +787,238 @@ def _gen_doc_rag_coverage(cn) -> list[Directive]:
     return out
 
 
+
+def _gen_fallback_parse_warning(cn) -> list[Directive]:
+    """Alert when open missions were parsed by the keyword fallback, not the LLM."""
+    out: list[Directive] = []
+    try:
+        from . import mission_store
+    except Exception:
+        return out
+    try:
+        missions = mission_store.list_open(limit=50)
+    except Exception:
+        return out
+    import json as _json_fb
+    fallback_missions = []
+    for m in missions:
+        try:
+            pi = getattr(m, "parsed_intent_json", None) or "{}"
+            intent = _json_fb.loads(pi) if isinstance(pi, str) else (pi or {})
+            if intent.get("parse_method") == "keyword_fallback":
+                fallback_missions.append(m)
+        except Exception:
+            continue
+    if not fallback_missions:
+        return out
+    count = len(fallback_missions)
+    prio = float(min(0.65, 0.38 + count * 0.05))
+    names = ", ".join(getattr(m, "name", str(m)) for m in fallback_missions[:3])
+    out.append(Directive(
+        source="quest",
+        signal_kind="fallback_parse_warning",
+        title=f"{count} open mission(s) parsed by keyword fallback (not LLM)",
+        why_it_matters=(
+            "Keyword-fallback scope tags are heuristic guesses. A mission "
+            "tagged 'inventory_sizing' may actually be 'lead_time', causing "
+            "the Brain to surface wrong directives and waste analysis cycles."
+        ),
+        do_this=(
+            "Restore LLM connectivity so the ensemble can re-parse. "
+            "Check 'Connectors' page for LLM health. "
+            f"Affected missions: {names}."
+        ),
+        owner_role="IT",
+        priority=prio,
+        severity=_severity(prio),
+        target_entity=None,
+        evidence={"fallback_count": count, "sample_missions": names},
+    ))
+    return out
+
+
+def _gen_scope_underpowered(cn) -> list[Directive]:
+    """Fire when open missions stalled >6 h with low parse confidence."""
+    out: list[Directive] = []
+    try:
+        from . import mission_store
+        import datetime as _dt
+    except Exception:
+        return out
+    try:
+        missions = mission_store.list_open(limit=50)
+    except Exception:
+        return out
+    import json as _json_su
+    stalled = []
+    now_utc = _dt.datetime.now(_dt.timezone.utc)
+    for m in missions:
+        try:
+            created_raw = getattr(m, "created_at", None)
+            if not created_raw:
+                continue
+            if isinstance(created_raw, str):
+                created = _dt.datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+            else:
+                created = created_raw
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=_dt.timezone.utc)
+            age_h = (now_utc - created).total_seconds() / 3600
+            if age_h < 6:
+                continue
+            progress = getattr(m, "progress", None)
+            if progress and float(progress) > 0.05:
+                continue
+            pi = getattr(m, "parsed_intent_json", None) or "{}"
+            intent = _json_su.loads(pi) if isinstance(pi, str) else (pi or {})
+            conf = float(intent.get("confidence", 0.0))
+            if conf < 0.40:
+                stalled.append((m, age_h, conf))
+        except Exception:
+            continue
+    if not stalled:
+        return out
+    count = len(stalled)
+    prio = float(min(0.78, 0.45 + count * 0.08))
+    sample = ", ".join(
+        f"'{getattr(m, 'name', '?')}' ({age_h:.0f}h, conf={conf:.2f})"
+        for m, age_h, conf in stalled[:3]
+    )
+    out.append(Directive(
+        source="quest",
+        signal_kind="scope_underpowered",
+        title=f"{count} mission(s) stalled >6 h with low parse confidence",
+        why_it_matters=(
+            "Missions the Brain cannot confidently interpret burn compute cycles "
+            "without producing findings. Low confidence usually means the query "
+            "spans multiple scope tags or uses domain jargon the LLM lacks."
+        ),
+        do_this=(
+            "Re-state the quest in narrower terms or split into one mission per "
+            "scope tag. Add process docs to data/documents/ so RAG can ground "
+            f"the LLM. Stalled: {sample}."
+        ),
+        owner_role="Supply Chain",
+        priority=prio,
+        severity=_severity(prio),
+        target_entity=None,
+        evidence={"stalled_count": count, "sample": sample},
+    ))
+    return out
+
+
+def _gen_network_exposure_check(_cn) -> list[Directive]:
+    """CRITICAL: alert if Streamlit is not bound to localhost."""
+    out: list[Directive] = []
+    try:
+        config_path = _PIPELINE_ROOT / ".streamlit" / "config.toml"
+        if not config_path.exists():
+            out.append(Directive(
+                source="security",
+                signal_kind="network_exposure_risk",
+                title="CRITICAL: .streamlit/config.toml missing — Streamlit binds to 0.0.0.0",
+                why_it_matters=(
+                    "Without address = 'localhost', Streamlit accepts connections from "
+                    "the entire corporate LAN. Any Astec employee reaching port 8501 "
+                    "gets full access to edap-replica-cms-sqldb and Oracle DEV13 with "
+                    "NO authentication challenge."
+                ),
+                do_this=(
+                    "Stop the Streamlit server immediately. Recreate "
+                    "pipeline/.streamlit/config.toml with [server] address = 'localhost'. "
+                    "Then restart: cd pipeline && streamlit run app.py"
+                ),
+                owner_role="IT",
+                priority=0.90,
+                severity="critical",
+                target_entity=str(config_path),
+                evidence={"config_exists": False},
+            ))
+            return out
+        content = config_path.read_text(encoding="utf-8")
+        if "localhost" not in content and "127.0.0.1" not in content:
+            out.append(Directive(
+                source="security",
+                signal_kind="network_exposure_risk",
+                title="CRITICAL: config.toml found but has no localhost binding",
+                why_it_matters=(
+                    "config.toml exists but contains neither 'localhost' nor '127.0.0.1'. "
+                    "Streamlit will accept connections from the entire corporate LAN."
+                ),
+                do_this=(
+                    "Edit pipeline/.streamlit/config.toml and add:\n"
+                    "[server]\naddress = \"localhost\""
+                ),
+                owner_role="IT",
+                priority=0.88,
+                severity="critical",
+                target_entity=str(config_path),
+                evidence={"config_exists": True, "has_localhost": False},
+            ))
+    except Exception as _e:
+        logging.debug(f"_gen_network_exposure_check: {_e}")
+    return out
+
+
+def _gen_user_focus_signal(cn) -> list[Directive]:
+    """Directive when the User visits a scope page 3+ times in 48h with no open Mission."""
+    out: list[Directive] = []
+    try:
+        from .ui_action_log import visit_scope_counts
+        from . import mission_store
+    except Exception:
+        return out
+    try:
+        scope_counts = visit_scope_counts(hours=48)
+    except Exception:
+        return out
+    if not scope_counts:
+        return out
+    import json as _json_ufs
+    try:
+        open_missions = mission_store.list_open(limit=100)
+    except Exception:
+        open_missions = []
+    open_scopes: set[str] = set()
+    for m in open_missions:
+        try:
+            pi = getattr(m, "parsed_intent_json", None) or "{}"
+            intent = _json_ufs.loads(pi) if isinstance(pi, str) else (pi or {})
+            st = intent.get("scope_tag") or intent.get("scope_tags") or []
+            if isinstance(st, str):
+                open_scopes.add(st)
+            elif isinstance(st, list):
+                open_scopes.update(st)
+        except Exception:
+            continue
+    for scope, count in scope_counts.items():
+        if count < 3:
+            continue
+        if scope in open_scopes:
+            continue
+        prio = float(min(0.72, 0.40 + count * 0.06))
+        out.append(Directive(
+            source="user_behavior",
+            signal_kind="quest_not_formalized",
+            title=f"User visited '{scope}' {count}x in 48h — no open Mission exists",
+            why_it_matters=(
+                f"Repeated inspection of '{scope}' signals an active problem the "
+                "Brain is not tracking. Without a Mission, findings are never "
+                "surfaced, owners are never assigned, and resolution is not measured."
+            ),
+            do_this=(
+                f"Create a Mission scoped to '{scope}' via Supply Chain Pipeline "
+                "→ 'New Quest'. Describe what you are investigating and the Brain "
+                "will begin generating findings automatically."
+            ),
+            owner_role="Supply Chain",
+            priority=prio,
+            severity=_severity(prio),
+            target_entity=scope,
+            evidence={"scope_tag": scope, "visit_count_48h": count},
+        ))
+    return out
+
 _GENERATORS: list[Callable] = [
     _gen_low_dispatch_quality,
     _gen_peer_unreachable,
@@ -797,7 +1029,12 @@ _GENERATORS: list[Callable] = [
     _gen_mission_signals,
     _gen_corpus_stagnation,
     _gen_doc_rag_coverage,
+    _gen_fallback_parse_warning,
+    _gen_scope_underpowered,
+    _gen_network_exposure_check,
+    _gen_user_focus_signal,
 ]
+
 
 
 # ---------------------------------------------------------------------------

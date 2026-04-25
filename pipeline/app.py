@@ -150,4 +150,10 @@ with st.sidebar:
     st.markdown("🔵 Azure SQL · `edap-replica-cms-sqldb`")
     st.markdown("🔴 Oracle Fusion · `DEV13`")
 
+try:
+    from src.brain.ui_action_log import log_page_visit
+    log_page_visit(pg.title, st.session_state.get("g_site", ""))
+except Exception:
+    pass
+
 pg.run()
