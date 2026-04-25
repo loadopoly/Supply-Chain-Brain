@@ -1,0 +1,221 @@
+# cloud_learning.yml
+# GitHub Actions cloud-side learning continuity.
+#
+# Purpose: keep the Brain learning even when the local machine is down.
+# Runs every 4 hours on GitHub-hosted Ubuntu runners.  Each run:
+#   1. Restores a persistent cloud-state SQLite DB from Actions Cache
+#   2. Runs public-API learning ingestors: OCW courses + ML/arxiv research
+#   3. Appends new learning_log rows to cloud_learning_queue.jsonl
+#   4. Saves the updated DB back to cache
+#   5. Commits cloud_learning_queue.jsonl to main
+#
+# When the local machine comes back online, resumption_manager.py ingests
+# the queue file and the local Brain catches up on everything learned while
+# it was offline.
+#
+# Required GitHub Secrets:
+#   OPENROUTER_API_KEY — for LLM-assisted self-train (optional; runs skip
+#                        gracefully if missing)
+#   GH_PAT             — a fine-grained PAT with Contents: write to this repo
+#                        (needed for the commit-back step)
+
+name: Cloud Learning Continuity
+
+on:
+  schedule:
+    # Every 4 hours — keeps learning gap ≤ 4 h regardless of local uptime
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      force_full_ocw:
+        description: "Force full OCW re-scan (ignore cursor)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  learn:
+    name: Cloud Learning Round
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      # ── Python setup ────────────────────────────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --quiet --upgrade pip
+          # Install only the deps needed by the corpus ingestors (no GUI libs)
+          pip install --quiet \
+            requests beautifulsoup4 lxml \
+            openai anthropic \
+            pydantic python-dateutil \
+            pyarrow pandas \
+            || true
+          # Full install with fallback so broken optional deps don't abort
+          pip install --quiet -r pipeline/requirements.txt || \
+            pip install --quiet requests beautifulsoup4 lxml pydantic python-dateutil
+
+      # ── Restore cloud DB from cache ─────────────────────────────────────────
+      - name: Restore cloud learning DB
+        id: cache-db
+        uses: actions/cache@v4
+        with:
+          path: pipeline/cloud_brain.sqlite
+          key: cloud-brain-db-${{ runner.os }}-v1
+          restore-keys: |
+            cloud-brain-db-${{ runner.os }}-
+
+      # ── Run cloud learning round ─────────────────────────────────────────────
+      - name: Run cloud learning ingestors
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          SCB_CLOUD_RUN: "true"
+          SCB_DB_PATH: pipeline/cloud_brain.sqlite
+        run: |
+          cd pipeline
+          python - <<'PYEOF'
+          import os, sys, json, sqlite3, time, logging
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          logging.basicConfig(level=logging.INFO,
+                              format="%(asctime)s %(levelname)s %(message)s")
+
+          # ── Use dedicated cloud DB (never local_brain.sqlite) ────────────────
+          db_path = Path(os.environ.get("SCB_DB_PATH", "cloud_brain.sqlite"))
+          run_id  = os.environ.get("GITHUB_RUN_ID", f"local_{int(time.time())}")
+          os.environ["SCB_DB_PATH"] = str(db_path.resolve())
+
+          sys.path.insert(0, ".")
+          from src.brain.knowledge_corpus import init_schema, _conn, _Stats
+          from src.brain.knowledge_corpus import (
+              _get_cursor, _set_cursor,
+              _ingest_ocw_courses, _ingest_ocw_resources,
+              _ingest_ml_research, _ocw_expansion_outreach,
+          )
+
+          init_schema()
+          queue_file = Path("cloud_learning_queue.jsonl")
+          queue_file.touch()
+
+          # Read existing queue length so we only append new entries
+          existing_lines = len(queue_file.read_text(encoding="utf-8").splitlines())
+          logging.info(f"cloud_brain.sqlite ready | existing queue lines: {existing_lines}")
+
+          stats    = _Stats()
+          new_logs = []
+
+          # Monkey-patch _log_learning to also capture entries for the queue
+          import src.brain.knowledge_corpus as _kc
+          _orig_log = _kc._log_learning
+          def _capturing_log(cn, stats, *, kind, title, signal, detail):
+              _orig_log(cn, stats, kind=kind, title=title, signal=signal, detail=detail)
+              new_logs.append({
+                  "kind":        kind,
+                  "title":       title,
+                  "signal":      signal,
+                  "detail":      detail,
+                  "logged_at":   datetime.now(tz=timezone.utc).isoformat(),
+                  "cloud_run_id": run_id,
+              })
+          _kc._log_learning = _capturing_log
+
+          # ── Run ingestors ────────────────────────────────────────────────────
+          with _conn() as cn:
+              # OCW courses
+              try:
+                  c = _get_cursor(cn, "ocw_courses")
+                  new_c = _ingest_ocw_courses(cn, stats, c)
+                  _set_cursor(cn, "ocw_courses", new_c)
+                  logging.info(f"OCW courses: +{stats.learnings_logged} learnings")
+              except Exception as e:
+                  logging.warning(f"OCW courses failed: {e}")
+
+              # OCW resources
+              try:
+                  c = _get_cursor(cn, "ocw_resources")
+                  new_c = _ingest_ocw_resources(cn, stats, c)
+                  _set_cursor(cn, "ocw_resources", new_c)
+                  logging.info(f"OCW resources: +{stats.learnings_logged} learnings")
+              except Exception as e:
+                  logging.warning(f"OCW resources failed: {e}")
+
+              # ML / arxiv research
+              try:
+                  c = _get_cursor(cn, "ml_research")
+                  new_c = _ingest_ml_research(cn, stats, c)
+                  _set_cursor(cn, "ml_research", new_c)
+                  logging.info(f"ML research: +{stats.learnings_logged} learnings")
+              except Exception as e:
+                  logging.warning(f"ML research failed: {e}")
+
+              # OCW expansion outreach (deepens existing courses)
+              try:
+                  _ocw_expansion_outreach(cn, stats, max_courses=5)
+              except Exception as e:
+                  logging.warning(f"OCW expansion failed: {e}")
+
+              cn.commit()
+
+          # ── Append new entries to cloud_learning_queue.jsonl ─────────────────
+          if new_logs:
+              with queue_file.open("a", encoding="utf-8") as fh:
+                  for entry in new_logs:
+                      fh.write(json.dumps(entry) + "\n")
+              # Keep queue bounded: retain last 50 000 lines
+              all_lines = queue_file.read_text(encoding="utf-8").splitlines()
+              if len(all_lines) > 50000:
+                  queue_file.write_text(
+                      "\n".join(all_lines[-50000:]) + "\n", encoding="utf-8"
+                  )
+
+          logging.info(
+              f"Cloud round complete | "
+              f"entities +{stats.entities_added} | "
+              f"edges +{stats.edges_added} | "
+              f"learnings +{stats.learnings_logged} | "
+              f"queue_entries +{len(new_logs)}"
+          )
+          print(f"::notice title=Cloud Learning::"
+                f"+{stats.learnings_logged} learnings, "
+                f"+{stats.edges_added} edges queued for local ingestion")
+          PYEOF
+
+      # ── Save updated cloud DB to cache ───────────────────────────────────────
+      - name: Save cloud learning DB
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: pipeline/cloud_brain.sqlite
+          key: cloud-brain-db-${{ runner.os }}-v1-${{ github.run_id }}
+
+      # ── Commit queue file back to main ────────────────────────────────────────
+      - name: Commit cloud learning queue
+        run: |
+          git config user.name  "SCB Cloud Runner"
+          git config user.email "scb-cloud@loadopoly.github"
+          git add pipeline/cloud_learning_queue.jsonl
+          if git diff --cached --quiet; then
+            echo "No new queue entries to commit."
+          else
+            ENTRIES=$(wc -l < pipeline/cloud_learning_queue.jsonl)
+            git commit -m "cloud-learning: +$(git diff HEAD~1 --stat pipeline/cloud_learning_queue.jsonl 2>/dev/null | grep -oP '\+\d+' | head -1 || echo '?') entries (run ${{ github.run_id }}, total ${ENTRIES} lines)"
+            git push origin main
+            echo "Queue committed and pushed."
+          fi

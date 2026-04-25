@@ -3,6 +3,7 @@ import subprocess
 import os
 import logging
 import math
+import sqlite3
 from datetime import datetime
 
 # Configure logging
@@ -23,6 +24,26 @@ def start_integrated_skill_acquirer():
         return t
     except ImportError as e:
         logging.error(f"Failed to load integrated skill acquirer: {e}")
+        return None
+
+
+def start_network_observer():
+    """Start the network observer daemon — latent learning continuity across
+    all nodes.  Publishes this node's learning state, monitors peer liveness,
+    absorbs offline peers' corpus segments, and drives network-wide velocity
+    toward the type5_sc end goal.  Runs whether or not any peers are visible."""
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from src.brain.network_observer import schedule_in_background
+        t = schedule_in_background(interval_s=60)
+        logging.info(
+            "NetworkObserver started — peer liveness, corpus absorption, "
+            "singularity velocity toward quest:type5_sc."
+        )
+        return t
+    except Exception as e:
+        logging.error(f"Failed to start NetworkObserver: {e}")
         return None
 
 
@@ -403,6 +424,29 @@ def autonomous_loop():
     logging.info("Initializing 24/7 Autonomous Improvement Agent lifecycle.")
     print("Autonomous Agent initiated. Running in background. See autonomous_agent.log for details.")
 
+    # ── Resumption check — detect downtime, ingest cloud queue, burst catchup ──
+    # Must run before the main loop so the first cycle operates with full state.
+    try:
+        import sys
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from src.brain.resumption_manager import run_resumption_check, stamp_alive, stamp_graceful_shutdown
+        from src.brain.local_store import db_path as _db_path
+        with sqlite3.connect(str(_db_path()), timeout=15) as _rcn:
+            _rcn.row_factory = sqlite3.Row
+            _rpt = run_resumption_check(_rcn)
+            _rcn.commit()
+        if _rpt.is_downtime:
+            logging.warning(
+                f"RESUMPTION: {_rpt.message} | "
+                f"cloud_entries_ingested={_rpt.cloud_entries_ingested}"
+            )
+        else:
+            logging.info(f"RESUMPTION: {_rpt.message}")
+    except Exception as _re:
+        logging.error(f"Resumption check failed (non-fatal): {_re}")
+        stamp_alive = None
+        stamp_graceful_shutdown = None
+
     # Start the shared compute grid node so this workstation contributes its
     # CPU/GPU to the Brain's parallel multi-LLM dispatch (port 8000, already
     # exposed by bridge_watcher.ps1). Also publish an initial capacity beacon
@@ -424,6 +468,21 @@ def autonomous_loop():
     # autonomous_agent is imported and called programmatically rather than
     # executed as __main__.
     start_systemic_refinement_agent()
+
+    # Start the Network Observer daemon — latent always-on capability.
+    # Publishes learning state to the OneDrive rendezvous, monitors peer
+    # liveness, absorbs offline peers' corpus segments at burst rate, and
+    # maintains singularity consumption velocity toward quest:type5_sc.
+    # No new ports or infrastructure required — rides the existing
+    # bridge_state/compute_peers/ fabric.
+    start_network_observer()
+
+    # Alias for stamp_alive — set in resumption block above; fall back to no-op.
+    _alive_stamper = stamp_alive if 'stamp_alive' in dir() and stamp_alive else None
+    _graceful_stamper = stamp_graceful_shutdown if 'stamp_graceful_shutdown' in dir() and stamp_graceful_shutdown else None
+    _alive_db_path = str(_db_path()) if '_db_path' in dir() else None
+    _stamp_interval = 300   # stamp alive every 5 minutes
+    _last_stamp = 0.0
 
     while True:
         try:
@@ -474,13 +533,32 @@ def autonomous_loop():
             heartbeat_file = os.path.join("logs", "agent_heartbeat.txt")
             os.makedirs("logs", exist_ok=True)
             for _ in range(sleep_duration // interval):
+                _now = time.time()
                 with open(heartbeat_file, "w") as f:
-                    f.write(str(time.time()))
+                    f.write(str(_now))
+                # Stamp alive in DB every _stamp_interval seconds so
+                # resumption_manager can detect crashes accurately.
+                if _alive_stamper and _alive_db_path and (_now - _last_stamp) >= _stamp_interval:
+                    try:
+                        with sqlite3.connect(_alive_db_path, timeout=5) as _scn:
+                            _alive_stamper(_scn)
+                            _scn.commit()
+                        _last_stamp = _now
+                    except Exception:
+                        pass
                 time.sleep(interval)
 
         except KeyboardInterrupt:
             print("Autonomous Agent terminated by user.")
             logging.info("Agent manually terminated.")
+            # Stamp graceful shutdown so next startup knows this was intentional.
+            if _graceful_stamper and _alive_db_path:
+                try:
+                    with sqlite3.connect(_alive_db_path, timeout=5) as _gcn:
+                        _graceful_stamper(_gcn)
+                        _gcn.commit()
+                except Exception:
+                    pass
             break
         except Exception as e:
             logging.error(f"Critical cycle failure: {e}. Attempting recovery in 60 seconds...")
