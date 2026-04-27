@@ -1,10 +1,8 @@
 # agent_watcher.ps1
-# Persistent watchdog for autonomous_agent.py — run as a Scheduled Task.
-# Never lets the learning process stop:
-#   - Starts autonomous_agent.py immediately on boot
-#   - Detects crashes and restarts within 30 seconds
-#   - Writes heartbeat every 30 s so downtime is measurable
-#   - Records downtime windows to logs/downtime_log.json for learning debt
+# Optional compatibility bootstrap for autonomous_agent.py.
+# The primary watcher now runs inside Python as src.brain.internal_watcher.
+# This wrapper may still be used by external launchers, but it starts the
+# internal watcher rather than being the Brain's core supervision mechanism.
 
 $ErrorActionPreference = "Continue"
 $Root      = "$env:USERPROFILE\OneDrive - astecindustries.com\VS Code\pipeline"
@@ -72,7 +70,7 @@ if (-not (Test-Path $AgentScript)) {
     exit 1
 }
 
-Write-WatchLog "Watchdog started. Agent: $AgentScript | Python: $PythonExe"
+Write-WatchLog "Bootstrap watcher started. Agent: $AgentScript | Python: $PythonExe"
 Write-Heartbeat
 
 # ─── Main watchdog loop ───────────────────────────────────────────────────────
@@ -80,10 +78,10 @@ $downSince = 0  # epoch when agent was last seen as DOWN (0 = currently UP)
 
 while ($true) {
     # Launch agent as a child process
-    Write-WatchLog "Starting autonomous_agent.py ..."
+    Write-WatchLog "Starting autonomous_agent.py internal watcher ..."
     try {
         $proc = Start-Process -FilePath $PythonExe `
-            -ArgumentList $AgentScript `
+            -ArgumentList @("`"$AgentScript`"") `
             -WorkingDirectory $Root `
             -PassThru -NoNewWindow
 

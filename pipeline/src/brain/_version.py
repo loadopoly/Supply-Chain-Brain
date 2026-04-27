@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-__version__ = "0.18.3"
+__version__ = "0.19.0"
 __release__ = (
-    "Autonomous Failsafe + Network Observer. "
-    "Learning never stops and the Entirety migrates to any machine through inherent structure. "
-    "network_observer.py: latent daemon in every agent; publishes learning state to the "
-    "OneDrive-synced compute_peers/ rendezvous; monitors peer liveness (ALIVE/COOLING/OFFLINE); "
-    "absorbs offline peer corpus cursors + schedules proportional catchup burst; tracks "
-    "singularity consumption velocity (\u03a3 learnings / \u03a3 uptime-hours) across all visible "
+    "Session-Store Cloud Sync + Symbiotic Loop + Citation-Chain Acquirer + Internal Watcher. "
+    "Session history flows through every node in the distributed fabric: each autonomous agent "
+    "pushes its own session-store blob to Azure Blob Storage and pulls all peer blobs on a "
+    "slow cadence inside the network_observer loop. Offline peer absorption now also absorbs "
+    "the peer's full session history. citation_chain_acquirer.py follows bibliography chains "
+    "recursively via Semantic Scholar + OpenAlex to deepen the research frontier. "
+    "internal_watcher.py replaces Windows Scheduled Task dependency with a Python-native "
+    "supervisor that launches, monitors, and restarts the learning child process. "
+    "Cloud-learning workflow refactored to DB high-water mark for deterministic queue capture. "
+    "Free-tier OpenRouter model pool expanded and verified live."
+)
     "nodes toward quest:type5_sc; pulses goal-alignment signal each cycle. "
     "resumption_manager.py: detects downtime gap on startup, classifies crash vs graceful, "
     "git-pulls latest cloud_learning_queue.jsonl, ingests queued cloud events, schedules "

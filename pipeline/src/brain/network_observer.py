@@ -119,12 +119,19 @@ class _PeerState:
     phase:           int = 0
     alive_since:     float = 0.0
     status:          str = "UNKNOWN"  # ALIVE | COOLING | OFFLINE
+    session_blob:    str = ""         # blob name in Azure if peer has pushed
 
 
 # Per-process memory so we don't re-absorb the same peer twice
 _ABSORBED_PEERS: set[str] = set()
 _PEER_REGISTRY:  dict[str, _PeerState] = {}
 _REGISTRY_LOCK = threading.Lock()
+
+# Session-store sync cadence (seconds)
+_SESSION_PUSH_INTERVAL_S = 900   # 15 min — push this node's session blob
+_SESSION_PULL_INTERVAL_S = 1800  # 30 min — pull ALIVE peer blobs
+_last_session_push: float = 0.0
+_last_session_pull: float = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +165,9 @@ def _observer_loop(interval_s: int = _OBSERVE_INTERVAL_S) -> None:
             # 5. Ensure end-goal alignment is persisted
             _pulse_goal_alignment()
 
+            # 6. Session-store cloud sync — children's session knowledge
+            _sync_session_stores(current, now)
+
         except Exception as exc:
             logging.warning(f"network_observer: cycle error: {exc}")
 
@@ -188,6 +198,7 @@ def _publish_learning_state() -> None:
         "ts":            datetime.now(tz=timezone.utc).isoformat(),
         "learning":      learning,
         "goal":          "type5_sc",
+        "session_blob":  _local_session_blob_name(),
     })
     try:
         peer_file.write_text(json.dumps(existing, indent=2), encoding="utf-8")
@@ -311,6 +322,7 @@ def _scan_peers(now: float) -> dict[str, _PeerState]:
                 phase=int(learning.get("phase", 0)),
                 alive_since=float(learning.get("alive_since", 0.0)),
                 status=status,
+                session_blob=str(d.get("session_blob", "")),
             )
             peers[host] = ps
         except Exception:
@@ -448,6 +460,10 @@ def _absorb_peer(ps: _PeerState, now: float) -> None:
     except Exception as exc:
         logging.error(f"network_observer: absorption failed for {ps.host}: {exc}")
 
+    # Also absorb this peer's session store if it published one
+    if ps.session_blob:
+        _pull_peer_session_blob(ps.host, ps.session_blob)
+
 
 # ---------------------------------------------------------------------------
 # Step 4 — network velocity metric
@@ -497,6 +513,124 @@ def _update_network_velocity(current: dict[str, _PeerState], now: float) -> None
             f"velocity={velocity:.1f} learnings/h, "
             f"Σ learnings={total_learnings}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Step 6 — session-store cloud sync
+# ---------------------------------------------------------------------------
+
+def _local_session_blob_name() -> str:
+    """Return the blob name this node would push, or '' if sync is not configured."""
+    acct = os.environ.get("COPILOT_STORAGE_ACCOUNT", "")
+    if not acct:
+        return ""
+    import socket as _sock
+    return f"session-store-{_sock.gethostname().lower()}.db"
+
+
+def _sync_session_stores(current: dict[str, "_PeerState"], now: float) -> None:
+    """Push this node's session store and pull ALIVE peers' blobs on a slow
+    cadence so session knowledge flows through the symbiotic loop."""
+    global _last_session_push, _last_session_pull
+    acct = os.environ.get("COPILOT_STORAGE_ACCOUNT", "")
+    if not acct:
+        return
+    container = os.environ.get("COPILOT_STORAGE_CONTAINER", "copilot-sessions")
+
+    # Push this node's store (rebuild first to pick up new sessions)
+    if now - _last_session_push >= _SESSION_PUSH_INTERVAL_S:
+        try:
+            _push_local_session_store(acct, container)
+            _last_session_push = now
+        except Exception as exc:
+            logging.debug(f"network_observer: session push failed: {exc}")
+
+    # Pull ALIVE peers that advertise a session blob
+    if now - _last_session_pull >= _SESSION_PULL_INTERVAL_S:
+        alive_with_blob = [
+            ps for ps in current.values()
+            if ps.status in ("ALIVE", "COOLING") and ps.session_blob
+        ]
+        for ps in alive_with_blob:
+            try:
+                _pull_peer_session_blob(ps.host, ps.session_blob)
+            except Exception as exc:
+                logging.debug(f"network_observer: session pull from {ps.host} failed: {exc}")
+        if alive_with_blob:
+            _last_session_pull = now
+
+
+def _push_local_session_store(acct: str, container: str) -> None:
+    """Rebuild the local session-store.db and push it to Azure Blob."""
+    builder = Path.home() / ".copilot" / "build_session_store.py"
+    if not builder.exists():
+        return
+    import subprocess
+    result = subprocess.run(
+        ["python", str(builder), "--push",
+         "--storage-account", acct, "--container", container],
+        capture_output=True, text=True, timeout=120,
+    )
+    if result.returncode == 0:
+        logging.info("network_observer: session store pushed to Azure Blob")
+    else:
+        logging.debug(f"network_observer: session push stderr: {result.stderr[:200]}")
+
+
+def _pull_peer_session_blob(host: str, blob_name: str) -> None:
+    """Download a peer's session-store blob and merge into local DB."""
+    acct = os.environ.get("COPILOT_STORAGE_ACCOUNT", "")
+    container = os.environ.get("COPILOT_STORAGE_CONTAINER", "copilot-sessions")
+    if not acct or not blob_name:
+        return
+    try:
+        from azure.storage.blob import BlobServiceClient  # type: ignore
+        from azure.identity import DefaultAzureCredential  # type: ignore
+    except ImportError:
+        return
+
+    import tempfile, sqlite3 as _sql, sys as _sys
+    # Lazy-import the merge helper from build_session_store.py
+    builder = Path.home() / ".copilot" / "build_session_store.py"
+    if not builder.exists():
+        return
+
+    db_local = Path.home() / ".copilot" / "session-store.db"
+    if not db_local.exists():
+        return
+
+    svc = BlobServiceClient(
+        account_url=f"https://{acct}.blob.core.windows.net",
+        credential=DefaultAzureCredential(),
+    )
+    cc = svc.get_container_client(container)
+    try:
+        data = cc.download_blob(blob_name).readall()
+    except Exception:
+        return  # blob doesn't exist yet
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        tmp.write(data)
+        tmp_path = Path(tmp.name)
+
+    try:
+        # Use _merge_remote_db from builder module
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("build_session_store", str(builder))
+        mod = importlib.util.module_from_spec(spec)  # type: ignore
+        spec.loader.exec_module(mod)  # type: ignore
+        local_con = _sql.connect(str(db_local))
+        ns, nt, nf = mod._merge_remote_db(tmp_path, local_con)
+        if ns or nt or nf:
+            mod._rebuild_fts(local_con)
+            local_con.commit()
+            logging.info(
+                f"network_observer: merged session store from {host} "
+                f"— sessions+{ns} turns+{nt} files+{nf}"
+            )
+        local_con.close()
+    finally:
+        tmp_path.unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,65 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
-## [0.18.3] Autonomous Failsafe + Network Observer (2026-04-24)
+## [0.19.0] Session-Store Cloud Sync + Citation-Chain Acquirer + Internal Watcher (2026-04-27)
+
+### Added
+
+- **`~/.copilot/build_session_store.py`** — Azure Blob Storage cloud sync for the session store
+  - `push_to_cloud(account, container)` — uploads `session-store-{hostname}.db` to Azure Blob
+  - `pull_from_cloud(account, container)` — downloads all `session-store-*.db` node blobs, merges via `INSERT OR IGNORE`, rebuilds FTS index
+  - `_merge_remote_db(remote_path, local_con)` — per-table merge helper used by both pull and the network observer
+  - `_rebuild_fts(con)` — extracted helper that repopulates `search_index` from sessions, turns, checkpoints (used by build, pull, and network observer merge)
+  - New CLI flags: `--push`, `--pull`, `--storage-account`, `--container`, `--node`
+  - Auth via `DefaultAzureCredential` (uses existing `az login` / Entra identity, no secrets stored)
+  - Container `copilot-sessions` created on first push if absent
+
+- **`pipeline/src/brain/network_observer.py`** — Step 6: symbiotic session-store sync
+  - Peer JSON heartbeat now includes `"session_blob": "session-store-{hostname}.db"` field
+  - `_sync_session_stores()` runs every observer cycle: pushes local session store every 15 min, pulls ALIVE/COOLING peer blobs every 30 min
+  - `_pull_peer_session_blob(host, blob_name)` — lazy-imports `_merge_remote_db` + `_rebuild_fts` from `build_session_store.py` and merges the peer's session history into the local store
+  - Offline peer absorption (`_absorb_peer`) now also pulls the peer's session blob alongside corpus cursor absorption
+  - Controlled by `COPILOT_STORAGE_ACCOUNT` + `COPILOT_STORAGE_CONTAINER` env vars — no configuration needed on nodes already in the fabric
+
+- **`pipeline/src/brain/citation_chain_acquirer.py`** — recursive citation-chain follower
+  - Follows bibliography chains from known papers: Semantic Scholar Graph API + OpenAlex `referenced_works`
+  - Supply-chain relevance filter (keyword overlap) prevents frontier drift
+  - Configurable `max_depth` and `max_papers_per_run`; deduplication via `brain_kv` key `citation_chain:seen`
+  - `run_citation_expansion_cycle(max_depth, max_papers_per_run)` — public entry point
+  - `schedule_in_background(interval_s=3600)` — daemon thread variant
+  - Wired into `cloud_learning.yml` as part of each cloud run
+
+- **`pipeline/src/brain/internal_watcher.py`** — Python-native process supervisor
+  - Replaces the assumption that Windows Scheduled Tasks are required for learning continuity
+  - Launches `autonomous_agent.py` as a child process, monitors liveness, restarts on exit
+  - Records downtime windows to `logs/downtime_log.json`; keeps resumption heartbeat fresh while child is alive
+  - Logs to `logs/internal_agent_watcher.log`; writes status JSON to `logs/internal_agent_watcher_status.json`
+  - Disabled via `SCB_DISABLE_INTERNAL_WATCHER` env var; child detected via `SCB_INTERNAL_WATCHER_CHILD`
+
+### Changed
+
+- **`pipeline/requirements.txt`** — added `azure-storage-blob>=12.19,<13`
+
+- **`.github/workflows/cloud_learning.yml`** — refactored queue capture to DB high-water mark
+  - Records `MAX(id)` from `learning_log` before each run; reads all new rows afterward
+  - Removes monkey-patching of `_kc._log_learning`; queue now captures citation-chain entries too
+  - Adds `citation_chain_acquirer.run_citation_expansion_cycle()` step in each cloud run
+
+- **`pipeline/agent_watcher.ps1`** — demoted to compatibility shim
+  - Primary supervision is now `internal_watcher.py` (Python-native, OS-agnostic)
+  - PowerShell wrapper may still be used by external launchers but defers to the internal watcher
+
+- **`pipeline/src/brain/llm_caller_openrouter.py`** — free-tier model pool expanded
+  - Added: `llama-3.3-70b`, `nemotron-120b`, `gemma-3-27b`, `qwen3-coder`, `hermes-3-405b`, `ling-2.6-1t`
+  - Removed unverified paid-tier slugs (`deepseek-v4-pro`, `deepseek-v4-flash`)
+  - All models verified live against OpenRouter catalog on 2026-04-27
+
+- **`pipeline/src/brain/local_store.py`** — `SCB_DB_PATH` environment override
+  - `db_path()` now checks `os.environ.get("SCB_DB_PATH")` first, enabling ephemeral cloud runs to point to a separate DB without modifying source
+
+- **`pipeline/src/deck/demo.py`** — added `"PDC"` to known site list
+
+
 
 ### Added
 

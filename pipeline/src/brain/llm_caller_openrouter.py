@@ -25,9 +25,9 @@ log = logging.getLogger(__name__)
 
 # ── Model ID → OpenRouter :free slug ────────────────────────────────────────
 # brain.yaml uses canonical internal IDs; OpenRouter uses vendor/name:free slugs.
-# These slugs are grounded to the current OpenRouter catalog as of 2026-04-23.
+# Verified against live OpenRouter catalog on 2026-04-27 via /api/v1/models.
 _OR_MODEL_MAP: dict[str, str] = {
-    # ── Main registry (free tier) ─────────────────────────────────────────
+    # ── Main registry (free tier, all verified live) ──────────────────────
     "gemma-4":              "google/gemma-4-31b-it:free",
     "glm-5.1":              "z-ai/glm-4.5-air:free",
     "qwen3.5-397b-a17b":    "qwen/qwen3-next-80b-a3b-instruct:free",
@@ -35,13 +35,19 @@ _OR_MODEL_MAP: dict[str, str] = {
     "kimi-k2.5":            "openai/gpt-oss-20b:free",
     "minimax-m2.7":         "minimax/minimax-m2.5:free",
     "mimo-v2-flash":        "google/gemma-3n-e4b-it:free",
-    # ── Candidates (paid tier — require OR account with credits) ──────────
-    "deepseek-v4-pro":      "deepseek/deepseek-v4-pro",
-    "deepseek-v4-flash":    "deepseek/deepseek-v4-flash",
+    # ── Additional free-tier models for richer fallback pool ──────────────
+    "llama-3.3-70b":        "meta-llama/llama-3.3-70b-instruct:free",
+    "nemotron-120b":        "nvidia/nemotron-3-super-120b-a12b:free",
+    "gemma-3-27b":          "google/gemma-3-27b-it:free",
+    "qwen3-coder":          "qwen/qwen3-coder:free",
+    "hermes-3-405b":        "nousresearch/hermes-3-llama-3.1-405b:free",
+    "ling-2.6-1t":          "inclusionai/ling-2.6-1t:free",
 }
 _OR_DEFAULT = "openai/gpt-oss-20b:free"
 _OR_FALLBACKS = [
     "openai/gpt-oss-20b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemma-3-27b-it:free",
     "google/gemma-3-4b-it:free",
 ]
 _OR_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"

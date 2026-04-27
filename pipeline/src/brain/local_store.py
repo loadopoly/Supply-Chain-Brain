@@ -5,6 +5,7 @@ action-item bookmarks. The DB lives at `pipeline/local_brain.sqlite`.
 from __future__ import annotations
 import sqlite3
 from contextlib import contextmanager
+import os
 from pathlib import Path
 from typing import Iterable
 import pandas as pd
@@ -13,6 +14,9 @@ _DB_PATH = Path(__file__).resolve().parents[2] / "local_brain.sqlite"
 
 
 def db_path() -> Path:
+    override = os.environ.get("SCB_DB_PATH")
+    if override:
+        return Path(override).expanduser().resolve()
     return _DB_PATH
 
 

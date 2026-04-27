@@ -21,6 +21,7 @@ SITES = [
     "Burlington",
     "Eugene - Airport Road",
     "Parsons",
+    "PDC",
 ]
 
 OTD_REASONS = [

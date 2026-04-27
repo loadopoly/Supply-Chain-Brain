@@ -118,23 +118,11 @@ jobs:
           existing_lines = len(queue_file.read_text(encoding="utf-8").splitlines())
           logging.info(f"cloud_brain.sqlite ready | existing queue lines: {existing_lines}")
 
-          stats    = _Stats()
-          new_logs = []
-
-          # Monkey-patch _log_learning to also capture entries for the queue
-          import src.brain.knowledge_corpus as _kc
-          _orig_log = _kc._log_learning
-          def _capturing_log(cn, stats, *, kind, title, signal, detail):
-              _orig_log(cn, stats, kind=kind, title=title, signal=signal, detail=detail)
-              new_logs.append({
-                  "kind":        kind,
-                  "title":       title,
-                  "signal":      signal,
-                  "detail":      detail,
-                  "logged_at":   datetime.now(tz=timezone.utc).isoformat(),
-                  "cloud_run_id": run_id,
-              })
-          _kc._log_learning = _capturing_log
+          stats = _Stats()
+          with _conn() as cn:
+              start_learning_id = cn.execute(
+                  "SELECT COALESCE(MAX(id), 0) FROM learning_log"
+              ).fetchone()[0]
 
           # ── Run ingestors ────────────────────────────────────────────────────
           with _conn() as cn:
@@ -171,12 +159,46 @@ jobs:
               except Exception as e:
                   logging.warning(f"OCW expansion failed: {e}")
 
+              # Citation-chain expansion follows references from known papers.
+              # It writes directly to learning_log, so the queue builder below
+              # reads from the DB high-water mark rather than a monkey-patch.
+              try:
+                  from src.brain.citation_chain_acquirer import run_citation_expansion_cycle
+                  cc = run_citation_expansion_cycle(max_depth=1, max_papers_per_run=25)
+                  logging.info(f"Citation-chain expansion: {cc}")
+              except Exception as e:
+                  logging.warning(f"Citation-chain expansion failed: {e}")
+
               cn.commit()
 
+          queue_entries = []
+          with _conn() as cn:
+              rows = cn.execute(
+                  """SELECT id, logged_at, kind, title, detail, signal_strength
+                     FROM learning_log
+                     WHERE id > ?
+                     ORDER BY id""",
+                  (int(start_learning_id),),
+              ).fetchall()
+              for row in rows:
+                  try:
+                      detail = json.loads(row["detail"] or "{}")
+                  except Exception:
+                      detail = row["detail"]
+                  queue_entries.append({
+                      "kind": row["kind"],
+                      "title": row["title"],
+                      "signal": row["signal_strength"],
+                      "detail": detail,
+                      "logged_at": row["logged_at"],
+                      "source_id": row["id"],
+                      "cloud_run_id": run_id,
+                  })
+
           # ── Append new entries to cloud_learning_queue.jsonl ─────────────────
-          if new_logs:
+          if queue_entries:
               with queue_file.open("a", encoding="utf-8") as fh:
-                  for entry in new_logs:
+                  for entry in queue_entries:
                       fh.write(json.dumps(entry) + "\n")
               # Keep queue bounded: retain last 50 000 lines
               all_lines = queue_file.read_text(encoding="utf-8").splitlines()
@@ -190,7 +212,7 @@ jobs:
               f"entities +{stats.entities_added} | "
               f"edges +{stats.edges_added} | "
               f"learnings +{stats.learnings_logged} | "
-              f"queue_entries +{len(new_logs)}"
+              f"queue_entries +{len(queue_entries)}"
           )
           print(f"::notice title=Cloud Learning::"
                 f"+{stats.learnings_logged} learnings, "
