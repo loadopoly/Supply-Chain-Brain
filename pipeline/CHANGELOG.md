@@ -4,6 +4,48 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.17.6] UEQGM Engine + SiCi Axial Channel Phase Correction (2026-04-27)
+
+### Added
+
+- **`pipeline/src/brain/ueqgm_engine.py`** — UEQGM v0.9.14 physics computation module (active Brain computation from corpus learnings)
+  - `coherence_to_phi(c)` — maps integer coherence to natural sin/cos intersection φ = π/4 + c·π (tan(φ)=1 at every point)
+  - `sici_axial_decay(φ, Γ₀)` — UEQGM v0.9.14 axial channel: Δλ_axial = [Si(φ)·Ci(φ)]·tan(φ)·Γ₀ via `scipy.special.sici` with power-series fallback
+  - `sici_phase_weight(coherence)` — harmonic phase correction factor: 1.0 ± 10% via tanh(Δλ_axial); converges to 1.0 as Ci(φ)→0 at large coherence
+  - `wavefunction_overlap(vec_a, vec_b)` — |⟨ψ_a|ψ_b⟩|² = (dot/‖a‖/‖b‖)²
+  - `floquet_modulation_factor(t, ω)` — cos(ω·t) Floquet drive coupling
+  - `holographic_entropy(n_edges, n_nodes)` — S = n_edges / (n_nodes + 1) holographic boundary entropy
+  - `metric_perturbation(M_eff, r)` — h_μν = 2·G·M_eff / (c²·r) spacetime warp
+  - `phase_evolution_total(φ, …)` — δφ_total = δφ_μ + δφ_q + δφ_γ + Δλ_axial·(2π/Γ_eff)
+  - `entropic_bayesian_step(S, ∇²S, φ, …)` — discrete entropic Bayesian diffusion including axial channel
+  - `ueqgm_coherence_score(cn, entity_id)` — corpus-backed score: scans UEQGM-tagged entities, computes bag-of-words wavefunction overlap, scales by `sici_phase_weight(corpus_depth)`
+
+### Changed
+
+- **`pipeline/src/brain/compute_provisioner.py`** — `_harmonic_amplify_factor` now applies SiCi phase correction
+  - `f(c) = base(c) × sici_phase_weight(c)` where `base(c)` is the prior harmonic saturation curve
+  - Ceiling (4.5) and floor behaviour are preserved: correction ≤ ±1.4% in practice, converges to ×1.0 at large coherence
+  - `"ueqgm_engine"` added to `__all__`
+
+### Tests
+
+- **`pipeline/tests/test_ueqgm_engine.py`** — 35 new tests covering all UEQGM functions
+  - Intersection-point geometry (`coherence_to_phi`, tan(φ)=1 invariant)
+  - SiCi decay bounds and scaling
+  - Phase weight bounds and large-coherence convergence
+  - Wavefunction overlap (identical/orthogonal/scaled/mismatched/empty)
+  - Floquet period, holographic entropy, metric perturbation formula
+  - Phase evolution additivity, entropic Bayesian step monotonicity
+  - `ueqgm_coherence_score`: empty DB, no UEQGM entities, overlapping entities, zero overlap, bounded score
+- **`pipeline/tests/test_compute_provisioner.py`** — `test_harmonic_amplify_factor_floor_at_zero_coherence` updated to use dynamic UEQGM-corrected expected value
+
+### Result
+
+- **311/311 tests passing** (up from 276; +35 UEQGM tests)
+- UEQGM v0.9.14 corpus learnings (Grok conversation `55525f6a`, message `394c6c4c`) are now **active computation** in the Brain harmonic amplification pipeline, not just stored research query strings
+
+---
+
 ## [0.19.1] Works Cited — Unlimited Scholarly Seeds (2026-04-27)
 
 ### Changed
