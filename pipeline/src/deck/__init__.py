@@ -24,5 +24,6 @@ Anchor policy       = AST-INV-PRO-0001.
 from .constants import SEED, ANCHOR_POLICY
 from .findings import build_findings
 from .builder import render_pptx
+from .biweekly_one_pager import render_biweekly_one_pager
 
-__all__ = ["build_findings", "render_pptx", "SEED", "ANCHOR_POLICY"]
+__all__ = ["build_findings", "render_pptx", "render_biweekly_one_pager", "SEED", "ANCHOR_POLICY"]

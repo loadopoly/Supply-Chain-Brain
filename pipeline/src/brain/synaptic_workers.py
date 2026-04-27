@@ -660,6 +660,49 @@ def _vision_worker() -> None:
                             f"[synapse:vision] grounded_tunneling error: {e}"
                         )
 
+                # -- Step 6: LLaDA2 sign-bit children --
+                # Directionality axes are represented as sign bits.  When a
+                # bit flips, high-uncertainty Model/corpus parents acquire
+                # LLaDAChild nodes, expanding model understanding through the
+                # existing CHILD_OF / ACQUIRES_CHILD corpus relations.
+                sign_stats: dict = {}
+                try:
+                    from src.brain.llada_signbit_children import (  # type: ignore[import]
+                        acquire_llada_signbit_children,
+                    )
+                    sign_stats = acquire_llada_signbit_children(cn)
+                except Exception as e:
+                    if _is_network_error(e):
+                        logging.info(
+                            f"[synapse:vision] llada signbit soft-skip: {e}"
+                        )
+                    else:
+                        logging.warning(
+                            f"[synapse:vision] llada_signbit_children error: {e}"
+                        )
+
+                # -- Step 7: Compute provisioner — bifurcated tunnel saturation --
+                # When accumulated GROUNDED_TUNNEL collapses / LLaDA children
+                # cross provisioning thresholds, the provisioner acquires local
+                # ComputeSlot daemon threads + virtual ComputeSlot corpus entities
+                # with torus_amplify boosts, keeping the symbiotic closed loop
+                # fully encapsulated — no external cloud calls.
+                provision_stats: dict = {}
+                try:
+                    from src.brain.compute_provisioner import (  # type: ignore[import]
+                        tick_compute_provisioner,
+                    )
+                    provision_stats = tick_compute_provisioner(cn)
+                except Exception as e:
+                    if _is_network_error(e):
+                        logging.info(
+                            f"[synapse:vision] compute_provisioner soft-skip: {e}"
+                        )
+                    else:
+                        logging.warning(
+                            f"[synapse:vision] compute_provisioner error: {e}"
+                        )
+
                 cn.commit()
             finally:
                 cn.close()
@@ -675,6 +718,16 @@ def _vision_worker() -> None:
                 f"|ground_nodes={ground_stats.get('ground_nodes', 0)}"
                 f"|ground_paths={ground_stats.get('paths_opened', 0)}"
                 f"|collapses={ground_stats.get('collapses', 0)}"
+                f"|sign_flips={len(sign_stats.get('flips', {}))}"
+                f"|sign_children={sign_stats.get('child_nodes_added', 0)}"
+                f"|provision={provision_stats.get('intent_status', 'NONE')}"
+                f"|ops_tick={provision_stats.get('ops_per_tick', 0)}"
+                f"|ingested={provision_stats.get('ingested_count', 0)}"
+                f"|anchor_count={provision_stats.get('anchor_count', 0)}"
+                f"|slot_hz={provision_stats.get('slot_interval_s', 60)}"
+                f"|coherence={provision_stats.get('harmonic_coherence', 0)}"
+                f"|mean_hf={provision_stats.get('mean_harmonic_factor', 0.0):.3f}"
+                f"|desc={provision_stats.get('total_descendants_reached', 0)}"
                 f"|elapsed={elapsed}s",
             )
             logging.info(
@@ -685,6 +738,16 @@ def _vision_worker() -> None:
                 f"ground_nodes={ground_stats.get('ground_nodes', 0)} "
                 f"paths={ground_stats.get('paths_opened', 0)} "
                 f"collapses={ground_stats.get('collapses', 0)} "
+                f"sign_flips={len(sign_stats.get('flips', {}))} "
+                f"sign_children={sign_stats.get('child_nodes_added', 0)} "
+                f"provision={provision_stats.get('intent_status', 'NONE')} "
+                f"ops_tick={provision_stats.get('ops_per_tick', 0)} "
+                f"ingested={provision_stats.get('ingested_count', 0)} "
+                f"anchor_count={provision_stats.get('anchor_count', 0)} "
+                f"slot_hz={provision_stats.get('slot_interval_s', 60)} "
+                f"coherence={provision_stats.get('harmonic_coherence', 0)} "
+                f"mean_hf={provision_stats.get('mean_harmonic_factor', 0.0):.3f} "
+                f"desc={provision_stats.get('total_descendants_reached', 0)} "
                 f"elapsed={elapsed}s"
             )
             ok = True

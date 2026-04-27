@@ -44,7 +44,7 @@ SITE_ERP_MAP = {
     "Chattanooga - Manufacturers Road":("epicor9",       "PartCount"),
     "Chattanooga - Wilson Road":       ("epicor9",       "PartCount"),
     "Eugene - Airport Road":           ("oracle_fusion", "Oracle CountEvents"),
-    "Prairie du Chien":                ("oracle_fusion", "Oracle CountEvents"),
+    "Prairie du Chien":                ("azure_sql",     "EDAP DW Replica (not Oracle Fusion)"),
     "St Cloud":                        ("oracle_fusion", "Oracle CountEvents"),
     "Burlington":                      ("oracle_fusion", "Oracle CountEvents (REXCON)"),
     "Blair":                           ("oracle_fusion", "Oracle CountEvents"),

@@ -51,7 +51,7 @@ def get_connection() -> pyodbc.Connection:
         print(f"[Azure SQL] Using stored credentials for {upn} (ActiveDirectoryPassword).")
         try:
             conn = pyodbc.connect(_build_conn_str(cfg, password=stored["password"], auth_override="ActiveDirectoryPassword"))
-            conn.timeout = 30
+            conn.timeout = int(cfg.get("query_timeout", 120))
             print("[Azure SQL] Connected.")
             return conn
         except pyodbc.Error as exc:
@@ -60,7 +60,7 @@ def get_connection() -> pyodbc.Connection:
 
     print("[Azure SQL] A browser MFA popup may appear — complete sign-in to continue.")
     conn = pyodbc.connect(_build_conn_str(cfg))
-    conn.timeout = 30
+    conn.timeout = int(cfg.get("query_timeout", 120))
     print("[Azure SQL] Connected.")
     return conn
 

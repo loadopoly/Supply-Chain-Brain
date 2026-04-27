@@ -105,34 +105,101 @@ def _resolve_site_filter(meta: _AzureMeta, conn, site: str, warnings: list[str])
     # Last-resort manual mapping for known Astec sites that don't surface text codes
     if not matches:
         manual = {
-            "chattanooga - manufacturers road": ["CHM", "MFR", "MFRS", "MFRSRD", "MFG", "MR"],
-            "chattanooga - jerome avenue":      ["JERO", "JER"],
-            "chattanooga - wilson road":        ["WILS", "WIL"],
+            "chattanooga - manufacturers road": ["ROADTEC"],
+            "chattanooga - jerome avenue":      ["ASTEC_INC"],
+            "chattanooga - wilson road":        ["HEATEC", "WILS"],
+            # Prairie du Chien — DB stores as ASTEC_PDC (also seen as PDC in older snapshots)
+            "prairie du chien":                 ["ASTEC_PDC", "PDC"],
+            "burlington":                       ["REXCON", "BU"],
+            "st cloud":                         ["AME"],
+            "st bruno":                         ["ST_BRUNO"],
+            "blair":                            ["BLAIR"],
+            "parsons":                          ["PETERSON", "KPI"],
+            "eugene - airport road":            ["AMS"],
         }
         seeds = manual.get(site_low, [])
         for c in candidates:
             cu = (c or "").upper()
-            if any(s in cu for s in seeds):
+            if any(s == cu or cu.startswith(s) for s in seeds):
                 matches.add(c)
     if matches:
         warnings.append(f"Site '{site}' resolved to business_unit_id values: {sorted(matches)}")
     return matches
 
 
-def load_live_datasets(site: str = "ALL", anchor: date | None = None) -> LiveDeckData:
+def _resolve_bu_keys(conn, meta: _AzureMeta, site_values: set[str] | None) -> list[int] | None:
+    """Map business_unit_id values to integer business_unit_key values for SQL IN-clause push-down."""
+    if not site_values or not meta.has_table("edap_dw_replica", "dim_business_unit"):
+        return None
+    try:
+        cur = conn.cursor()
+        placeholders = ",".join("?" * len(site_values))
+        cur.execute(
+            f"SELECT business_unit_key FROM [edap_dw_replica].[dim_business_unit] "
+            f"WHERE business_unit_id IN ({placeholders})",
+            list(site_values),
+        )
+        keys = [r[0] for r in cur.fetchall() if r[0] is not None and int(r[0]) > 0]
+        cur.close()
+        return keys or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _get_inv_max_snap_str(conn, meta: _AzureMeta) -> str | None:
+    """Return MAX(snapshot_day_key) from fact_inventory_on_hand_warehouse as a string.
+
+    Uses the covering index MIN/MAX optimisation — returns in ~0.1 s regardless of table size.
+    Returning a *string* rather than an integer is intentional: embedding the literal as
+    N'20260426' in the WHERE clause causes SQL Server to choose an index-seek plan, whereas
+    the integer literal 20260426 often triggers a full-scan plan on this table.
+    """
+    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand_warehouse"):
+        return None
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT MAX([snapshot_day_key]) "
+            "FROM [edap_dw_replica].[fact_inventory_on_hand_warehouse] WITH (NOLOCK)"
+        )
+        val = cur.fetchone()[0]
+        cur.close()
+        return str(val) if val is not None else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def load_live_datasets(
+    site: str = "ALL",
+    anchor: date | None = None,
+    _conn_ref: list | None = None,
+) -> LiveDeckData:
+    """Load all live datasets from Azure SQL.
+
+    Args:
+        _conn_ref: If provided, the pyodbc connection is appended to this list
+                   immediately after creation so callers can call `conn.cancel()`
+                   to interrupt a long-running query (e.g. from a UI cancel button).
+    """
     anchor_date = anchor or default_anchor()
     win = Windows(anchor_date)
     start_90, end_90 = win.baseline_90d
     start_365 = anchor_date - timedelta(days=365)
 
     conn = azure_sql.get_connection()
+    if _conn_ref is not None:
+        _conn_ref.append(conn)  # expose for cancellation
     warnings: list[str] = []
     try:
         meta = _AzureMeta(conn)
         site_values = _resolve_site_filter(meta, conn, site, warnings)
-        otd = _load_otd(conn, meta, start_90, end_90, warnings)
-        ifr = _load_ifr(conn, meta, start_90, end_90, warnings)
-        pfep = _load_pfep(conn, meta, start_365, end_90, warnings)
+        bu_keys = _resolve_bu_keys(conn, meta, site_values)
+        # Pre-fetch MAX snapshot_day_key from warehouse table (~0.1 s via index MIN/MAX).
+        # Passed as a string literal to each query — triggers the fast index-seek plan.
+        max_snap_str = _get_inv_max_snap_str(conn, meta)
+        otd = _load_otd(conn, meta, start_90, end_90, warnings, bu_keys=bu_keys, max_snap_str=max_snap_str)
+        ifr = _load_ifr(conn, meta, start_90, end_90, warnings, bu_keys=bu_keys, max_snap_str=max_snap_str)
+        pfep = _load_pfep(conn, meta, start_365, end_90, warnings, bu_keys=bu_keys, max_snap_str=max_snap_str)
         itr = _load_itr(conn, meta, start_90, end_90, warnings)
     finally:
         conn.close()
@@ -179,45 +246,183 @@ def _sql_text(value: str) -> str:
     return "N'" + value.replace("'", "''") + "'"
 
 
-def _inventory_cte(meta: _AzureMeta) -> str:
+def _inventory_cte(
+    meta: _AzureMeta,
+    bu_keys: list[int] | None = None,
+    max_snap_str: str | None = None,
+    so_start_str: str | None = None,
+    so_end_str: str | None = None,
+) -> str:
+    """Build the inventory CTE for the main SQL queries.
+
+    Performance strategy for fact_inventory_on_hand_warehouse
+    ----------------------------------------------------------
+    The table has a NONCLUSTERED index on (snapshot_day_key, part_key) INCLUDE (quantity_on_hand).
+    There is NO index on business_unit_key, so any WHERE on that column causes a full table scan
+    which exceeds the Azure SQL 30-second query timeout.
+
+    Fast path (warehouse table + max_snap_str pre-fetched):
+      1. Use N'<snap_literal>' as a WHERE predicate — this string-to-bigint conversion
+         triggers an index-seek plan; the integer literal does not (optimizer quirk).
+      2. Optionally narrow to relevant part_keys via an SO subquery with a date range.
+         This limits the index scans to ~hundreds of parts instead of the whole snapshot.
+      3. SUM(quantity_on_hand) across warehouses per part_key at that single snapshot.
+      4. NOTE: business_unit_key is intentionally excluded from inv_latest here because
+         it is not in the covering index.  Callers must join on part_key only (not bu_key).
+
+    Fallback (no max_snap_str, or only flat table):
+      Returns an empty skeleton so callers compile without errors.
+    """
+    # ── Warehouse table path (Epicor + all ERPs) ─────────────────────────────
+    if meta.has_table("edap_dw_replica", "fact_inventory_on_hand_warehouse"):
+        if max_snap_str is None:
+            # max_snap not fetched yet — return empty skeleton so SQL compiles
+            return """
+    , inv_latest AS (
+        SELECT
+            CAST(NULL AS bigint)       AS business_unit_key,
+            CAST(NULL AS bigint)       AS part_key,
+            CAST(NULL AS float)        AS quantity_on_hand,
+            CAST(NULL AS float)        AS available_qty,
+            CAST(NULL AS float)        AS safety_stock_limit,
+            CAST(NULL AS float)        AS part_quantity_min,
+            CAST(NULL AS float)        AS part_quantity_max,
+            CAST(NULL AS float)        AS order_lead_time,
+            CAST(NULL AS float)        AS part_price_local,
+            CAST(NULL AS float)        AS part_price_usd,
+            CAST(NULL AS bigint)       AS last_supplier_key,
+            CAST(NULL AS nvarchar(200)) AS supplier_name_raw,
+            CAST(NULL AS datetime)     AS aud_update_datetime,
+            CAST(NULL AS int)          AS rn
+        WHERE 1=0
+    )
+    """
+
+        # Build optional part-key filter via SO subquery (limits index scan to ~hundreds of parts)
+        part_filter = ""
+        if bu_keys:
+            keys_str = ",".join(str(int(k)) for k in bu_keys)
+            if so_start_str and so_end_str:
+                ship_date_flt = _date_expr(
+                    meta, "edap_dw_replica", "fact_sales_order_line", "sol_flt",
+                    meta.pick("edap_dw_replica", "fact_sales_order_line", "ship_day_key"),
+                )
+                part_filter = (
+                    f"\n          AND i.[part_key] IN ("
+                    f"\n              SELECT DISTINCT sol_flt.[part_key]"
+                    f"\n              FROM [edap_dw_replica].[fact_sales_order_line] sol_flt WITH (NOLOCK)"
+                    f"\n              WHERE {ship_date_flt} BETWEEN '{so_start_str}' AND '{so_end_str}'"
+                    f"\n                AND sol_flt.[business_unit_key] IN ({keys_str})"
+                    f"\n          )"
+                )
+            else:
+                part_filter = (
+                    f"\n          AND i.[part_key] IN ("
+                    f"\n              SELECT DISTINCT sol_flt.[part_key]"
+                    f"\n              FROM [edap_dw_replica].[fact_sales_order_line] sol_flt WITH (NOLOCK)"
+                    f"\n              WHERE sol_flt.[business_unit_key] IN ({keys_str})"
+                    f"\n          )"
+                )
+
+        return f"""
+    , inv_latest AS (
+        SELECT
+            CAST(NULL AS bigint)       AS business_unit_key,
+            i.[part_key],
+            SUM(CAST(i.[quantity_on_hand] AS float))  AS quantity_on_hand,
+            SUM(CAST(i.[quantity_on_hand] AS float))  AS available_qty,
+            CAST(NULL AS float)        AS safety_stock_limit,
+            CAST(NULL AS float)        AS part_quantity_min,
+            CAST(NULL AS float)        AS part_quantity_max,
+            CAST(NULL AS float)        AS order_lead_time,
+            CAST(NULL AS float)        AS part_price_local,
+            CAST(NULL AS float)        AS part_price_usd,
+            CAST(NULL AS bigint)       AS last_supplier_key,
+            CAST(NULL AS nvarchar(200)) AS supplier_name_raw,
+            CAST(NULL AS datetime)     AS aud_update_datetime,
+            1                          AS rn
+        FROM [edap_dw_replica].[fact_inventory_on_hand_warehouse] i WITH (NOLOCK)
+        WHERE i.[snapshot_day_key] = N'{max_snap_str}'{part_filter}
+        GROUP BY i.[part_key]
+    )
+    """
+
+    # ── Legacy flat table path (Oracle Fusion; currently empty) ──────────────
     if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
         return ""
-    inv_cols = meta.columns("edap_dw_replica", "fact_inventory_on_hand")
+
+    inv_schema = "edap_dw_replica"
+    inv_table = "fact_inventory_on_hand"
+
+    bu_where = ""
+    if bu_keys:
+        keys_str = ",".join(str(int(k)) for k in bu_keys)
+        bu_where = f"WHERE i.[business_unit_key] IN ({keys_str})"
+
+    inv_cols = meta.columns(inv_schema, inv_table)
     qty = "quantity_on_hand"
     demand = "demand_order_part_quantity" if "demand_order_part_quantity" in inv_cols else None
-    available = "available_qty" if "available_qty" in inv_cols else None
-    available_expr = (
-        _float(f"i.[{available}]")
-        if available
-        else (
-            f"COALESCE({_float(f'i.[{qty}]')}, 0.0) - COALESCE({_float(f'i.[{demand}]')}, 0.0)"
-            if demand
-            else f"COALESCE({_float(f'i.[{qty}]')}, 0.0)"
-        )
-    )
-    orderer = _date_expr(meta, "edap_dw_replica", "fact_inventory_on_hand", "i", "snapshot_day_key") + " DESC"
-    if "aud_update_datetime" in inv_cols:
-        orderer += ", i.[aud_update_datetime] DESC"
+    has_snap = "snapshot_day_key" in inv_cols
+    has_aud = "aud_update_datetime" in inv_cols
+
+    snap_sel = "i.[snapshot_day_key]," if has_snap else ""
+    snap_grp = ", i.[snapshot_day_key]" if has_snap else ""
+    qty_sum = f"SUM(COALESCE({_float(f'i.[{qty}]')}, 0.0))"
+    demand_sum = f"SUM(COALESCE({_float(f'i.[{demand}]')}, 0.0))" if demand else "0.0"
+    safety_agg = f"MAX({_float('i.[safety_stock_limit]')})" if "safety_stock_limit" in inv_cols else "CAST(NULL AS float)"
+    pqmin_agg = f"MAX({_float('i.[part_quantity_min]')})" if "part_quantity_min" in inv_cols else "CAST(NULL AS float)"
+    pqmax_agg = f"MAX({_float('i.[part_quantity_max]')})" if "part_quantity_max" in inv_cols else "CAST(NULL AS float)"
+    olt_agg = f"MAX({_float('i.[order_lead_time]')})" if "order_lead_time" in inv_cols else "CAST(NULL AS float)"
+    ppl_agg = f"MAX({_float('i.[part_price_local]')})" if "part_price_local" in inv_cols else "CAST(NULL AS float)"
+    ppu_agg = f"MAX({_float('i.[part_price_usd]')})" if "part_price_usd" in inv_cols else "CAST(NULL AS float)"
+    lsk_agg = "MIN(i.[last_supplier_key])" if "last_supplier_key" in inv_cols else "CAST(NULL AS bigint)"
+    psn_agg = f"MAX({_nvarchar('i.[pre_standardization_supplier_name]')})" if "pre_standardization_supplier_name" in inv_cols else "CAST(NULL AS nvarchar(200))"
+    aud_agg = "MAX(i.[aud_update_datetime])" if has_aud else "CAST(NULL AS datetime)"
+
+    snap_orderer = _date_expr(meta, inv_schema, inv_table, "agg", "snapshot_day_key") + " DESC" if has_snap else "agg.[aud_update_datetime] DESC"
+    if has_snap and has_aud:
+        snap_orderer += ", agg.[aud_update_datetime] DESC"
+
     return f"""
-    , inv_latest AS (
+    , inv_agg AS (
         SELECT
             i.[business_unit_key],
             i.[part_key],
-            {_float('i.[quantity_on_hand]')} AS quantity_on_hand,
-            {available_expr} AS available_qty,
-            {_float('i.[safety_stock_limit]') if 'safety_stock_limit' in inv_cols else 'CAST(NULL AS float)'} AS safety_stock_limit,
-            {_float('i.[part_quantity_min]') if 'part_quantity_min' in inv_cols else 'CAST(NULL AS float)'} AS part_quantity_min,
-            {_float('i.[part_quantity_max]') if 'part_quantity_max' in inv_cols else 'CAST(NULL AS float)'} AS part_quantity_max,
-            {_float('i.[order_lead_time]') if 'order_lead_time' in inv_cols else 'CAST(NULL AS float)'} AS order_lead_time,
-            {_float('i.[part_price_local]') if 'part_price_local' in inv_cols else 'CAST(NULL AS float)'} AS part_price_local,
-            {_float('i.[part_price_usd]') if 'part_price_usd' in inv_cols else 'CAST(NULL AS float)'} AS part_price_usd,
-            {('i.[last_supplier_key]') if 'last_supplier_key' in inv_cols else 'CAST(NULL AS bigint)'} AS last_supplier_key,
-            {(_nvarchar('i.[pre_standardization_supplier_name]')) if 'pre_standardization_supplier_name' in inv_cols else 'CAST(NULL AS nvarchar(200))'} AS supplier_name_raw,
+            {snap_sel}
+            {qty_sum} AS quantity_on_hand,
+            {qty_sum} - {demand_sum} AS available_qty,
+            {safety_agg} AS safety_stock_limit,
+            {pqmin_agg} AS part_quantity_min,
+            {pqmax_agg} AS part_quantity_max,
+            {olt_agg} AS order_lead_time,
+            {ppl_agg} AS part_price_local,
+            {ppu_agg} AS part_price_usd,
+            {lsk_agg} AS last_supplier_key,
+            {psn_agg} AS supplier_name_raw,
+            {aud_agg} AS aud_update_datetime
+        FROM [{inv_schema}].[{inv_table}] i
+        {bu_where}
+        GROUP BY i.[business_unit_key], i.[part_key]{snap_grp}
+    )
+    , inv_latest AS (
+        SELECT
+            agg.[business_unit_key],
+            agg.[part_key],
+            agg.quantity_on_hand,
+            agg.available_qty,
+            agg.safety_stock_limit,
+            agg.part_quantity_min,
+            agg.part_quantity_max,
+            agg.order_lead_time,
+            agg.part_price_local,
+            agg.part_price_usd,
+            agg.last_supplier_key,
+            agg.supplier_name_raw,
             ROW_NUMBER() OVER (
-                PARTITION BY i.[business_unit_key], i.[part_key]
-                ORDER BY {orderer}
+                PARTITION BY agg.[business_unit_key], agg.[part_key]
+                ORDER BY {snap_orderer}
             ) AS rn
-        FROM [edap_dw_replica].[fact_inventory_on_hand] i
+        FROM inv_agg agg
     )
     """
 
@@ -339,11 +544,11 @@ def _abc_expr(meta: _AzureMeta, alias: str) -> str:
     return _nvarchar(f"{alias}.[{col}]") if col else "CAST(NULL AS nvarchar(100))"
 
 
-def _load_otd(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: list[str]) -> pd.DataFrame:
+def _load_otd(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: list[str], bu_keys: list[int] | None = None, max_snap_str: str | None = None) -> pd.DataFrame:
     if not meta.has_table("edap_dw_replica", "fact_sales_order_line"):
         raise RuntimeError("Azure SQL table edap_dw_replica.fact_sales_order_line is required for live OTD.")
-    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
-        raise RuntimeError("Azure SQL table edap_dw_replica.fact_inventory_on_hand is required for live OTD.")
+    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand_warehouse") and not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
+        raise RuntimeError("Azure SQL inventory table (fact_inventory_on_hand_warehouse or fact_inventory_on_hand) is required for live OTD.")
 
     sales = "edap_dw_replica"
     table = "fact_sales_order_line"
@@ -379,7 +584,7 @@ def _load_otd(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: li
     WITH base AS (
         SELECT 1 AS keepalive
     )
-    {_inventory_cte(meta)}
+    {_inventory_cte(meta, bu_keys=bu_keys, max_snap_str=max_snap_str, so_start_str=start_90.isoformat(), so_end_str=end_90.isoformat())}
     SELECT
         {_site_expr(meta, 'sol')} AS [Site],
         {order_date} AS [Order Date],
@@ -402,7 +607,6 @@ def _load_otd(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: li
     FROM [edap_dw_replica].[fact_sales_order_line] sol
     LEFT JOIN inv_latest inv
       ON inv.rn = 1
-     AND inv.[business_unit_key] = sol.[business_unit_key]
      AND inv.[part_key] = sol.[part_key]
     LEFT JOIN [edap_dw_replica].[dim_part] dp
       ON dp.[part_key] = sol.[part_key]
@@ -422,11 +626,11 @@ def _load_otd(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: li
     return df
 
 
-def _load_ifr(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: list[str]) -> pd.DataFrame:
+def _load_ifr(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: list[str], bu_keys: list[int] | None = None, max_snap_str: str | None = None) -> pd.DataFrame:
     if not meta.has_table("edap_dw_replica", "fact_sales_order_line"):
         raise RuntimeError("Azure SQL table edap_dw_replica.fact_sales_order_line is required for live IFR.")
-    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
-        raise RuntimeError("Azure SQL table edap_dw_replica.fact_inventory_on_hand is required for live IFR.")
+    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand_warehouse") and not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
+        raise RuntimeError("Azure SQL inventory table (fact_inventory_on_hand_warehouse or fact_inventory_on_hand) is required for live IFR.")
 
     sales = "edap_dw_replica"
     table = "fact_sales_order_line"
@@ -455,7 +659,7 @@ def _load_ifr(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: li
     WITH base AS (
         SELECT 1 AS keepalive
     )
-    {_inventory_cte(meta)}
+    {_inventory_cte(meta, bu_keys=bu_keys, max_snap_str=max_snap_str, so_start_str=start_90.isoformat(), so_end_str=end_90.isoformat())}
     SELECT
         {_site_expr(meta, 'sol')} AS [Site],
         {order_date} AS [Order Date],
@@ -471,7 +675,6 @@ def _load_ifr(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: li
     FROM [edap_dw_replica].[fact_sales_order_line] sol
     LEFT JOIN inv_latest inv
       ON inv.rn = 1
-     AND inv.[business_unit_key] = sol.[business_unit_key]
      AND inv.[part_key] = sol.[part_key]
     LEFT JOIN [edap_dw_replica].[dim_part] dp
       ON dp.[part_key] = sol.[part_key]
@@ -485,18 +688,18 @@ def _load_ifr(conn, meta: _AzureMeta, start_90: date, end_90: date, warnings: li
     if not meta.has_col(sales, table, "failure_reason"):
         warnings.append("Live IFR source is missing failure_reason; IFR miss theming will be sparse.")
     warnings.append(
-        "IFR uses current fact_inventory_on_hand snapshot (not point-in-time); "
+        "IFR uses current fact_inventory_on_hand_warehouse snapshot (not point-in-time); "
         "fill-rate will appear near 0% for historical order windows. "
         "Treat IFR as indicative of current stock coverage, not historical fill rate."
     )
     return df
 
 
-def _load_pfep(conn, meta: _AzureMeta, start_365: date, end_90: date, warnings: list[str]) -> pd.DataFrame:
+def _load_pfep(conn, meta: _AzureMeta, start_365: date, end_90: date, warnings: list[str], bu_keys: list[int] | None = None, max_snap_str: str | None = None) -> pd.DataFrame:
     if not meta.has_table("edap_dw_replica", "dim_part"):
         raise RuntimeError("Azure SQL table edap_dw_replica.dim_part is required for live PFEP.")
-    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
-        raise RuntimeError("Azure SQL table edap_dw_replica.fact_inventory_on_hand is required for live PFEP.")
+    if not meta.has_table("edap_dw_replica", "fact_inventory_on_hand_warehouse") and not meta.has_table("edap_dw_replica", "fact_inventory_on_hand"):
+        raise RuntimeError("Azure SQL inventory table (fact_inventory_on_hand_warehouse or fact_inventory_on_hand) is required for live PFEP.")
 
     sales = "edap_dw_replica"
     order_date = _date_expr(meta, sales, "fact_sales_order_line", "sol", meta.pick(sales, "fact_sales_order_line", "order_date_key", "aud_create_datetime"))
@@ -531,13 +734,16 @@ def _load_pfep(conn, meta: _AzureMeta, start_365: date, end_90: date, warnings: 
         if meta.has_table("edap_dw_replica", "dim_supplier") and meta.has_col("edap_dw_replica", "dim_supplier", "supplier_key")
         else ""
     )
-    inv_bu_clause = "inv.[business_unit_key] = dp.[business_unit_key]" if has_dp_bu_key else "1=1"
+    # When using the warehouse fast path, inv_latest.business_unit_key is always NULL
+    # (excluded from the covering index) — force "1=1" so every part_key match succeeds.
+    using_wh = meta.has_table("edap_dw_replica", "fact_inventory_on_hand_warehouse") and max_snap_str is not None
+    inv_bu_clause = "1=1" if using_wh else ("inv.[business_unit_key] = dp.[business_unit_key]" if has_dp_bu_key else "1=1")
     usage_bu_clause = "u.[business_unit_key] = dp.[business_unit_key]" if has_dp_bu_key else "1=1"
     sql = f"""
     WITH base AS (
         SELECT 1 AS keepalive
     )
-    {_inventory_cte(meta)}
+    {_inventory_cte(meta, bu_keys=bu_keys, max_snap_str=max_snap_str)}
     {_cost_cte(meta)}
     {usage_cte}
     SELECT

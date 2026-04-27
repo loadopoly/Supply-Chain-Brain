@@ -35,10 +35,10 @@ def check_for_brain_triggers():
     for trigger_file in TRIGGER_DIR.glob("acquire_*.trigger"):
         logging.info(f"Detected immediate skill acquisition spin-up from The Brain: {trigger_file.name}")
         try:
-            with open(trigger_file, "r") as f:
+            with open(trigger_file, "r", encoding="utf-8-sig") as f:
                 task_data = json.load(f)
             perform_skill_acquisition(task_data)
-            trigger_file.unlink() # Cleanup after consumption
+            trigger_file.unlink()  # Cleanup after consumption
         except Exception as e:
             logging.error(f"Failed to process immediate trigger {trigger_file.name}: {e}")
 

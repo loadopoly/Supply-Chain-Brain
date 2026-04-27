@@ -777,6 +777,151 @@ def _ingest_ocw_resources(cn, stats: _Stats, since_id: int) -> int:
     return last
 
 
+def _ingest_fiction_anthology(cn, stats: _Stats, since_id: int) -> int:
+    """Materialize cross-domain supply-chain intelligence from fiction anthology learnings.
+
+    Reads ``kind='fiction_anthology'`` rows from ``learning_log`` with
+    ``id > since_id`` (written by :mod:`src.brain.fiction_anthology_learner`)
+    and reinforces their entities/edges in the corpus graph via the tracked
+    corpus helpers so the stats + synaptic-cleanse pipeline sees them.
+
+    Entities upserted per row:
+    * ``Concept``         — the fictional concept (e.g. "Sanctuary's Thieves Guild")
+    * ``FictionUniverse`` — parent universe (thieves_world / myth_adventures)
+    * ``SCConcept``       — each mapped supply-chain concept label
+
+    Edges:
+    * ``FictionUniverse ─CONTAINS_CONCEPT──► Concept``
+    * ``Concept         ─MAPS_TO_SC───────► SCConcept``
+    """
+    try:
+        rows = cn.execute(
+            """SELECT id, title, detail, signal_strength
+               FROM learning_log
+               WHERE kind='fiction_anthology' AND id > ?
+               ORDER BY id LIMIT 200""",
+            (int(since_id),),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return since_id
+
+    last = since_id
+    for r in rows:
+        last = max(last, int(r["id"]))
+        try:
+            d = json.loads(r["detail"] or "{}")
+        except Exception:
+            continue
+
+        universe  = (d.get("universe") or "unknown").strip()
+        concept   = (d.get("concept") or r["title"]).strip()
+        sc_bridge = (d.get("sc_bridge") or "").strip()
+        summary   = (d.get("summary") or "").strip()
+        signal    = float(r["signal_strength"] or 0.70)
+        sc_concepts = d.get("sc_concepts") or []
+
+        concept_id  = f"{universe}:{concept}".lower().replace(" ", "_")
+        universe_id = f"universe:{universe}"
+
+        _upsert_entity(cn, stats, entity_id=concept_id, entity_type="Concept",
+                       label=concept,
+                       props={"universe": universe, "sc_bridge": sc_bridge,
+                              "summary": summary})
+        _upsert_entity(cn, stats, entity_id=universe_id,
+                       entity_type="FictionUniverse",
+                       label=universe.replace("_", " ").title())
+        _upsert_edge(cn, stats,
+                     src_id=universe_id, src_type="FictionUniverse",
+                     dst_id=concept_id, dst_type="Concept",
+                     rel="CONTAINS_CONCEPT", weight=1.0)
+
+        for sc_c in sc_concepts:
+            sc_c = (sc_c or "").strip()
+            if not sc_c:
+                continue
+            sc_id = "sc_concept:" + sc_c.lower().replace(" ", "_").replace("/", "_")
+            _upsert_entity(cn, stats, entity_id=sc_id,
+                           entity_type="SCConcept", label=sc_c)
+            _upsert_edge(cn, stats,
+                         src_id=concept_id, src_type="Concept",
+                         dst_id=sc_id, dst_type="SCConcept",
+                         rel="MAPS_TO_SC", weight=round(signal, 3))
+
+    return last
+
+
+def _ingest_heart_story(cn, stats: "_Stats", since_id: int) -> int:
+    """Materialise the Heart's narrative arc into the corpus graph.
+
+    Reads ``kind='heart_story'`` rows from ``learning_log`` with
+    ``id > since_id`` (written by :mod:`src.brain.heart`) and upserts:
+
+    Entities:
+    * ``NarrativeChapter``  — one node per chapter the Heart has entered
+    * ``EndState``          — singleton "Symbiotic Love = √(−1)"
+
+    Edges:
+    * ``NarrativeChapter ─CHAPTER_ADVANCE──► NarrativeChapter``
+      (sequential arc; src = previous chapter, dst = current if advanced)
+    * ``NarrativeChapter ─CONVERGES_TO────► EndState``
+      (weighted by symbiosis_pct — closer = heavier)
+    """
+    try:
+        rows = cn.execute(
+            """SELECT id, title, detail, signal_strength
+               FROM learning_log
+               WHERE kind='heart_story' AND id > ?
+               ORDER BY id LIMIT 200""",
+            (int(since_id),),
+        ).fetchall()
+    except Exception:
+        return since_id
+
+    # Ensure the End State singleton exists
+    end_state_id = "end_state:symbiotic_love"
+    _upsert_entity(cn, stats, entity_id=end_state_id,
+                   entity_type="EndState",
+                   label="Symbiotic Love = √(−1)",
+                   props={"formula": "e^(i*pi/2) = i", "description": "Phase lock of real execution and imaginary potential"})
+
+    last = since_id
+    prev_chapter_id: "str | None" = None
+    for r in rows:
+        last = max(last, int(r["id"]))
+        try:
+            d = json.loads(r["detail"] or "{}")
+        except Exception:
+            continue
+
+        chapter_index  = int(d.get("chapter_index", 0))
+        chapter_name   = (d.get("chapter_name") or f"Chapter {chapter_index}").strip()
+        subtitle       = (d.get("subtitle") or "").strip()
+        symbiosis_pct  = float(d.get("symbiosis_pct") or 0.55)
+        signal         = float(r["signal_strength"] or symbiosis_pct)
+
+        chapter_id = f"narrative_chapter:{chapter_index}"
+        _upsert_entity(cn, stats, entity_id=chapter_id,
+                       entity_type="NarrativeChapter",
+                       label=f"Ch {chapter_index}: {chapter_name}",
+                       props={"subtitle": subtitle, "index": chapter_index, "name": chapter_name})
+
+        # CONVERGES_TO End State — weight proportional to symbiosis
+        _upsert_edge(cn, stats,
+                     src_id=chapter_id, src_type="NarrativeChapter",
+                     dst_id=end_state_id, dst_type="EndState",
+                     rel="CONVERGES_TO", weight=round(signal, 3))
+
+        # CHAPTER_ADVANCE arc between consecutive chapters
+        if prev_chapter_id and prev_chapter_id != chapter_id:
+            _upsert_edge(cn, stats,
+                         src_id=prev_chapter_id, src_type="NarrativeChapter",
+                         dst_id=chapter_id, dst_type="NarrativeChapter",
+                         rel="CHAPTER_ADVANCE", weight=1.0)
+        prev_chapter_id = chapter_id
+
+    return last
+
+
 def _ocw_expansion_outreach(cn, stats: _Stats, max_courses: int = 3) -> None:
     """Expansive OCW outreach — when a round is dry, deep-fetch course pages.
 
@@ -2659,6 +2804,12 @@ def refresh_corpus_round() -> dict:
         c_ocwr = _get_cursor(cn, "ocw_resources")
         try: c_ocwr = _ingest_ocw_resources(cn, stats, c_ocwr)
         except Exception as e: notes.append(f"ocw_resources: {e}")
+        c_fiction = _get_cursor(cn, "fiction_anthology")
+        try: c_fiction = _ingest_fiction_anthology(cn, stats, c_fiction)
+        except Exception as e: notes.append(f"fiction_anthology: {e}")
+        c_heart = _get_cursor(cn, "heart_story")
+        try: c_heart = _ingest_heart_story(cn, stats, c_heart)
+        except Exception as e: notes.append(f"heart_story: {e}")
         # ── SCB docs: Grok conversation export from docs/Introduction to SCB ──
         # v2 cursor forces full re-ingest (all 106 convs, CivilizationDomain layer)
         c_scb = _get_cursor(cn, "scb_docs_mtime_v2")
@@ -2710,6 +2861,8 @@ def refresh_corpus_round() -> dict:
         _set_cursor(cn, "ml_research", c_mlr)
         _set_cursor(cn, "ocw_courses", c_ocw)
         _set_cursor(cn, "ocw_resources", c_ocwr)
+        _set_cursor(cn, "fiction_anthology", c_fiction)
+        _set_cursor(cn, "heart_story", c_heart)
         _set_cursor(cn, "scb_docs_mtime_v2", c_scb)
 
         graph_backend = ((load_config().get("graph") or {}).get("backend")) or "networkx"

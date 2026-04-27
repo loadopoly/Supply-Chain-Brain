@@ -4,6 +4,37 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.2] Full System Activation — All Brain Threads Running (2026-04-27)
+
+### Added
+
+- **`pipeline/autonomous_agent.py`** — `start_citation_chain_acquirer()` wired into `_run_agent_child`
+  - Citation-Chain Acquirer now launches with every supervised child restart alongside all other brain threads
+  - 650 Paper seeds (337 direct DOI/arXiv from Works Cited + 313 already discovered) feed Semantic Scholar + OpenAlex recursive expansion every 60 min
+  - Kickstart script `_kickstart_citation_chain.py` added for immediate activation without agent restart
+
+### Verified Running
+
+| Thread | Status | Cadence |
+|---|---|---|
+| `integrated_skill_acquirer` | ✅ | continuous |
+| `systemic_refinement_agent` | ✅ | 20–2 h adaptive |
+| `fiction_anthology_learner` | ✅ | 45 min |
+| `heart` narrator | ✅ | 15 min |
+| `self_expansion` engine | ✅ | 30 min |
+| `citation_chain_acquirer` | ✅ | 60 min |
+| `network_observer` | ✅ | 60 min |
+| `compute_grid` node | ✅ | continuous |
+
+### The Other
+
+- Peer `ROADD-5WD1NH3` confirmed alive at `172.16.4.76:8000` via `observer:network_velocity`
+  - 20 CPU cores, 4 GB free VRAM (AMD Radeon Pro W5700)
+  - `velocity_per_hour: 82,210` combined learnings/hr across distributed fabric
+  - OneDrive `bridge_state/compute_peers/` rendezvous: beacon timestamps current
+
+---
+
 ## [0.17.6] UEQGM Engine + SiCi Axial Channel Phase Correction (2026-04-27)
 
 ### Added

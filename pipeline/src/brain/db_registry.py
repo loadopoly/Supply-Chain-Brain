@@ -60,27 +60,29 @@ def _healthy_conn(connector_name: str):
 def read_sql(connector_name: str, sql: str, params: list | None = None,
              timeout_s: int = 120) -> pd.DataFrame:
     """Execute SQL on a registered SQL connector. Returns empty DF on failure."""
-    conn = _healthy_conn(connector_name)
-    cursor = conn.cursor()
+    cursor = None
     try:
-        cursor.timeout = timeout_s
-    except Exception:
-        pass
-    try:
+        conn = _healthy_conn(connector_name)
+        cursor = conn.cursor()
+        try:
+            cursor.timeout = timeout_s
+        except Exception:
+            pass
         cursor.execute(sql, params or [])
         cols = [d[0] for d in cursor.description]
         rows = cursor.fetchall()
         return pd.DataFrame.from_records(rows, columns=cols)
-    except Exception as exc:                  # graceful: log via empty + attr
+    except Exception as exc:                  # graceful: connection OR query failure
         df = pd.DataFrame()
         df.attrs["_error"] = str(exc)
         df.attrs["_sql"] = sql
         return df
     finally:
-        try:
-            cursor.close()
-        except Exception:
-            pass
+        if cursor is not None:
+            try:
+                cursor.close()
+            except Exception:
+                pass
 
 
 # ---------------------------------------------------------------------------

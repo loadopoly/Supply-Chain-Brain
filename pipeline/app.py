@@ -115,29 +115,69 @@ pg = st.navigation({
     ],
 })
 
+import json as _json
+import logging as _logging
 from src.brain.data_access import query_df
 from src.brain.db_registry import bootstrap_default_connectors
-@st.cache_data(ttl=3600)
-def _get_sites_global():
+
+_SITES_CACHE_PATH = Path(__file__).parent / "config" / "sites_cache.json"
+
+def _load_sites_disk() -> list[str]:
+    try:
+        data = _json.loads(_SITES_CACHE_PATH.read_text(encoding="utf-8"))
+        if isinstance(data, list) and data:
+            return data
+    except Exception:
+        pass
+    return []
+
+def _save_sites_disk(sites: list[str]) -> None:
+    try:
+        _SITES_CACHE_PATH.write_text(_json.dumps(sites, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _query_sites_live() -> list[str]:
     try:
         bootstrap_default_connectors()
-        df = query_df("azure_sql", "SELECT DISTINCT business_unit_id FROM edap_dw_replica.dim_part WITH (NOLOCK) WHERE business_unit_id IS NOT NULL")
+        df = query_df(
+            "azure_sql",
+            "SELECT DISTINCT business_unit_id FROM edap_dw_replica.dim_part WITH (NOLOCK) WHERE business_unit_id IS NOT NULL",
+        )
         if not df.empty:
-            return [""] + sorted(df["business_unit_id"].astype(str).tolist())
-    except Exception as e:
-        import logging
-        logging.error(f"Failed to fetch sites: {e}")
-        pass
-    return [""]
+            return sorted(df["business_unit_id"].astype(str).tolist())
+    except Exception as _e:
+        _logging.warning(f"[app] site list query failed: {_e}")
+    return []
+
+def _get_sites_global() -> list[str]:
+    """3-tier: live SQL → disk cache → empty. Always returns at least ['']."""
+    live = _query_sites_live()
+    if live:
+        _save_sites_disk(live)
+        pool = live
+    else:
+        pool = _load_sites_disk()
+    return [""] + [s for s in pool if s and s.lower() != "unknown"]
 
 from src.brain.global_filters import render_global_filter_sidebar
 
 with st.sidebar:
-    global_site = st.selectbox('Global Mfg Site (business_unit)', _get_sites_global(), index=0, key='g_site_global')
-    if st.session_state.get('g_site') != global_site:
-        st.session_state['g_site'] = global_site
+    _site_opts = _get_sites_global()
+    _cur_site  = st.session_state.get("g_site", "") or ""
+    _site_idx  = _site_opts.index(_cur_site) if _cur_site in _site_opts else 0
+    global_site = st.selectbox(
+        "🏭 Plant (business unit)",
+        _site_opts,
+        index=_site_idx,
+        key="g_site_global",
+        help="Filter all pages to a single manufacturing site. Leave blank for all sites.",
+    )
+    if st.session_state.get("g_site") != global_site:
+        st.session_state["g_site"] = global_site
         for k in list(st.session_state.keys()):
-            if k.endswith('_sql') or k == 'otd_where' or k == 'bw_sql' or k == 'eoq_sql':
+            if k.endswith("_sql") or k in ("otd_where", "bw_sql", "eoq_sql"):
                 del st.session_state[k]
         st.cache_data.clear()
 
