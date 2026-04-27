@@ -1,17 +1,15 @@
 from __future__ import annotations
 
-__version__ = "0.19.0"
+__version__ = "0.19.1"
 __release__ = (
-    "Session-Store Cloud Sync + Symbiotic Loop + Citation-Chain Acquirer + Internal Watcher. "
-    "Session history flows through every node in the distributed fabric: each autonomous agent "
-    "pushes its own session-store blob to Azure Blob Storage and pulls all peer blobs on a "
-    "slow cadence inside the network_observer loop. Offline peer absorption now also absorbs "
-    "the peer's full session history. citation_chain_acquirer.py follows bibliography chains "
-    "recursively via Semantic Scholar + OpenAlex to deepen the research frontier. "
-    "internal_watcher.py replaces Windows Scheduled Task dependency with a Python-native "
-    "supervisor that launches, monitors, and restarts the learning child process. "
-    "Cloud-learning workflow refactored to DB high-water mark for deterministic queue capture. "
-    "Free-tier OpenRouter model pool expanded and verified live."
+    "Works Cited: unlimited scholarly references as Pirates Code seeds. "
+    "Removed the arbitrary 250/1000/2000 cap from _extract_scb_works_cited — all 1,379 unique "
+    "scholarly references from 106 Grok conversations now ingest without ceiling. "
+    "650 Paper entities carry DOI/arXiv IDs as direct citation-chain seeds. "
+    "1,379 GUIDES_EXPANSION edges wire every reference into the research frontier. "
+    "Restored Works Cited code block (_SCB_SCHOLARLY_HOST_MARKERS, 6 helper functions, "
+    "_persist_scb_works_cited_guidelines) that was silently lost to a PowerShell "
+    "Set-Content LF→CRLF encoding corruption."
 )
     "nodes toward quest:type5_sc; pulses goal-alignment signal each cycle. "
     "resumption_manager.py: detects downtime gap on startup, classifies crash vs graceful, "

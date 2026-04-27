@@ -1889,6 +1889,23 @@ _SCB_DOCS_PATH = (_PIPELINE_ROOT / "docs" / "Introduction to SCB"
                   / "9826f3fc-ec86-4751-8129-de43d903e27e"
                   / "prod-grok-backend.json")
 
+# Works Cited / Pirates Code — keys for brain_kv and learning_log
+_SCB_WORKS_CITED_KEY   = "grok_research:bibliography:works_cited"
+_SCB_PIRATES_CODE_KEY  = "grok_research:pirates_code"
+
+# Scholarly host markers used to identify Works Cited references in Grok
+# web-search results.  Treated as Pirates Code: guideline seeds, not doctrine.
+_SCB_SCHOLARLY_HOST_MARKERS: tuple[str, ...] = (
+    "arxiv.org", "doi.org", "ncbi.nlm.nih.gov", "pubmed", "pmc.ncbi",
+    "scholar.google", "semanticscholar.org", "researchgate.net",
+    "nature.com", "science.org", "sciencedirect.com", "springer.com",
+    "link.springer", "wiley.com", "tandfonline.com", "sagepub.com",
+    "jstor.org", "acm.org", "ieee.org", "aps.org", "pubs.acs.org",
+    "frontiersin.org", "mdpi.com", "plos", "biorxiv.org", "medrxiv.org",
+    "ssrn.com", "osti.gov", "hal.science", "zenodo.org", "figshare.com",
+    "eric.ed.gov", "openalex.org", "dimensions.ai", "unpaywall.org",
+)
+
 # SC density threshold: separates Tier 1 (operational SC, ≥ threshold) from
 # Tier 2 (cross-domain systems engineering, < threshold).
 # ALL conversations are ingested regardless of tier.
@@ -1929,6 +1946,255 @@ def _scb_detected_civilization_domains(text: str) -> list[str]:
     lower = text.lower()
     return sorted(d for d, kws in _SCB_CIVILIZATION_DOMAINS.items()
                   if any(kw in lower for kw in kws))
+
+
+# ---------------------------------------------------------------------------
+# Works Cited / Pirates Code helpers
+# ---------------------------------------------------------------------------
+
+def _clean_scb_url(url: str) -> str:
+    """Strip tracking params, normalise to https."""
+    url = url.strip()
+    for prefix in ("http://",):
+        if url.startswith(prefix):
+            url = "https://" + url[len(prefix):]
+    # Drop common tracking query params
+    if "?" in url:
+        from urllib.parse import urlparse, urlencode, parse_qsl
+        p = urlparse(url)
+        keep = [(k, v) for k, v in parse_qsl(p.query)
+                if k.lower() not in {"utm_source", "utm_medium", "utm_campaign",
+                                      "utm_content", "utm_term", "ref", "source"}]
+        url = p._replace(query=urlencode(keep)).geturl() if keep else p._replace(query="").geturl()
+    return url
+
+
+def _walk_scb_web_results(obj, _depth: int = 0):
+    """Recursively yield {url, title, preview} dicts from a Grok response object."""
+    if _depth > 8:
+        return
+    if isinstance(obj, dict):
+        url = obj.get("url") or obj.get("link") or ""
+        title = obj.get("title") or obj.get("name") or ""
+        if url and title:
+            yield {"url": url, "title": title,
+                   "preview": obj.get("preview") or obj.get("description") or obj.get("snippet") or ""}
+        for v in obj.values():
+            if isinstance(v, (dict, list)):
+                yield from _walk_scb_web_results(v, _depth + 1)
+    elif isinstance(obj, list):
+        for item in obj:
+            yield from _walk_scb_web_results(item, _depth + 1)
+
+
+def _is_scb_scholarly_reference(url: str, title: str, preview: str) -> bool:
+    """Return True if the URL looks like a peer-reviewed / preprint source."""
+    host = url.lower()
+    return any(marker in host for marker in _SCB_SCHOLARLY_HOST_MARKERS)
+
+
+def _paper_id_from_reference(url: str, title: str) -> tuple[str | None, str | None, str | None]:
+    """Extract (paper_id, doi, arxiv_id) from a URL / title.
+
+    Returns (paper_id, doi, arxiv_id) where paper_id is the canonical
+    ``arxiv:<id>`` or ``doi:<doi>`` string usable as a corpus entity_id seed.
+    """
+    import re
+    doi = arxiv_id = None
+
+    # arXiv patterns
+    m = re.search(r"arxiv\.org/(?:abs|pdf)/([\d.]+(?:v\d+)?)", url, re.I)
+    if m:
+        arxiv_id = m.group(1)
+        return f"arxiv:{arxiv_id}", None, arxiv_id
+
+    # DOI in URL path
+    m = re.search(r"doi\.org/(10\.\S+)", url, re.I)
+    if m:
+        doi = m.group(1).rstrip("/")
+        return f"doi:{doi}", doi, None
+
+    # DOI embedded elsewhere in URL
+    m = re.search(r"(10\.\d{4,}/\S+)", url)
+    if m:
+        doi = m.group(1).rstrip("/")
+        return f"doi:{doi}", doi, None
+
+    return None, None, None
+
+
+def _extract_scb_works_cited(conversations: list[dict]) -> list[dict]:
+    """Extract ALL unique scholarly Works Cited from the Grok conversation export.
+
+    No arbitrary limit — every unique scholarly reference is a Pirates Code seed.
+    These are guideline bearings from the Creator's exploration, not fixed doctrine.
+    They seed expansion beyond the original conversation path by feeding
+    DOI/arXiv identifiers into the citation-chain acquirer.
+    """
+    refs: list[dict] = []
+    seen: set[str] = set()
+
+    for conv_index, conv_wrapper in enumerate(conversations):
+        responses = conv_wrapper.get("responses", []) or []
+        for response_index, item in enumerate(responses):
+            response = item.get("response") or {}
+            for candidate in _walk_scb_web_results(response):
+                url = _clean_scb_url(str(candidate.get("url") or ""))
+                title = str(candidate.get("title") or "").strip()
+                preview = str(candidate.get("preview") or "").strip()
+                if not url or not _is_scb_scholarly_reference(url, title, preview):
+                    continue
+                paper_id, doi, arxiv_id = _paper_id_from_reference(url, title)
+                dedupe_key = paper_id or url.lower()
+                if dedupe_key in seen:
+                    continue
+                seen.add(dedupe_key)
+                refs.append({
+                    "paper_id":        paper_id,
+                    "doi":             doi,
+                    "arxiv_id":        arxiv_id,
+                    "title":           title[:240] or url,
+                    "url":             url,
+                    "preview":         preview[:500],
+                    "conv_id":         f"grok:conv_{conv_index}",
+                    "response_index":  response_index,
+                    "guideline_mode":  "pirates_code",
+                    "interpretation":  "guideline_not_dogma",
+                    "source":          "grok_works_cited",
+                })
+    return refs
+
+
+def _persist_scb_works_cited_guidelines(
+    cn, stats: _Stats, *, doc_id: str, conversations: list[dict], source_mtime: int
+) -> None:
+    """Persist ALL Works Cited as Pirates Code guideline seeds.
+
+    Each unique scholarly reference becomes a ``WorksCitedReference`` entity
+    with a ``GUIDES_EXPANSION`` edge from the guideline node.  References that
+    carry a DOI or arXiv ID also become ``Paper`` entities feeding the
+    citation-chain acquirer.
+    """
+    # Idempotency: skip if we already persisted for this source mtime
+    already = cn.execute(
+        "SELECT 1 FROM learning_log WHERE kind='grok_works_cited' AND title=? LIMIT 1",
+        (f"scb_works_cited:{source_mtime}",),
+    ).fetchone()
+    if already:
+        return
+
+    refs = _extract_scb_works_cited(conversations)
+    if not refs:
+        return
+
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Guideline anchor entity
+    guideline_id = "guideline:grok_works_cited_pirates_code"
+    _upsert_entity(cn, stats, entity_id=guideline_id,
+                   entity_type="ResearchGuideline",
+                   label="Grok Works Cited — Pirates Code",
+                   props={
+                       "mode":           "pirates_code",
+                       "interpretation": "guideline_not_dogma",
+                       "total_seeds":    len(refs),
+                       "source_mtime":   source_mtime,
+                       "source":         "grok_works_cited",
+                   })
+    # Guideline → Document
+    _upsert_edge(cn, stats, src_id=guideline_id, src_type="ResearchGuideline",
+                 dst_id=doc_id, dst_type="Document",
+                 rel="DERIVED_FROM", weight=0.95)
+
+    seed_paper_ids: list[str] = []
+
+    for ref in refs:
+        import hashlib
+        h = hashlib.sha1(ref["url"].encode()).hexdigest()[:12]
+        ref_id = f"works_cited:{h}"
+
+        _upsert_entity(cn, stats, entity_id=ref_id,
+                       entity_type="WorksCitedReference",
+                       label=ref["title"],
+                       props={
+                           "url":            ref["url"],
+                           "doi":            ref["doi"],
+                           "arxiv_id":       ref["arxiv_id"],
+                           "paper_id":       ref["paper_id"],
+                           "conv_id":        ref["conv_id"],
+                           "preview":        ref["preview"],
+                           "guideline_mode": "pirates_code",
+                           "interpretation": "guideline_not_dogma",
+                           "source":         "grok_works_cited",
+                       })
+
+        # Guideline → Reference (GUIDES_EXPANSION)
+        _upsert_edge(cn, stats,
+                     src_id=guideline_id, src_type="ResearchGuideline",
+                     dst_id=ref_id, dst_type="WorksCitedReference",
+                     rel="GUIDES_EXPANSION", weight=0.80)
+
+        # Reference → parent conversation
+        _upsert_edge(cn, stats,
+                     src_id=ref["conv_id"], src_type="GrokConversation",
+                     dst_id=ref_id, dst_type="WorksCitedReference",
+                     rel="CITES", weight=0.90)
+
+        # If we have a DOI or arXiv ID, also create/link a Paper entity
+        if ref["paper_id"]:
+            paper_eid = f"paper:{ref['paper_id']}"
+            _upsert_entity(cn, stats, entity_id=paper_eid,
+                           entity_type="Paper",
+                           label=ref["title"],
+                           props={
+                               "paper_id":  ref["paper_id"],
+                               "doi":       ref["doi"],
+                               "arxiv_id":  ref["arxiv_id"],
+                               "url":       ref["url"],
+                               "source":    "grok_works_cited",
+                           })
+            _upsert_edge(cn, stats,
+                         src_id=ref_id, src_type="WorksCitedReference",
+                         dst_id=paper_eid, dst_type="Paper",
+                         rel="RESOLVES_TO", weight=0.95)
+            seed_paper_ids.append(ref["paper_id"])
+
+    # Persist the full seed list to brain_kv for the citation-chain acquirer
+    cn.execute(
+        "INSERT OR REPLACE INTO brain_kv (key, value, updated_at) VALUES (?,?,?)",
+        (_SCB_WORKS_CITED_KEY, json.dumps({
+            "paper_ids":      seed_paper_ids,
+            "total_refs":     len(refs),
+            "source_mtime":   source_mtime,
+            "guideline_mode": "pirates_code",
+            "interpretation": "guideline_not_dogma",
+        }, default=str), now),
+    )
+    cn.execute(
+        "INSERT OR REPLACE INTO brain_kv (key, value, updated_at) VALUES (?,?,?)",
+        (_SCB_PIRATES_CODE_KEY, json.dumps({
+            "guideline_entity": guideline_id,
+            "seed_count":       len(seed_paper_ids),
+            "total_works_cited": len(refs),
+            "source_mtime":     source_mtime,
+            "interpretation":   "guideline_not_dogma",
+        }, default=str), now),
+    )
+
+    _log_learning(cn, stats, kind="grok_works_cited",
+                  title=f"scb_works_cited:{source_mtime}",
+                  signal=0.90,
+                  detail={
+                      "total_refs":       len(refs),
+                      "seed_paper_ids":   len(seed_paper_ids),
+                      "guideline_entity": guideline_id,
+                      "brain_kv_seed_key": _SCB_WORKS_CITED_KEY,
+                      "source_mtime":     source_mtime,
+                  })
+    logging.info(
+        f"corpus:scb_works_cited: {len(refs)} Works Cited seeded as Pirates Code "
+        f"({len(seed_paper_ids)} with DOI/arXiv for citation-chain expansion)"
+    )
 
 
 def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
@@ -2164,6 +2430,18 @@ def _ingest_scb_docs(cn, stats: _Stats, since_mtime: int) -> int:
         f"conversations; {len(topic_conv_map)} SC topics, "
         f"{len(domain_conv_map)} civilization domains"
     )
+
+    # ── Works Cited: seed ALL unique scholarly references as Pirates Code ─────
+    try:
+        _persist_scb_works_cited_guidelines(
+            cn, stats,
+            doc_id=doc_id,
+            conversations=conversations,
+            source_mtime=current_mtime,
+        )
+    except Exception as exc:
+        logging.debug(f"corpus:scb_works_cited: {exc}")
+
     return current_mtime
 
 

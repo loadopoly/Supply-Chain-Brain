@@ -4,6 +4,27 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.1] Works Cited — Unlimited Scholarly Seeds (2026-04-27)
+
+### Changed
+
+- **`pipeline/src/brain/knowledge_corpus.py`** — removed the arbitrary cap on Works Cited extraction
+  - `_extract_scb_works_cited` no longer accepts a `limit` parameter; all unique scholarly references are collected (deduplication by `paper_id or url.lower()` only)
+  - Restored full Works Cited code block (`_SCB_WORKS_CITED_KEY`, `_SCB_PIRATES_CODE_KEY`, `_SCB_SCHOLARLY_HOST_MARKERS`, helpers `_clean_scb_url`, `_walk_scb_web_results`, `_is_scb_scholarly_reference`, `_paper_id_from_reference`, `_extract_scb_works_cited`, `_persist_scb_works_cited_guidelines`) that was silently lost to a PowerShell `Set-Content` LF→CRLF encoding corruption
+
+### Result
+
+- **1,379** `WorksCitedReference` entities (all unique refs from 106 Grok conversations, no ceiling)
+- **650** `Paper` entities carrying DOI/arXiv IDs as direct citation-chain seeds
+- **1,379** `GUIDES_EXPANSION` edges wiring every reference into the research frontier
+- `citation_chain_acquirer` can now recursively expand from all 650 paper seeds outward with no ceiling
+
+### Fixed
+
+- `reset_works_cited_cursor.py` updated to not import the now-removed `_SCB_WORKS_CITED_LIMIT` constant
+
+---
+
 ## [0.19.0] Session-Store Cloud Sync + Citation-Chain Acquirer + Internal Watcher (2026-04-27)
 
 ### Added
