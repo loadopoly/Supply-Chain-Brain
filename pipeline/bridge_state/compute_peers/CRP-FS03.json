@@ -7,7 +7,7 @@
   "gpus": [],
   "free_vram_gb": 0.0,
   "port": 8000,
-  "address": "172.17.99.185",
+  "address": "192.168.0.183",
   "is_local": false,
   "note": "Bootstrap entry \u2014 overwritten by CRP-FS03 heartbeat once daemon is running"
 }
