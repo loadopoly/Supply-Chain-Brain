@@ -300,12 +300,16 @@ _CROSSREF_API = "https://api.crossref.org"              # JSON, DOI metadata
 _CORE_API     = "https://api.core.ac.uk/v3"             # JSON, open-access
 _NTRS_API     = "https://ntrs.nasa.gov/api"             # JSON, systems-eng reports
 _ZENODO_API   = "https://zenodo.org/api"                # JSON, research datasets
+_HF_PAPERS_API   = "https://huggingface.co/api/daily_papers"  # JSON, trending ML papers
+_HF_DATASETS_API = "https://huggingface.co/api/datasets"      # JSON, 100 K+ datasets
+_HF_MODELS_API   = "https://huggingface.co/api/models"        # JSON, model hub index
 _ARXIV_TIMEOUT    = 15
 _OPENALEX_TIMEOUT = 10
 _CROSSREF_TIMEOUT = 10
 _CORE_TIMEOUT     = 10
 _NTRS_TIMEOUT     = 10
 _ZENODO_TIMEOUT   = 10
+_HF_TIMEOUT       = 15
 _OCW_TIMEOUT      = 25
 
 # ---------------------------------------------------------------------------
@@ -598,9 +602,9 @@ def fetch_arxiv_recent(limit: int = 10) -> list[dict]:
     """Fetch recent arXiv papers in CS/ML/math/economics categories.
 
     Covers cs.LG (machine learning), cs.AI, math.OC (optimization & control),
-    and econ.GN \u2014 all directly relevant to supply chain intelligence.
+    and econ.GN — all directly relevant to supply chain intelligence.
 
-    Replaces the blocked HuggingFace daily papers feed.
+    Runs alongside the HuggingFace daily papers feed for complementary coverage.
     Returns paper dicts with ``source="arxiv_recent"``.
     """
     import xml.etree.ElementTree as ET
@@ -648,11 +652,85 @@ def fetch_arxiv_recent(limit: int = 10) -> list[dict]:
     return results
 
 
+def fetch_hf_daily_papers(limit: int = 10) -> list[dict]:
+    """Fetch today's trending papers from the HuggingFace daily papers feed.
+
+    ``https://huggingface.co/api/daily_papers`` — free, no auth required.
+    Returns the same paper-dict shape as other sources so they flow into
+    ``persist_research_findings`` and appear in the Brain corpus.
+    Soft-fails silently if HuggingFace is unreachable (e.g. corporate block).
+    """
+    data = _get_json(_HF_PAPERS_API, timeout=_HF_TIMEOUT)
+    if not isinstance(data, list):
+        log.debug("fetch_hf_daily_papers: no data returned (blocked or empty)")
+        return []
+    results: list[dict] = []
+    for item in data[:limit]:
+        paper = item.get("paper") or item  # response can be list[paper] or list[{paper:...}]
+        arxiv_id = (paper.get("id") or "").strip()
+        title = (paper.get("title") or "").strip()
+        summary = (paper.get("summary") or "")[:400].strip()
+        upvotes = int(paper.get("upvotes") or 0)
+        authors = [(a.get("name") or "") for a in (paper.get("authors") or [])[:3]]
+        results.append({
+            "arxiv_id": arxiv_id,
+            "title": title,
+            "summary": summary,
+            "year": None,
+            "upvotes": upvotes,
+            "citations": 0,
+            "keywords": [],
+            "authors": authors,
+            "url": f"https://huggingface.co/papers/{arxiv_id}" if arxiv_id else "https://huggingface.co/papers",
+            "source": "hf_daily_papers",
+            "query": "daily",
+        })
+    log.debug(f"fetch_hf_daily_papers: {len(results)} papers")
+    return results
+
+
+def discover_hf_datasets(query: str, limit: int = _DATASETS_PER_TOPIC) -> list[dict]:
+    """Search HuggingFace Hub for datasets relevant to ``query``.
+
+    ``https://huggingface.co/api/datasets`` — free, no auth, 100 K+ datasets.
+    Sorted by downloads so the most-used datasets surface first.
+    Soft-fails silently if HuggingFace is unreachable.
+    Returns dataset dicts with ``source="hf_datasets"``.
+    """
+    data = _get_json(
+        _HF_DATASETS_API,
+        params={"search": query, "limit": limit, "sort": "downloads"},
+        timeout=_HF_TIMEOUT,
+    )
+    if not isinstance(data, list):
+        log.debug(f"discover_hf_datasets({query!r}): no data returned")
+        return []
+    results: list[dict] = []
+    for item in data[:limit]:
+        dataset_id = (item.get("id") or "").strip()
+        tags = item.get("tags") or []
+        downloads = int(item.get("downloads") or 0)
+        likes = int(item.get("likes") or 0)
+        results.append({
+            "dataset_id": f"hf:{dataset_id}",
+            "title": dataset_id,
+            "description": f"HuggingFace dataset: {dataset_id}. Tags: {', '.join(tags[:5])}.",
+            "downloads": downloads,
+            "likes": likes,
+            "tags": tags[:5],
+            "url": f"https://huggingface.co/datasets/{dataset_id}" if dataset_id else "https://huggingface.co/datasets",
+            "source": "hf_datasets",
+            "query": query,
+        })
+    log.debug(f"discover_hf_datasets({query!r}): {len(results)} datasets")
+    return results
+
+
 def discover_zenodo_datasets(query: str, limit: int = _DATASETS_PER_TOPIC) -> list[dict]:
     """Search Zenodo for research datasets relevant to ``query``.
 
-    ``https://zenodo.org/api/records`` \u2014 5 000+ supply-chain datasets, free, no auth.
-    Replaces the blocked HuggingFace Datasets API.
+    ``https://zenodo.org/api/records`` — 5 000+ supply-chain datasets, free, no auth.
+    Complements the HuggingFace Datasets API with peer-reviewed open data.
     Returns dataset dicts: ``dataset_id``, ``title``, ``description``,
     ``tags``, ``url``, ``source="zenodo"``, ``query``.
     """
@@ -1465,12 +1543,16 @@ def research_supply_chain_topics(
     all_datasets: list[dict] = []
     topics_researched: list[str] = []
 
-    # Recent arXiv CS/ML papers (replaces HF trending feed)
+    # Recent arXiv CS/ML papers + HuggingFace daily papers
     if include_trending:
         trending = fetch_arxiv_recent(limit=5)
         if trending:
             all_papers.extend(trending)
             log.debug(f"ml_research: fetched {len(trending)} recent arXiv papers")
+        hf_papers = fetch_hf_daily_papers(limit=10)
+        if hf_papers:
+            all_papers.extend(hf_papers)
+            log.debug(f"ml_research: fetched {len(hf_papers)} HuggingFace daily papers")
 
     # -----------------------------------------------------------------------
     # Extended research sweep — UEQGM physics + AI knowledge expansion topics
@@ -1546,9 +1628,13 @@ def research_supply_chain_topics(
         core_papers = search_papers_core(topic, limit=3)
         all_papers.extend(core_papers)
 
-        # Zenodo — research datasets (replaces HuggingFace Datasets API)
+        # Zenodo — peer-reviewed open research datasets
         datasets = discover_zenodo_datasets(topic, limit=_DATASETS_PER_TOPIC)
         all_datasets.extend(datasets)
+
+        # HuggingFace Hub — 100 K+ ML/data datasets (searched live)
+        hf_ds = discover_hf_datasets(topic, limit=_DATASETS_PER_TOPIC)
+        all_datasets.extend(hf_ds)
 
         topics_researched.append(topic)
         time.sleep(0.5)  # polite rate-limiting between topics

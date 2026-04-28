@@ -4,49 +4,24 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
-## [0.19.3] Torus-Channel Slice-Ship + Parent-Child Failsafe Dispersal (2026-04-27)
+## [0.19.3] HuggingFace Corpus Integration (2026-04-27)
 
 ### Added
 
-- **`pipeline/src/brain/self_expansion.py`** — Torus-channel-locking slice-ship architecture + failsafe dispersal
+- **`pipeline/src/brain/ml_research.py`** — HuggingFace.co restored as a live research source
+  - `_HF_PAPERS_API`, `_HF_DATASETS_API`, `_HF_MODELS_API`, `_HF_TIMEOUT` — API endpoint constants for HuggingFace Hub
+  - `fetch_hf_daily_papers(limit)` — fetches today's trending papers from `https://huggingface.co/api/daily_papers`; returns paper dicts with `source="hf_daily_papers"`; soft-fails if corporate block is in effect
+  - `discover_hf_datasets(query, limit)` — searches `https://huggingface.co/api/datasets` for datasets sorted by downloads; returns dataset dicts with `source="hf_datasets"`; soft-fails silently on any network error
+  - Both functions use the same `truststore`/`certifi`/stdlib SSL chain as all other sources — compatible with corporate SSL inspection
 
-  **Slice-ship mode (preferred dispatch — `self_expansion_infer_slice`)**
-  - `_build_graph_slice(cn, coherence)` — serializes a sanitized 2-hop subgraph from the host's ground nodes into a JSON payload; whitelisted structural keys only (`schema`, `ground`, `adj`, `existing`, `entity_phases`, `entity_z_phases`, `coherence`); hard caps: 16 MiB / 80k edges; no credentials, KV, learning_log, Oracle/Azure state ever crosses the wire
-  - `_infer_from_slice(slice_payload)` — peer-side runner; rehydrates ground/adj/phases from the shipped dict and calls `_infer_paths` with no local DB access; returns `self_expansion.slice_result/v1` payload
-  - `_try_dispatch_slice_to_peer(cn, coherence)` — preferred dispatch: builds slice → ships via `compute_grid.submit_job` (timeout 300 s); falls back transparently on any failure
-  - `run_self_expansion()` inference cycle updated to: slice-ship → legacy compute → local recompute priority order; summary records `remote_dispatch_mode` (slice/compute/local)
+### Changed
 
-  **Parent-child failsafe dispersal**
-  - `_fan_out_committed_edges(edges)` — after every `_commit_edges` call, discovers alive peers and spawns one daemon thread per peer to broadcast committed rows via `self_expansion_edge_commit` grid task (fire-and-forget, 30 s per-peer timeout, 10k edge cap)
-  - `_send_edges_to_peer(peer, edge_dicts)` — per-thread sender; failures swallowed at DEBUG so one flaky peer never stalls the commit path
+- `research_supply_chain_topics()`:
+  - `if include_trending:` block now calls both `fetch_arxiv_recent()` **and** `fetch_hf_daily_papers()` so every cycle pulls from two independent paper feeds
+  - Per-topic dataset loop now calls both `discover_zenodo_datasets()` **and** `discover_hf_datasets()` in parallel — doubled dataset signal breadth per topic
+- Removed all "Replaces the blocked HuggingFace" language from `fetch_arxiv_recent` and `discover_zenodo_datasets` docstrings; both sources now complementary rather than substitutes
 
-- **`pipeline/src/brain/compute_grid.py`** — two new task handlers in `_execute_locally`:
-  - `self_expansion_infer_slice` — calls `_infer_from_slice` on the shipped slice payload; peer never reads its own corpus
-  - `self_expansion_edge_commit` — writes received edges directly into the peer's `corpus_edge` via the same Bayesian ON CONFLICT upsert; each peer becomes a warm backup; single-writer per machine is preserved
-
-- **`pipeline/src/brain/network_observer.py`** — automatic failsafe trigger on peer offline
-  - `_absorb_peer` now spawns `_run_failsafe_expansion(offline_peer_host)` in a daemon thread immediately after cursor absorption completes
-  - `_run_failsafe_expansion` — calls `run_self_expansion()` with a 5 s head start delay; the expansion commits new edges and fans them out to all remaining alive peers via `_fan_out_committed_edges` — dispersal is automatic and recursive
-
-### Architecture
-
-```
-Host commits edges locally
-        │
-        ├─ _fan_out_committed_edges ──► ALIVE peer A  (edge_commit)
-        │                          └──► ALIVE peer B  (edge_commit)
-        │
-Peer goes OFFLINE
-        │
-network_observer._absorb_peer
-        │
-        └─ _run_failsafe_expansion ──► run_self_expansion()
-                                            │
-                                            ├─ slice to remaining peers
-                                            └─ fan_out committed edges
-```
-
-No new infrastructure required. Transport is the existing HMAC-secured `compute_grid` channel (port 8000). Security separation: host-side corpus structural slice only; no secrets, credentials, or learning state ever serialized.
+---
 
 ## [0.19.2] Full System Activation — All Brain Threads Running (2026-04-27)
 

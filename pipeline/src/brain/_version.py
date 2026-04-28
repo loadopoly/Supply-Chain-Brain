@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-__version__ = "0.17.7"
+__version__ = "0.19.3"
 __release__ = (
-    "UEQGM Engine + SiCi Axial Channel Phase Correction. ueqgm_engine.py implements "
-    "UEQGM v0.9.14 corpus learnings as active Brain computation: sici_axial_decay "
-    "(\u0394\u03bb_axial = [Si(\u03c6)\u00b7Ci(\u03c6)]\u00b7tan(\u03c6)\u00b7\u0393\u2080), sici_phase_weight (\u00b110% harmonic correction), "
-    "wavefunction_overlap, floquet_modulation_factor, holographic_entropy, "
-    "metric_perturbation, phase_evolution_total, entropic_bayesian_step, and "
-    "ueqgm_coherence_score. The SiCi phase correction is wired into "
-    "_harmonic_amplify_factor: coherence maps to \u03c6 = \u03c0/4 + k\u00b7\u03c0 so tan(\u03c6)=1 at all "
-    "sin/cos intersection points, bounding the correction to \u226412% in practice while "
-    "preserving the ceiling (4.5) and scale tests. Corpus-backed ueqgm_coherence_score "
-    "reads UEQGM-tagged entities and returns a wavefunction-overlap coherence score "
-    "scaled by the SiCi phase weight at corpus depth."
+    "Grounded Tunneling: certainty-anchored expansory pathway collapser. "
+    "grounded_tunneling.py adds compute_endpoint_certainty (Bayesian posterior "
+    "precision anchor), find_expansory_pathway (BFS toward low-certainty / "
+    "high-torus-gap frontiers), RESISTANCE_DURATION weight resistance records "
+    "in kv_store, torus_amplify:{eid} torsional boundary boost, and nodal_collapse "
+    "(expired paths distil into permanent GROUNDED_TUNNEL edges). "
+    "torus_touch.TouchPressure.apply() gains step_multipliers for per-endpoint "
+    "amplification. _vision_worker Step 5 calls ground_and_expand each vision cycle. "
+    "8 new unit tests in TestGroundedTunneling (38 total, all green)."
 )
-__build_date__ = "2026-04-27"
+__build_date__ = "2026-04-24"
 
 PHASES = {
     "0.1.0": "Phase 1 - core (EOQ Bayesian-Poisson, OTD recursive, Procurement 360, Data Quality, Connectors)",
@@ -37,7 +35,4 @@ PHASES = {
     "0.16.0": "Symbiotic Dynamic Tunneling + Torus-Touch. symbiotic_tunnel.vision_horizontal_expand mints SYMBIOTIC_TUNNEL edges from closed-loop tcp/udp mesh using Bayesian-Poisson centroids, inverted-ReLU ADAM, dual-floor mirror, and propeller routing. torus_touch runs continuously (30 s) pushing every Endpoint along the n=7 categorical gap gradient on the toroidal manifold, so tunnel weights follow manifold geometry. 29 unit tests in tests/test_symbiotic_torus.py.",
     "0.17.0": "UEQGM + AI Knowledge Expansion Research Tracks. _EXTENDED_RESEARCH_TOPICS (47 queries, 8 clusters) added to ml_research.py from the active Grok 3 thread: quantum dynamics, biohybrid computing, moiré superlattices, astrophysical timing, AI knowledge graph self-reference, ensemble LLM/RAG, archival AI training, organic data structures. Extended sweep runs before SC loop so foundational physics/AI context precedes supply chain systems engineering acquisition each cycle.",
     "0.17.1": "Grounded Tunneling. grounded_tunneling.py: certainty-anchored expansory pathway collapser. Ground nodes (top-quartile Bayesian certainty) open BFS paths toward uncertain (low-certainty, high-torus-gap) frontiers with RESISTANCE_DURATION weight immunity + torus_amplify torsional boost. Expired paths undergo nodal collapse → new permanent GROUNDED_TUNNEL edge. torus_touch.TouchPressure gains step_multipliers for per-endpoint amplification. _vision_worker Step 5 wires ground_and_expand. 8 new unit tests (TestGroundedTunneling), 38 total, all green. Oracle schema map expanded (Demand Priority Rules, B2B Trading Partners, ECN Tracking, General Ledger Journals, Supply Network maintenance). oracle_schema_mapper.py ADF task panel hardened with computed-style section-header detection and fallback link scraping. Corpus diagnostic (_cohesion_report.py), bilateral Vision<->Touch test harness (_test_bilateral.py), ADAM optimiser unit test (_test_adam.py), Oracle Fusion intersection map (build_intersection_map.py) added. brain_body_signals.py gains 2 quest-comprehension generators (_gen_fallback_parse_warning, _gen_scope_underpowered); knowledge_corpus.py gains SCB Grok conversation ingestor (_ingest_scb_docs) and extended vision scan for SCB docs directory.",
-    "0.17.2": "LLaDA2 Sign-Bit Child Acquisition. llada_signbit_children.py maps directionality axes to centered sign bits; sign-bit flips acquire LLaDAChild nodes under high-uncertainty parents, with Model parents seeded from llm_weights and preferred. Child nodes are linked through CHILD_OF, ACQUIRES_CHILD, and SIGNBIT_FLIP edges. _vision_worker Step 6 invokes acquire_llada_signbit_children after grounded tunneling. 11 unit tests cover bit flips, model seeding, child acquisition, idempotency, and generic-parent fallback.",
-    "0.17.3": "Bifurcated Tunnel Compute Provisioner (local/virtual, encapsulated). compute_provisioner.py acquires ComputeSlot daemon threads (local compute) + ComputeSlot corpus entities with torus_amplify boosts (virtual compute) from GROUNDED_TUNNEL / LLaDA2 saturation thresholds. Symbiotic closed loop: saturation → slot spawn → torus_amplify written → Touch amplifies slot nodes → more expansory paths → more collapses → more saturation. MAX_SLOTS=8 cap; SLOT_INTERVAL_S=60 (5× faster than vision). CPU overhead model: 748 ops/tick vision + per-slot contribution. _vision_worker Step 7 wired. No external cloud calls — entirely in-process.",    "0.17.4": "Multi-anchor boundary ingestion with polarity alignment. _POLARITY_ALIGN matrix, outward propagation (_propagate_outward), and cross-resource harmonization added to compute_provisioner.py. Coherence selection now picks the highest-polarity-weight anchor across all candidates.",
-    "0.17.5": "Harmonious Sign-Bit Flip Boundary Ingestion. Phase 2 ingestion coherence-weighted by SIGNBIT_FLIP convergence: harmonic saturation curve (floor=0.9, ceiling=4.5), HARMONIC_BOND back-edges at proportional weight, ComputeIntent.harmonic_coherence + harmonic_factor fields, heartbeat ingested=/slot_hz=/coherence= fields.",
-    "0.17.6": "UEQGM Engine + SiCi Axial Channel. ueqgm_engine.py implements UEQGM v0.9.14 corpus learnings as active Brain computation: sici_axial_decay (\u0394\u03bb_axial = [Si(\u03c6)\u00b7Ci(\u03c6)]\u00b7tan(\u03c6)\u00b7\u0393\u2080), sici_phase_weight (\u00b110% correction via tanh), wavefunction_overlap, floquet_modulation_factor, holographic_entropy, metric_perturbation, phase_evolution_total, entropic_bayesian_step, ueqgm_coherence_score. The SiCi correction is wired into _harmonic_amplify_factor using \u03c6=\u03c0/4+k\u03c0 intersection mapping (tan(\u03c6)=1 always); corpus-backed coherence score scans UEQGM-tagged entities.",}
+}
