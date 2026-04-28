@@ -257,6 +257,58 @@ try:
 except Exception:
     pass
 
+# ---------------------------------------------------------------------------
+# Process-level agent resurrection monitor (runs once per Streamlit server
+# process via @st.cache_resource).
+#
+# The autonomous_agent writes logs/agent_heartbeat.txt every 60 s while it
+# is sleeping between cycles.  If that file goes stale for >15 minutes the
+# agent has crashed (or was killed) and Streamlit respawns it here.
+#
+# A 10-minute cooldown prevents rapid-fire re-spawning if the agent keeps
+# crashing at startup.  Thread-level daemon crashes are handled by the
+# _daemon_watchdog inside autonomous_agent.py itself.
+# ---------------------------------------------------------------------------
+@st.cache_resource
+def _start_agent_resurrection_monitor():
+    import threading as _th
+    import subprocess as _sp
+    import time as _t
+
+    _HB    = Path(__file__).parent / "logs" / "agent_heartbeat.txt"
+    _AGENT = Path(__file__).parent / "autonomous_agent.py"
+    _PY    = Path(__file__).parent / ".venv" / "Scripts" / "python.exe"
+    _STALE_S   = 900    # 15 min without a heartbeat → agent is dead
+    _COOLDOWN  = 600    # 10 min between successive spawns
+    _POLL_S    = 120    # check every 2 min
+
+    def _watch():
+        last_spawn = 0.0
+        _t.sleep(60)    # give agent time to write its first heartbeat on fresh boot
+        while True:
+            try:
+                alive = _HB.exists() and (_t.time() - _HB.stat().st_mtime) < _STALE_S
+                if not alive and (_t.time() - last_spawn) > _COOLDOWN:
+                    py = str(_PY) if _PY.exists() else "python"
+                    _sp.Popen(
+                        [py, str(_AGENT)],
+                        cwd=str(_AGENT.parent),
+                        # Windows: no console window, fully detached from Streamlit
+                        creationflags=0x08000008,  # CREATE_NO_WINDOW | DETACHED_PROCESS
+                    )
+                    last_spawn = _t.time()
+                    _logging.warning(
+                        "[app] autonomous_agent.py resurrected by Streamlit watchdog "
+                        f"(heartbeat age: {int(_t.time() - _HB.stat().st_mtime) if _HB.exists() else 'missing'} s)"
+                    )
+            except Exception as _exc:
+                _logging.warning(f"[app] agent resurrection watchdog error: {_exc}")
+            _t.sleep(_POLL_S)
+
+    _th.Thread(target=_watch, name="agent-resurrection", daemon=True).start()
+
+_start_agent_resurrection_monitor()
+
 try:
     pg.run()
 finally:

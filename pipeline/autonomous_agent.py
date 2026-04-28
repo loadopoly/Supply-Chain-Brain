@@ -1,10 +1,50 @@
-﻿import time
+import time
 import subprocess
 import os
 import logging
 import math
 import sqlite3
+import threading
 from datetime import datetime
+
+# ---------------------------------------------------------------------------
+# Daemon thread registry — keeps weak references to each background worker
+# so the watchdog can detect crashes and restart them.
+# ---------------------------------------------------------------------------
+_DAEMON_REGISTRY: dict = {}          # name → (start_fn, thread | None)
+_REGISTRY_LOCK = threading.Lock()
+
+
+def _register_daemon(name: str, start_fn):
+    """Start a daemon via *start_fn* and record it in the registry."""
+    t = start_fn()
+    with _REGISTRY_LOCK:
+        _DAEMON_REGISTRY[name] = (start_fn, t)
+    return t
+
+
+def _daemon_watchdog():
+    """Poll every 60 s; restart any registered daemon thread that has died.
+
+    This handles thread-level crashes (unhandled exceptions escaping the
+    worker's internal loop).  Process-level resurrection (when the whole
+    autonomous_agent.py crashes) is handled by the Streamlit watchdog in
+    app.py via the logs/agent_heartbeat.txt staleness check.
+    """
+    while True:
+        time.sleep(60)
+        with _REGISTRY_LOCK:
+            snapshot = list(_DAEMON_REGISTRY.items())
+        for name, (start_fn, t) in snapshot:
+            if t is None or not t.is_alive():
+                logging.warning(f"[watchdog] daemon '{name}' is dead — restarting...")
+                try:
+                    new_t = start_fn()
+                    with _REGISTRY_LOCK:
+                        _DAEMON_REGISTRY[name] = (start_fn, new_t)
+                    logging.info(f"[watchdog] daemon '{name}' restarted successfully.")
+                except Exception as _exc:
+                    logging.error(f"[watchdog] failed to restart '{name}': {_exc}")
 
 # Configure logging
 logging.basicConfig(
@@ -625,22 +665,22 @@ def autonomous_loop():
 if __name__ == "__main__":
     os.makedirs("docs", exist_ok=True)
 
-    # Spin up the skill acquirer alongside the main loop
-    acquirer_thread = start_integrated_skill_acquirer()
+    # Register + start all four daemon workers via the watchdog registry so
+    # the watchdog thread can detect crashes and restart them automatically.
+    _register_daemon("integrated_skill_acquirer",  start_integrated_skill_acquirer)
+    _register_daemon("systemic_refinement_agent",  start_systemic_refinement_agent)
+    _register_daemon("ml_research_daemon",          start_ml_research_daemon)
+    _register_daemon("citation_chain_daemon",       start_citation_chain_daemon)
 
-    # Spin up the Systemic Refinement Agent — continuously revises and
-    # refines the whole supply-chain system as learning expands.
-    refinement_thread = start_systemic_refinement_agent()
-
-    # Spin up the ML research daemon — rotates through 56 OCW topics plus
-    # arXiv/OpenAlex/CrossRef/Zenodo every 60 min, feeding the corpus ingestion
-    # layer with fresh academic material.  Without this, OCW outreach only
-    # re-crawls already-known courses and writes 0 new rows.
-    ml_research_thread = start_ml_research_daemon()
-
-    # Spin up the citation chain acquirer — recursively follows academic
-    # citation graphs (Semantic Scholar + OpenAlex) from known Paper entities
-    # to depth 3 every 60 min.
-    citation_thread = start_citation_chain_daemon()
+    # Start the thread-level watchdog — polls every 60 s, restarts dead daemons.
+    threading.Thread(
+        target=_daemon_watchdog,
+        name="daemon-watchdog",
+        daemon=True,
+    ).start()
+    logging.info(
+        "Daemon watchdog started — monitors 4 background threads, "
+        "restarts any that crash within 60 s."
+    )
 
     autonomous_loop()
