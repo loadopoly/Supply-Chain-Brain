@@ -755,6 +755,449 @@ def _infer_paths(
 
 # ── Commit ────────────────────────────────────────────────────────────────────
 
+# ── Distributed compute (The Other / compute_grid) ────────────────────────────
+#
+# Two dispatch modes are supported:
+#
+#   1. **Slice-ship mode** (preferred — `self_expansion_infer_slice`)
+#      The host serializes a sanitized 2-hop subgraph rooted at its own
+#      ground nodes and ships it to The Other.  The peer runs `_infer_paths`
+#      against the shipped slice ONLY — it never reads its own corpus, never
+#      writes anywhere, never sees any host secret.  This is the
+#      torus-channel-locking expansion: a single, bounded, structural
+#      payload crosses the channel; the host's local resources (credentials,
+#      KV, learning_log, Oracle/Azure connections, replica DW) stay
+#      hard-separated from the peer's address space.
+#
+#   2. **Local-corpus mode** (legacy fallback — `self_expansion_compute`)
+#      The peer runs the BFS against its OWN copy of the corpus.  Useful
+#      for symmetric peers that already mirror the same DB; kept for
+#      backward compatibility.
+#
+# Single-writer to local_brain.sqlite is preserved in both modes — the
+# peer never writes; only the originating host commits.
+
+
+# Hard cap on the serialized slice so a runaway corpus can never DoS the
+# peer.  At ~200 B/edge the cap is safe well past 50k edges.
+_SLICE_MAX_BYTES = 16 * 1024 * 1024     # 16 MiB
+_SLICE_MAX_EDGES = 80_000               # adjacency edges in the shipped subgraph
+
+
+def _build_graph_slice(cn: sqlite3.Connection,
+                       coherence: float) -> dict | None:
+    """Serialize the inputs `_infer_paths` needs into a JSON-safe dict.
+
+    The slice is intentionally narrow: only graph structure (corpus_edge
+    rows reachable from ground within 2 hops), plus the per-entity phase
+    angles for those nodes.  No credentials, no KV, no learning_log, no
+    Oracle/SQL connection state — those live on the host and never cross
+    the wire.  Returns None when the slice would exceed the size cap.
+    """
+    ground = _ground_nodes(cn)
+    if not ground:
+        return None
+
+    full_adj      = _load_adj(cn)
+    entity_phases, entity_z_phases = _load_entity_phases(cn)
+
+    # Restrict adjacency to the 2-hop reachable subgraph from ground.  This
+    # is exactly what `_infer_paths` traverses — anything outside is dead
+    # weight on the wire.
+    keep: set[str] = {gn.entity_id for gn in ground}
+    frontier = set(keep)
+    for _hop in range(2):
+        next_frontier: set[str] = set()
+        for nid in frontier:
+            for (dst_id, _dt, _r, _w) in full_adj.get(nid, []):
+                if dst_id not in keep:
+                    next_frontier.add(dst_id)
+                    keep.add(dst_id)
+        frontier = next_frontier
+
+    sliced_adj: dict[str, list[list]] = {}
+    edge_count = 0
+    for nid in keep:
+        hops = full_adj.get(nid)
+        if not hops:
+            continue
+        # Only keep neighbours that are also in `keep` — preserves the
+        # 2-hop reachability of the slice and bounds the payload.
+        kept_hops = [[d, dt, r, w] for (d, dt, r, w) in hops if d in keep]
+        if not kept_hops:
+            continue
+        sliced_adj[nid] = kept_hops
+        edge_count += len(kept_hops)
+        if edge_count > _SLICE_MAX_EDGES:
+            log.info(
+                "self_expansion: slice exceeds edge cap (%d > %d) — "
+                "shipping local-only this cycle", edge_count, _SLICE_MAX_EDGES,
+            )
+            return None
+
+    sliced_phases   = {eid: entity_phases[eid]   for eid in keep
+                       if eid in entity_phases}
+    sliced_z_phases = {eid: entity_z_phases[eid] for eid in keep
+                       if eid in entity_z_phases}
+
+    # `_existing_edges` is only used for novelty checks; since we're committing
+    # against the HOST corpus, the peer needs the same dedup set.  We send the
+    # subset whose src is in `keep` — anything else can never be inferred from
+    # this slice anyway.
+    existing_keys: list[list] = []
+    for r in cn.execute(
+        "SELECT src_id, src_type, dst_id, dst_type, rel "
+        "FROM corpus_edge WHERE src_id IN (" +
+        ",".join(["?"] * len(keep)) + ")",
+        list(keep),
+    ).fetchall():
+        existing_keys.append([r["src_id"], r["src_type"],
+                              r["dst_id"], r["dst_type"], r["rel"]])
+
+    slice_payload = {
+        "schema":          "self_expansion.slice/v1",
+        "ground":          [[gn.entity_id, gn.entity_type, gn.certainty]
+                            for gn in ground],
+        "adj":             sliced_adj,
+        "existing":        existing_keys,
+        "entity_phases":   sliced_phases,
+        "entity_z_phases": sliced_z_phases,
+        "coherence":       float(coherence),
+        # The slice is graph-structural only — no secrets, no KV, no creds.
+        # Host-side enforcement: we whitelist exactly these keys above.
+    }
+
+    # Defensive size cap — refuses to ship anything pathological.
+    try:
+        size = len(json.dumps(slice_payload, default=str).encode("utf-8"))
+    except Exception:
+        return None
+    if size > _SLICE_MAX_BYTES:
+        log.info(
+            "self_expansion: slice byte cap exceeded (%d B > %d B) — "
+            "shipping local-only this cycle", size, _SLICE_MAX_BYTES,
+        )
+        return None
+    slice_payload["_slice_bytes"] = size
+    return slice_payload
+
+
+def _infer_from_slice(slice_payload: dict) -> dict:
+    """Peer-side: run `_infer_paths` against a shipped slice ONLY.
+
+    Never touches the local corpus, never writes anywhere.  Returns the
+    same payload shape as `_compute_inferred_payload` so the host's
+    `_apply_inferred_payload` can consume it unchanged.
+    """
+    try:
+        ground = [
+            _NodeCert(str(eid), str(et), float(cert))
+            for (eid, et, cert) in (slice_payload.get("ground") or [])
+        ]
+        adj: dict[str, list[tuple[str, str, str, float]]] = {}
+        for src, hops in (slice_payload.get("adj") or {}).items():
+            adj[str(src)] = [
+                (str(d), str(dt), str(r), float(w))
+                for (d, dt, r, w) in hops
+            ]
+        existing: set[tuple[str, str, str, str, str]] = set()
+        for k in slice_payload.get("existing") or []:
+            try:
+                existing.add((str(k[0]), str(k[1]), str(k[2]),
+                              str(k[3]), str(k[4])))
+            except Exception:
+                continue
+        entity_phases   = {str(k): float(v) for k, v in
+                           (slice_payload.get("entity_phases") or {}).items()}
+        entity_z_phases = {str(k): float(v) for k, v in
+                           (slice_payload.get("entity_z_phases") or {}).items()}
+        coherence       = float(slice_payload.get("coherence", 0.0))
+
+        inferred, bit_flip, phase_acc, c_mean, gs = _infer_paths(
+            ground, adj, existing, coherence,
+            entity_phases, entity_z_phases,
+        )
+        return {
+            "schema":     "self_expansion.slice_result/v1",
+            "inferred":   [e._asdict() for e in inferred],
+            "bit_flip":   bit_flip,
+            "phase_acc":  phase_acc,
+            "c_mean":     c_mean,
+            "golden_sat": gs,
+            "n_ground":   len(ground),
+        }
+    except Exception as exc:
+        return {"error": f"infer_from_slice failed: {exc}"}
+
+
+def _compute_inferred_payload() -> dict:
+    """Run gates + 2-hop inference and return a JSON-serializable payload
+    WITHOUT touching the corpus.  Used both by the local fallback path and
+    by remote peers that receive a `self_expansion_compute` grid job.
+    """
+    cn = _conn()
+    try:
+        g_open, coherence              = _ground_gate(cn)
+        s_open, sym, phase_gap         = _symbiotic_gate(cn)
+        result: dict = {
+            "ground_gate":     g_open,
+            "symbiotic_gate":  s_open,
+            "coherence":       coherence,
+            "symbiosis_pct":   sym,
+            "phase_gap":       phase_gap,
+            "inferred":        [],
+            "bit_flip":        False,
+            "phase_acc":       0.0,
+            "c_mean":          0.0,
+            "golden_sat":      False,
+            "n_ground":        0,
+        }
+        if not g_open or not s_open:
+            return result
+
+        ground                                     = _ground_nodes(cn)
+        adj                                        = _load_adj(cn)
+        existing                                   = _existing_edges(cn)
+        entity_phases, entity_z_phases             = _load_entity_phases(cn)
+        inferred, bit_flip, phase_acc, c_mean, gs  = _infer_paths(
+            ground, adj, existing, coherence,
+            entity_phases, entity_z_phases,
+        )
+        result.update({
+            "inferred":   [e._asdict() for e in inferred],
+            "bit_flip":   bit_flip,
+            "phase_acc":  phase_acc,
+            "c_mean":     c_mean,
+            "golden_sat": gs,
+            "n_ground":   len(ground),
+        })
+        return result
+    finally:
+        try:
+            cn.close()
+        except Exception:
+            pass
+
+
+def _try_dispatch_slice_to_peer(cn: sqlite3.Connection,
+                                coherence: float) -> tuple[dict | None, str]:
+    """Build a graph slice from the host's corpus and ship it to The Other.
+
+    Returns (inferred_payload, peer_host) on success, or (None, reason) on
+    any failure (no peer, slice too big, peer error, etc.) — caller falls
+    back to local inference.
+    """
+    try:
+        from . import compute_grid
+    except Exception as exc:
+        return None, f"compute_grid unavailable: {exc}"
+    try:
+        target = compute_grid.pick_compute_target(
+            {"task": "self_expansion_infer_slice"})
+    except Exception as exc:
+        return None, f"pick_compute_target failed: {exc}"
+    if target.fallback or target.peer.is_local:
+        return None, f"no peer ({target.reason})"
+
+    slice_payload = _build_graph_slice(cn, coherence)
+    if slice_payload is None:
+        return None, "slice unavailable (empty ground or size cap)"
+
+    log.info(
+        "self_expansion: shipping slice to %s — ground=%d adj_src=%d "
+        "existing=%d phases=%d size=%.1f KiB",
+        target.peer.host,
+        len(slice_payload["ground"]),
+        len(slice_payload["adj"]),
+        len(slice_payload["existing"]),
+        len(slice_payload["entity_phases"]),
+        slice_payload["_slice_bytes"] / 1024.0,
+    )
+
+    try:
+        resp = compute_grid.submit_job(
+            target,
+            {"task": "self_expansion_infer_slice", "slice": slice_payload},
+            timeout_s=300.0,
+        )
+    except Exception as exc:
+        return None, f"submit_job failed: {exc}"
+    if not isinstance(resp, dict) or resp.get("error"):
+        return None, f"peer error: {(resp or {}).get('error', 'bad response')}"
+    inner = resp.get("response") if isinstance(resp.get("response"), dict) else resp
+    if not isinstance(inner, dict) or "inferred" not in inner:
+        err = (inner or {}).get("error", "no inferred payload")
+        return None, f"peer returned no inferred payload ({err})"
+    return inner, str(resp.get("host") or target.peer.host)
+
+
+def _try_dispatch_to_peer() -> tuple[dict | None, str]:
+    """Legacy local-corpus dispatch (`self_expansion_compute`).
+
+    Submits a bare task — the peer runs the full pipeline against its own
+    DB.  Kept so symmetric peers that mirror the corpus can still
+    contribute without us shipping a slice.
+    """
+    try:
+        from . import compute_grid
+    except Exception as exc:
+        return None, f"compute_grid unavailable: {exc}"
+    try:
+        target = compute_grid.pick_compute_target(
+            {"task": "self_expansion_compute"})
+    except Exception as exc:
+        return None, f"pick_compute_target failed: {exc}"
+    if target.fallback or target.peer.is_local:
+        return None, f"no peer ({target.reason})"
+    try:
+        resp = compute_grid.submit_job(
+            target,
+            {"task": "self_expansion_compute"},
+            timeout_s=240.0,
+        )
+    except Exception as exc:
+        return None, f"submit_job failed: {exc}"
+    if not isinstance(resp, dict) or resp.get("error"):
+        return None, f"peer error: {(resp or {}).get('error', 'bad response')}"
+    inner = resp.get("response") if isinstance(resp.get("response"), dict) else resp
+    if not isinstance(inner, dict) or "inferred" not in inner:
+        return None, "peer returned no inferred payload"
+    return inner, str(resp.get("host") or target.peer.host)
+
+
+def _apply_inferred_payload(
+    cn: sqlite3.Connection,
+    payload: dict,
+) -> list[_InferredEdge]:
+    """Rehydrate the JSON-serialized inferred edges into _InferredEdge rows
+    ready for `_commit_edges`.  Skips malformed entries silently.
+    """
+    out: list[_InferredEdge] = []
+    for d in payload.get("inferred") or []:
+        try:
+            out.append(_InferredEdge(
+                src_id    = str(d["src_id"]),
+                src_type  = str(d["src_type"]),
+                dst_id    = str(d["dst_id"]),
+                dst_type  = str(d["dst_type"]),
+                rel       = str(d["rel"]),
+                confidence= float(d["confidence"]),
+                via       = str(d.get("via", "")),
+            ))
+        except Exception:
+            continue
+    return out
+
+
+def _acquire_new_resources() -> dict:
+    """Republish this node's capacity beacon and force a peer rediscovery so
+    any host that just came online (or was woken by the activation trigger
+    `discover_peers` drops in `bridge_triggers/`) joins the fabric in time
+    for the next expansion cycle.  Best-effort; never raises.
+    """
+    out: dict = {"acquired": 0, "peers": []}
+    try:
+        from . import compute_grid
+        try:
+            compute_grid.publish_local_capacity()
+        except Exception:
+            pass
+        peers = compute_grid.discover_peers(force=True)
+        out["peers"] = sorted(p.host for p in peers)
+        out["acquired"] = sum(
+            1 for p in peers if not p.is_local and (p.cpu_count or p.free_ram_gb)
+        )
+    except Exception as exc:
+        out["error"] = str(exc)[:120]
+    return out
+
+
+# ── Failsafe dispersal — fan committed edges out to all alive peers ─────────────
+#
+# After committing inferred edges locally, we broadcast them to every ALIVE peer
+# in the compute-peer registry.  Each peer stores a copy in its own corpus_edge
+# table so the work survives if the originating host goes down.  When the
+# network_observer detects a node as OFFLINE, the surviving nodes already carry
+# the committed edges — no inference is lost.
+#
+# Constraints:
+#   • Fire-and-forget: each peer gets its own daemon thread; the main cycle
+#     never waits for acknowledgement.
+#   • Size-bounded: only the five PK fields + confidence cross the wire; no KV,
+#     no credentials, no slice structure.
+#   • Per-peer timeout: 30 s — long enough for any LAN hop, short enough to
+#     never stall the heartbeat.
+#   • Deduplication: the remote `_commit_edges` equivalent uses the same
+#     ON CONFLICT upsert, so re-sending the same edge is harmless.
+
+_EDGE_SYNC_TIMEOUT_S = 30.0
+_EDGE_SYNC_MAX_EDGES = 10_000    # cap to prevent accidental giant payloads
+
+
+def _fan_out_committed_edges(edges: list[_InferredEdge]) -> None:
+    """Dispatch committed edges to all ALIVE peers in background threads.
+
+    Called immediately after _commit_edges returns, while the main cycle
+    continues.  Each thread targets exactly one peer; failures are logged
+    at DEBUG and never surface to the caller.
+    """
+    import threading as _th
+    try:
+        from . import compute_grid as _cg
+        peers = _cg.discover_peers(force=False)   # use cached list — no I/O wait
+    except Exception:
+        return
+
+    # Serialize once; all threads share the same read-only list
+    edge_dicts = [
+        {
+            "src_id":     e.src_id,
+            "src_type":   e.src_type,
+            "dst_id":     e.dst_id,
+            "dst_type":   e.dst_type,
+            "rel":        e.rel,
+            "confidence": round(e.confidence, 4),
+        }
+        for e in edges[:_EDGE_SYNC_MAX_EDGES]
+    ]
+
+    import socket as _sock
+    self_host = _sock.gethostname().lower()
+    for peer in peers:
+        if peer.is_local or peer.host.lower() == self_host:
+            continue
+        _th.Thread(
+            target=_send_edges_to_peer,
+            args=(peer, edge_dicts),
+            name=f"edge-sync-{peer.host}",
+            daemon=True,
+        ).start()
+
+
+def _send_edges_to_peer(peer, edge_dicts: list[dict]) -> None:
+    """Submit a `self_expansion_edge_commit` job to a single peer.
+
+    Runs in its own daemon thread.  Never raises — failures are swallowed
+    so one flaky peer never stalls the commit path.
+    """
+    try:
+        from . import compute_grid as _cg
+        # Build a synthetic target from the peer record
+        from .compute_grid import _ComputeTarget  # type: ignore[attr-defined]
+        target = _ComputeTarget(peer=peer, fallback=False, reason="edge_sync")
+        _cg.submit_job(
+            target,
+            {"task": "self_expansion_edge_commit", "edges": edge_dicts},
+            timeout_s=_EDGE_SYNC_TIMEOUT_S,
+        )
+        log.debug(
+            "self_expansion: edge_sync → %s  %d edges dispatched",
+            peer.host, len(edge_dicts),
+        )
+    except Exception as exc:
+        log.debug("self_expansion: edge_sync → %s failed: %s", getattr(peer, "host", "?"), exc)
+
+
 def _commit_edges(cn: sqlite3.Connection, edges: list[_InferredEdge]) -> int:
     """Upsert inferred edges into corpus_edge.
 
@@ -984,27 +1427,95 @@ def run_self_expansion() -> dict:
                 return summary
 
             # ── Inference cycle ────────────────────────────────────────────
-            ground        = _ground_nodes(cn)
-            adj           = _load_adj(cn)
-            existing      = _existing_edges(cn)
-            entity_phases, entity_z_phases = _load_entity_phases(cn)
+            # Preferred path: serialize a sanitized 2-hop graph slice from
+            # the host's corpus and ship it to The Other.  The peer never
+            # touches its own corpus and never sees any host secret — the
+            # torus-channel-locking expansion keeps the host's local
+            # resources hard-separated from the peer's address space.
+            #
+            # If slice-ship fails (no peer / oversized / peer error) we
+            # fall back to the symmetric task that lets the peer use its
+            # own corpus mirror, and finally to in-process inference so a
+            # cycle is never blocked by peer health.
+            remote_payload, remote_origin = _try_dispatch_slice_to_peer(cn, coherence)
+            dispatch_mode = "slice"
+            if remote_payload is None:
+                slice_reason = remote_origin
+                remote_payload, remote_origin = _try_dispatch_to_peer()
+                dispatch_mode = "compute" if remote_payload is not None else "local"
+                if remote_payload is None:
+                    log.debug(
+                        "self_expansion: dispatch local — slice=%s compute=%s",
+                        slice_reason, remote_origin,
+                    )
 
-            inferred, bit_flip, phase_acc, c_mean, golden_sat = _infer_paths(
-                ground, adj, existing, coherence,
-                entity_phases, entity_z_phases,
-            )
+            if remote_payload is not None:
+                summary["remote_compute_host"] = remote_origin
+                summary["remote_dispatch_mode"] = dispatch_mode
+                # Slice mode skips remote gate adoption (gates were evaluated
+                # locally already).  Legacy mode still carries gate values
+                # because the peer re-evaluated against its own DB.
+                if dispatch_mode == "slice":
+                    inferred_rows = _apply_inferred_payload(cn, remote_payload)
+                    bit_flip      = bool(remote_payload.get("bit_flip"))
+                    phase_acc     = float(remote_payload.get("phase_acc", 0.0))
+                    c_mean        = float(remote_payload.get("c_mean", 0.0))
+                    golden_sat    = bool(remote_payload.get("golden_sat"))
+                    n_ground      = int(remote_payload.get("n_ground", 0))
+                    n_inferred    = len(inferred_rows)
+                else:
+                    r_g = bool(remote_payload.get("ground_gate"))
+                    r_s = bool(remote_payload.get("symbiotic_gate"))
+                    if r_g and r_s:
+                        inferred_rows = _apply_inferred_payload(cn, remote_payload)
+                        bit_flip      = bool(remote_payload.get("bit_flip"))
+                        phase_acc     = float(remote_payload.get("phase_acc", 0.0))
+                        c_mean        = float(remote_payload.get("c_mean", 0.0))
+                        golden_sat    = bool(remote_payload.get("golden_sat"))
+                        n_ground      = int(remote_payload.get("n_ground", 0))
+                        n_inferred    = len(inferred_rows)
+                    else:
+                        # Remote saw closed gates — trust it; skip this cycle.
+                        summary.update({
+                            "skipped": True,
+                            "reason":  f"remote_gates_closed_{remote_origin}",
+                        })
+                        _write_kv(cn, summary)
+                        return summary
+            else:
+                ground        = _ground_nodes(cn)
+                adj           = _load_adj(cn)
+                existing      = _existing_edges(cn)
+                entity_phases, entity_z_phases = _load_entity_phases(cn)
 
-            n_committed = _commit_edges(cn, inferred)
+                inferred_rows, bit_flip, phase_acc, c_mean, golden_sat = _infer_paths(
+                    ground, adj, existing, coherence,
+                    entity_phases, entity_z_phases,
+                )
+                n_ground   = len(ground)
+                n_inferred = len(inferred_rows)
+
+            n_committed = _commit_edges(cn, inferred_rows)
+
+            # ── Failsafe dispersal ─────────────────────────────────────────
+            # After committing locally, fan committed edges out to every
+            # ALIVE peer in the background.  Each peer persists the edges
+            # in its own corpus so that if THIS host goes down the work is
+            # not lost — the parent-child fabric reconstructs from the
+            # distributed copies.  Threads are daemon so they never block a
+            # clean shutdown.
+            if n_committed > 0 and inferred_rows:
+                _fan_out_committed_edges(inferred_rows)
 
             if n_committed > 0:
                 _emit_learning(
                     cn, n_committed, coherence, sym,
-                    len(ground), len(inferred), phase_gap,
+                    n_ground, n_inferred, phase_gap,
                 )
 
             if bit_flip:
                 _emit_touch_signal(
-                    cn, n_committed, phase_acc, len(ground), coherence, sym,
+                    cn, n_committed, phase_acc, n_ground, coherence, sym,
                     c_mean=c_mean,
                     golden_saturation=golden_sat,
                 )
@@ -1016,8 +1527,8 @@ def run_self_expansion() -> dict:
                 else ("degradation" if bit_flip else "none")
             )
             _write_kv(cn, {**summary,
-                           "ground_nodes":       len(ground),
-                           "inferred_paths":     len(inferred),
+                           "ground_nodes":       n_ground,
+                           "inferred_paths":     n_inferred,
                            "committed":          n_committed,
                            "toric_bit_flip":     bit_flip,
                            "golden_saturation":  golden_sat,
@@ -1028,8 +1539,8 @@ def run_self_expansion() -> dict:
                            "at_golden_angle":    at_golden})
 
             summary.update({
-                "ground_nodes":      len(ground),
-                "inferred_paths":    len(inferred),
+                "ground_nodes":      n_ground,
+                "inferred_paths":    n_inferred,
                 "committed":         n_committed,
                 "toric_bit_flip":    bit_flip,
                 "golden_saturation": golden_sat,
@@ -1042,11 +1553,21 @@ def run_self_expansion() -> dict:
             log.info(
                 "self_expansion: ground=%d inferred=%d committed=%d "
                 "coherence=%.3f sym=%.3f pg=%.1f° termination=%s "
-                "phase_acc=%.2f c×2π=%.4f at_golden=%s",
-                len(ground), len(inferred), n_committed,
+                "phase_acc=%.2f c×2π=%.4f at_golden=%s remote=%s",
+                n_ground, n_inferred, n_committed,
                 coherence, sym, math.degrees(phase_gap),
                 termination, phase_acc, berry_2pi, at_golden,
+                summary.get("remote_compute_host", "local"),
             )
+
+        # ── Acquire new resources ──────────────────────────────────────────
+        # Republish capacity and rediscover peers so any newly-awake host
+        # joins the fabric for the next cycle.  Done outside the corpus
+        # transaction so a slow OneDrive sync can never roll back the commit.
+        try:
+            summary["resource_acquisition"] = _acquire_new_resources()
+        except Exception as exc:
+            summary["resource_acquisition"] = {"error": str(exc)[:120]}
 
     except Exception as exc:
         log.exception("self_expansion: unexpected error: %s", exc)

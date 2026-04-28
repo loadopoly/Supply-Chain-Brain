@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-__version__ = "0.17.6"
+__version__ = "0.17.7"
 __release__ = (
     "UEQGM Engine + SiCi Axial Channel Phase Correction. ueqgm_engine.py implements "
     "UEQGM v0.9.14 corpus learnings as active Brain computation: sici_axial_decay "

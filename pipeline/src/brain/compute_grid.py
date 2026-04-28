@@ -571,9 +571,93 @@ def _recv_exact(sock: socket.socket, n: int) -> bytes:
 # code will replace this with the real model invocation routine.
 # ---------------------------------------------------------------------------
 def _execute_locally(payload: dict) -> dict:
+    task = payload.get("task") or "default"
+    # ── Brain-side compute tasks ──────────────────────────────────────────
+    # When "The Other" receives one of these, it runs the corresponding
+    # Brain primitive against ITS local copy of the corpus and returns the
+    # result.  The originator commits / consumes the payload — keeping
+    # writes single-host while distributing the CPU.
+    if task == "self_expansion_compute":
+        try:
+            from .self_expansion import _compute_inferred_payload
+            inner = _compute_inferred_payload()
+        except Exception as e:
+            inner = {"error": f"self_expansion_compute failed: {e}"}
+        return {
+            "host":     socket.gethostname(),
+            "task":     task,
+            "response": inner,
+            "executed": "local",
+        }
+    if task == "self_expansion_infer_slice":
+        try:
+            from .self_expansion import _infer_from_slice
+            inner = _infer_from_slice(payload.get("slice") or {})
+        except Exception as e:
+            inner = {"error": f"self_expansion_infer_slice failed: {e}"}
+        return {
+            "host":     socket.gethostname(),
+            "task":     task,
+            "response": inner,
+            "executed": "local",
+        }
+    if task == "self_expansion_edge_commit":
+        # Failsafe dispersal: the originating host ships its freshly committed
+        # edges so this peer can persist them.  The peer is now a warm backup:
+        # if the originator goes down the corpus is not lost.  Single-writer
+        # per machine is preserved — each node writes to its own DB.
+        committed = 0
+        errors = 0
+        try:
+            import sqlite3 as _sql
+            from datetime import datetime, timezone as _tz
+            from .local_store import db_path as _db_path
+            edge_list = payload.get("edges") or []
+            cn = _sql.connect(str(_db_path()), timeout=20, check_same_thread=False)
+            now = datetime.now(_tz.utc).isoformat()
+            for e in edge_list:
+                try:
+                    cn.execute(
+                        """
+                        INSERT INTO corpus_edge
+                            (src_id, src_type, dst_id, dst_type, rel,
+                             weight, last_seen, samples)
+                        VALUES (?,?,?,?,?,?,?,1)
+                        ON CONFLICT(src_id, src_type, dst_id, dst_type, rel) DO UPDATE SET
+                            weight    = (weight * samples + excluded.weight) / (samples + 1),
+                            samples   = samples + 1,
+                            last_seen = excluded.last_seen
+                        """,
+                        (
+                            str(e.get("src_id",  "")),
+                            str(e.get("src_type","unknown")),
+                            str(e.get("dst_id",  "")),
+                            str(e.get("dst_type","unknown")),
+                            str(e.get("rel",     "INFORMS")),
+                            float(e.get("confidence", 0.0)),
+                            now,
+                        ),
+                    )
+                    committed += 1
+                except Exception:
+                    errors += 1
+            cn.commit()
+            cn.close()
+        except Exception as ex:
+            errors += 1
+            import logging as _log
+            _log.debug("compute_grid: edge_commit error: %s", ex)
+        inner = {"committed": committed, "errors": errors,
+                 "schema": "self_expansion.edge_commit_result/v1"}
+        return {
+            "host":     socket.gethostname(),
+            "task":     task,
+            "response": inner,
+            "executed": "local",
+        }
+    # ── Default: LLM ensemble dispatch (existing behaviour) ───────────────
     from .llm_router import select_llm
     from .llm_ensemble import _offline_caller   # safe internal use
-    task = payload.get("task") or "default"
     body = payload.get("body")
     decision = select_llm(task, log=False)
     response = _offline_caller(decision, body, _cfg())

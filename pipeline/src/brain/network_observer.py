@@ -460,9 +460,57 @@ def _absorb_peer(ps: _PeerState, now: float) -> None:
     except Exception as exc:
         logging.error(f"network_observer: absorption failed for {ps.host}: {exc}")
 
+    # ── Failsafe: trigger an immediate expansion cycle ─────────────────────────
+    # The peer going OFFLINE means its CPU contribution is gone.  Fire one
+    # extra self_expansion cycle immediately (in a daemon thread) so the
+    # surviving node fills the gap without waiting 30 minutes for the
+    # normal cadence.  The cycle runs in its own thread so it never blocks
+    # the observer loop — if the expansion lock is held the call returns
+    # quickly via the `_lock` trylock path inside run_self_expansion.
+    try:
+        import threading as _th
+        _th.Thread(
+            target=_run_failsafe_expansion,
+            args=(ps.host,),
+            name=f"failsafe-expansion-{ps.host}",
+            daemon=True,
+        ).start()
+    except Exception as _fe:
+        logging.debug(f"network_observer: failsafe expansion thread error: {_fe}")
+
     # Also absorb this peer's session store if it published one
     if ps.session_blob:
         _pull_peer_session_blob(ps.host, ps.session_blob)
+
+
+def _run_failsafe_expansion(offline_peer_host: str) -> None:
+    """Run one self_expansion cycle immediately after a peer goes offline.
+
+    This is the automatic dispersal path: when a node in the parent-child
+    network loses a resource, the surviving node expands to compensate.
+    The expansion broadcasts its newly committed edges to ALL remaining
+    alive peers via the `_fan_out_committed_edges` mechanism — so the
+    corpus propagates across every node that is still up.
+
+    Non-blocking: if another cycle is already in progress the lock inside
+    `run_self_expansion` serializes naturally; we just log and return.
+    """
+    import time as _t
+    _t.sleep(5)   # brief pause so the observer can finish logging first
+    try:
+        from .self_expansion import run_self_expansion
+        logging.info(
+            f"network_observer: failsafe expansion triggered "
+            f"(peer offline: {offline_peer_host})"
+        )
+        result = run_self_expansion()
+        logging.info(
+            f"network_observer: failsafe expansion complete — "
+            f"committed={result.get('committed', 0)} "
+            f"remote={result.get('remote_compute_host', 'local')}"
+        )
+    except Exception as exc:
+        logging.warning(f"network_observer: failsafe expansion error: {exc}")
 
 
 # ---------------------------------------------------------------------------
