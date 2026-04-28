@@ -989,6 +989,57 @@ def _ocw_expansion_outreach(cn, stats: _Stats, max_courses: int = 3) -> None:
             detail={"crawled": crawled, "written": written},
         )
 
+    # ── Lateral expansion: promote related-course slugs into the discovery queue ──
+    # persist_ocw_course_detail writes related courses as kind='ocw_resource' rows
+    # titled '[ocw_related] parent->child'.  Those child slugs are NEVER seeded as
+    # kind='ocw_course' rows, so they never become OCWCourse entities and never get
+    # deep-fetched.  This block closes that gap — no network calls needed.
+    try:
+        import json as _json_lat
+        from datetime import datetime as _dt_lat, timezone as _tz_lat
+        related_rows = cn.execute(
+            """SELECT DISTINCT SUBSTR(title, INSTR(title,'->') + 2) AS child_slug
+               FROM learning_log
+               WHERE kind='ocw_resource'
+                 AND title LIKE '[ocw_related] %'
+                 AND INSTR(title, '->') > 0""",
+        ).fetchall()
+        new_seeded = 0
+        for rr in related_rows:
+            cs = (rr["child_slug"] or "").strip()
+            if not cs:
+                continue
+            already = cn.execute(
+                "SELECT 1 FROM learning_log WHERE kind='ocw_course' AND title=?",
+                (f"[ocw] {cs}",),
+            ).fetchone()
+            if already:
+                continue
+            cn.execute(
+                """INSERT INTO learning_log(logged_at, kind, title, detail, signal_strength)
+                   VALUES(?,?,?,?,?)""",
+                (
+                    _dt_lat.now(_tz_lat.utc).isoformat(),
+                    "ocw_course",
+                    f"[ocw] {cs}",
+                    _json_lat.dumps({"course": {"course_id": cs}, "topic": "related_expansion",
+                                    "type": "ocw_course"}),
+                    0.75,
+                ),
+            )
+            new_seeded += 1
+        if new_seeded:
+            cn.commit()
+            _log_learning(
+                cn, stats, kind="ocw_course",
+                title=f"OCW lateral expansion: seeded {new_seeded} related-course slugs for next ingestion round",
+                signal=0.65,
+                detail={"seeded": new_seeded},
+            )
+            logging.info(f"corpus:ocw_outreach: lateral expansion +{new_seeded} new course seeds")
+    except Exception as _lat_exc:
+        logging.debug(f"corpus:ocw_outreach:lateral_expand: {_lat_exc}")
+
 
 def _synaptic_cleanse(cn, stats: _Stats, decay_days: int = 7,
                       dead_threshold: float = 0.001) -> None:

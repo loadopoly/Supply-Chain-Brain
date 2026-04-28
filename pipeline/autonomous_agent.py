@@ -71,6 +71,64 @@ def start_systemic_refinement_agent():
         logging.error(f"Failed to start Systemic Refinement Agent: {e}")
         return None
 
+def start_ml_research_daemon():
+    """Start the ML research sweep as a background daemon thread.
+
+    Rotates through 56 OCW topics (plus arXiv, OpenAlex, CrossRef, Zenodo) every
+    60 minutes, persisting new course slugs and papers to learning_log so the
+    corpus ingestion layer has fresh academic material every corpus round.
+
+    Without this thread, _ocw_expansion_outreach only re-crawls already-known
+    courses and always writes 0 new rows.
+    """
+    import threading
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from src.brain.ml_research import research_supply_chain_topics
+
+        def _loop():
+            logging.info("ML research daemon: started (60-min OCW/arXiv rotation).")
+            while True:
+                try:
+                    result = research_supply_chain_topics()
+                    logging.info(
+                        f"ML research cycle done: papers={result.get('papers_found',0)} "
+                        f"ocw_courses={result.get('ocw_courses_found',0)} "
+                        f"ocw_written={result.get('ocw_learnings_written',0)}"
+                    )
+                except Exception as exc:
+                    logging.error(f"ML research daemon error: {exc}")
+                time.sleep(3600)  # 60-minute cadence
+
+        t = threading.Thread(target=_loop, name="ml-research-daemon", daemon=True)
+        t.start()
+        logging.info("ML research daemon started — OCW topic sweep + arXiv/OpenAlex every 60 min.")
+        return t
+    except Exception as e:
+        logging.error(f"Failed to start ML research daemon: {e}")
+        return None
+
+
+def start_citation_chain_daemon():
+    """Start the citation-chain recursive follower as a background daemon thread.
+
+    Expands the academic knowledge graph via Semantic Scholar + OpenAlex,
+    following citation chains from known Paper entities outward to depth 3.
+    Runs every 60 minutes independently of the main agent loop.
+    """
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from src.brain.citation_chain_acquirer import schedule_in_background
+        t = schedule_in_background(interval_s=3600)
+        logging.info("Citation chain acquirer started — recursive Semantic Scholar/OpenAlex expansion every 60 min.")
+        return t
+    except Exception as e:
+        logging.error(f"Failed to start citation chain acquirer: {e}")
+        return None
+
+
 def trigger_remote_vpn():
     logging.info("Initiating remote VPN connection + portproxy bridge on physical client laptop...")
     try:
@@ -573,5 +631,16 @@ if __name__ == "__main__":
     # Spin up the Systemic Refinement Agent — continuously revises and
     # refines the whole supply-chain system as learning expands.
     refinement_thread = start_systemic_refinement_agent()
+
+    # Spin up the ML research daemon — rotates through 56 OCW topics plus
+    # arXiv/OpenAlex/CrossRef/Zenodo every 60 min, feeding the corpus ingestion
+    # layer with fresh academic material.  Without this, OCW outreach only
+    # re-crawls already-known courses and writes 0 new rows.
+    ml_research_thread = start_ml_research_daemon()
+
+    # Spin up the citation chain acquirer — recursively follows academic
+    # citation graphs (Semantic Scholar + OpenAlex) from known Paper entities
+    # to depth 3 every 60 min.
+    citation_thread = start_citation_chain_daemon()
 
     autonomous_loop()
