@@ -822,6 +822,105 @@ def _emit_learning_log(cn: sqlite3.Connection, hb: HeartBeat) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Watcher revival — mesh fallback
+# ---------------------------------------------------------------------------
+# If the internal_watcher supervisor and its agent child are both dead, the
+# Streamlit process (which outlives them) will detect the stale heartbeat on
+# the next tick_heart() call and re-spawn the supervisor in a daemon thread.
+# This is the "shared fallback" of the channel-lock mesh: as long as one node
+# in the fabric (Streamlit, a peer, or any background thread) is alive and
+# ticking the heart, the agent cannot stay dead indefinitely.
+
+_WATCHER_STALE_S    = 300   # declare watcher dead after 5 min of silence
+_REVIVE_LOCK        = threading.Lock()
+_REVIVE_THREAD: "threading.Thread | None" = None
+
+
+def _maybe_revive_watcher() -> None:
+    """Spawn the internal_watcher supervisor if its heartbeat is stale.
+
+    Guards:
+    * No-op if we ARE the agent child (SCB_INTERNAL_WATCHER_CHILD=1) — our
+      parent watcher is already alive above us.
+    * No-op if a revival thread is already running in this process.
+    * No-op if the heartbeat file is fresh (< _WATCHER_STALE_S seconds).
+    * On any error — never raises, never blocks the heart tick.
+    """
+    import os as _os
+    global _REVIVE_THREAD
+
+    # Don't try to revive if we're the agent child — our watcher is our parent.
+    if _os.environ.get("SCB_INTERNAL_WATCHER_CHILD") == "1":
+        return
+
+    with _REVIVE_LOCK:
+        # Already reviving in this process.
+        if _REVIVE_THREAD is not None and _REVIVE_THREAD.is_alive():
+            return
+
+    try:
+        from .internal_watcher import (
+            WATCHER_HEARTBEAT,
+            WATCHER_STATUS,
+            PIPELINE_ROOT,
+        )
+        import json as _json, sys as _sys, time as _time
+
+        # Check heartbeat file age.
+        hb_path = WATCHER_HEARTBEAT
+        if hb_path.exists():
+            try:
+                last_beat = float(hb_path.read_text(encoding="utf-8").strip())
+                age = _time.time() - last_beat
+            except Exception:
+                age = float("inf")
+        else:
+            age = float("inf")
+
+        if age < _WATCHER_STALE_S:
+            return   # watcher is alive — nothing to do
+
+        # Double-check: are the recorded PIDs actually dead?
+        if WATCHER_STATUS.exists():
+            try:
+                status = _json.loads(WATCHER_STATUS.read_text(encoding="utf-8"))
+                for pid_key in ("watcher_pid", "agent_pid"):
+                    pid = status.get(pid_key)
+                    if pid:
+                        try:
+                            _os.kill(int(pid), 0)   # signal 0 = liveness probe
+                            return                   # at least one PID is alive
+                        except (ProcessLookupError, PermissionError):
+                            pass                     # dead — keep going
+            except Exception:
+                pass
+
+        log.warning(
+            "[heart] Internal watcher heartbeat stale (%.0fs) — respawning "
+            "supervisor from mesh fallback.", age
+        )
+
+        def _revive() -> None:
+            try:
+                from .internal_watcher import run_supervisor
+                run_supervisor(
+                    python_exe=_sys.executable,
+                    agent_script=PIPELINE_ROOT / "autonomous_agent.py",
+                )
+            except Exception as exc:
+                log.error("[heart] Watcher revival failed: %s", exc)
+
+        t = threading.Thread(target=_revive, name="heart-watcher-revival", daemon=True)
+        t.start()
+        with _REVIVE_LOCK:
+            _REVIVE_THREAD = t
+        log.info("[heart] Watcher revival thread started (daemon, mesh fallback).")
+
+    except Exception as exc:
+        log.debug("[heart] _maybe_revive_watcher: %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # Core tick
 # ---------------------------------------------------------------------------
 
@@ -880,6 +979,8 @@ def tick_heart() -> HeartBeat:
         _persist_kv(cn, hb, chapters)
         _emit_learning_log(cn, hb)
         _maybe_grow_arc(cn, hb, chapters)
+
+    _maybe_revive_watcher()
 
     log.info(
         "[heart] Chapter %d: %s | symbiosis=%.1f%% | phase_gap=%.3f rad | "

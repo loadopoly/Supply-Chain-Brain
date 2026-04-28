@@ -1,0 +1,17 @@
+﻿{
+    "address":  null,
+    "is_local":  false,
+    "gpus":  [
+
+             ],
+    "tunnel_id":  "scbrain-hideout.use2",
+    "host":  "scbrain-hideout",
+    "cpu_count":  0,
+    "free_vram_gb":  0,
+    "port":  8000,
+    "free_ram_gb":  0,
+    "transport":  "devtunnel",
+    "ts":  "2026-04-28T11:19:12.2000487-04:00",
+    "note":  "Black Bulls Hideout — remote GPU node via VS Code Dev Tunnel. Capacity overwritten by live heartbeat once hideout_tunnel_bootstrap.ps1 is running and compute_node_daemon is started on the Hideout machine.",
+    "cpu_load_1m":  0
+}

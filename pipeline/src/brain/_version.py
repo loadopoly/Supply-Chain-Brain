@@ -1,18 +1,23 @@
 from __future__ import annotations
 
-__version__ = "0.19.4"
+__version__ = "0.19.5"
 __release__ = (
-    "Grounded Tunneling: certainty-anchored expansory pathway collapser. "
-    "grounded_tunneling.py adds compute_endpoint_certainty (Bayesian posterior "
-    "precision anchor), find_expansory_pathway (BFS toward low-certainty / "
-    "high-torus-gap frontiers), RESISTANCE_DURATION weight resistance records "
-    "in kv_store, torus_amplify:{eid} torsional boundary boost, and nodal_collapse "
-    "(expired paths distil into permanent GROUNDED_TUNNEL edges). "
-    "torus_touch.TouchPressure.apply() gains step_multipliers for per-endpoint "
-    "amplification. _vision_worker Step 5 calls ground_and_expand each vision cycle. "
-    "8 new unit tests in TestGroundedTunneling (38 total, all green)."
+    "Black Bulls Hideout mesh integration + self-healing agent infrastructure. "
+    "compute_grid: devtunnel transport layer — dt.exe auto-download, "
+    "_ensure_devtunnel_forward() manages dt connect background process with "
+    "local TCP forward; Peer gains transport/tunnel_id fields; submit_job "
+    "routes devtunnel peers through local forward; discover_peers reads "
+    "devtunnel_seeds from brain.yaml (exempt from stale cutoff). "
+    "brain.yaml: devtunnel_seeds section registers scbrain-hideout.use2. "
+    "network_observer: _sustain_mesh probes devtunnel peers via local forward "
+    "instead of direct TCP. heart.py: _maybe_revive_watcher() detects "
+    "stale watcher heartbeat and spawns run_supervisor() as daemon thread "
+    "from Streamlit process — mesh fallback self-healing. "
+    "ui_action_log: signal_strength computed per event type (was hardcoded 0.0); "
+    "OTD Recursive+site=0.40, nav=0.10, query capped at 0.60, decision=0.72. "
+    "hideout_tunnel_bootstrap.ps1: auto-restart loop + compute_node_daemon startup."
 )
-__build_date__ = "2026-04-24"
+__build_date__ = "2026-04-28"
 
 PHASES = {
     "0.1.0": "Phase 1 - core (EOQ Bayesian-Poisson, OTD recursive, Procurement 360, Data Quality, Connectors)",

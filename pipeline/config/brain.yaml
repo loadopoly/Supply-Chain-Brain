@@ -522,12 +522,19 @@ llms:
       heartbeat_secs:  30
       stale_after_s:   120                # ignore peers that stop heartbeating
     discovery:
-      methods:         [piggyback, ad, seed]
+      methods:         [piggyback, ad, seed, devtunnel]
       ad_filter:       'OperatingSystem -like "Windows*"'
       ad_max_hosts:    64
       seeds:           ['192.168.0.183']  # CRP-FS03 — local wireless PC (symbiotic peer)
       probe_timeout_s: 1.5
       cache_ttl_s:     300
+      # Dev Tunnel seeds — external nodes reachable via VS Code Dev Tunnel relay.
+      # dt.exe is downloaded automatically to bridge_state/.dt/dt.exe on first use.
+      # The Hideout machine must be running hideout_tunnel_bootstrap.ps1.
+      devtunnel_seeds:
+        - tunnel_id: 'scbrain-hideout.use2'   # VS Code Dev Tunnel cluster + ID
+          host:      'scbrain-hideout'          # logical hostname used for peer JSON
+          note:      'Black Bulls Hideout — remote GPU node via Dev Tunnel'
     selection:
       prefer_gpu:      true
       max_cpu_load:    0.80

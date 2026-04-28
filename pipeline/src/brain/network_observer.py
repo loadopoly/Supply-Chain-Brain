@@ -225,6 +225,8 @@ def _sustain_mesh(current: dict[str, "_PeerState"], now: float) -> None:
     #    so the operator knows to check the bridge_watcher Scheduled Task on
     #    that workstation.  The trigger above will auto-restart it within the
     #    next bridge_watcher poll cycle.
+    #    Dev Tunnel peers (transport=devtunnel) are probed via the local
+    #    dt-forward managed by compute_grid — not via a direct TCP address.
     for ps in current.values():
         if ps.status not in ("ALIVE", "COOLING"):
             continue
@@ -232,13 +234,31 @@ def _sustain_mesh(current: dict[str, "_PeerState"], now: float) -> None:
         peer_fp = _STATE_DIR / f"{ps.host}.json"
         addr: str | None = None
         port: int = 8000
+        transport: str = "tcp"
+        tunnel_id: str = ""
         try:
             if peer_fp.exists():
                 d = json.loads(peer_fp.read_text(encoding="utf-8"))
+                transport  = str(d.get("transport", "tcp"))
+                tunnel_id  = str(d.get("tunnel_id", ""))
                 addr = d.get("address") or ps.host
                 port = int(d.get("port", 8000))
         except Exception:
             addr = ps.host
+
+        # Dev Tunnel peers: ensure the local forward is alive rather than
+        # probing the (null) raw address.
+        if transport == "devtunnel" and tunnel_id:
+            try:
+                from .compute_grid import _ensure_devtunnel_forward
+                fwd = _ensure_devtunnel_forward(tunnel_id)
+                if fwd is None:
+                    logging.debug(
+                        "network_observer: devtunnel forward %s not available "
+                        "(hideout_tunnel_bootstrap.ps1 not running?)", tunnel_id)
+            except Exception:
+                pass
+            continue  # skip direct TCP probe — devtunnel has its own liveness
 
         if not addr:
             continue

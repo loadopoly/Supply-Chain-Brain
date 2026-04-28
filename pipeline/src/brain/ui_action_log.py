@@ -100,15 +100,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _write(kind: str, title: str, detail: dict) -> None:
+def _write(kind: str, title: str, detail: dict, signal: float = 0.0) -> None:
     """Append one row to learning_log. Silent on failure."""
     try:
         with _conn() as cn:
             cn.execute(
                 """INSERT INTO learning_log
                        (logged_at, kind, title, detail, signal_strength)
-                   VALUES (?, ?, ?, ?, 0.0)""",
-                (_now(), kind, title, json.dumps(detail, default=str)),
+                   VALUES (?, ?, ?, ?, ?)""",
+                (_now(), kind, title, json.dumps(detail, default=str), float(signal)),
             )
     except Exception as exc:
         log.debug(f"ui_action_log._write failed ({kind}): {exc}")
@@ -138,10 +138,13 @@ def log_page_visit(page_name: str, site_filter: str = "", extra: dict | None = N
     }
     if extra:
         detail.update(extra)
+    # Signal reflects analytical depth: scoped pages > nav pages; site filter adds focus.
+    sig = (0.30 if scope_tag else 0.10) + (0.10 if site_filter else 0.0)
     _write(
         kind="ui_visit",
         title=f"Page visit: {page_name}" + (f" [{site_filter}]" if site_filter else ""),
         detail=detail,
+        signal=sig,
     )
 
 
@@ -179,10 +182,23 @@ def log_query_run(
         detail["elapsed_ms"] = round(elapsed_s * 1000)
     if query_label:
         detail["query_label"] = str(query_label)[:200]
+    # Signal: scoped pages carry base 0.25; filtered results add focus; empty result is a
+    # meaningful gap signal (+0.08) so Body generators notice data-quality issues.
+    import math as _math
+    _scope_tag = PAGE_SCOPE_MAP.get(page_name, "")
+    sig = (0.25 if _scope_tag else 0.12)
+    if site:
+        sig += 0.10
+    if rows_returned == 0:
+        sig += 0.08
+    elif rows_returned > 0:
+        sig += min(0.15, 0.05 * _math.log1p(rows_returned / 10.0))
+    sig = round(min(sig, 0.60), 4)
     _write(
         kind="ui_query",
         title=f"Query on {page_name}: {rows_returned} rows" + (f" ({query_label})" if query_label else ""),
         detail=detail,
+        signal=sig,
     )
 
 
@@ -213,10 +229,12 @@ def log_decision(
         d["entity"] = str(entity)
     if detail:
         d.update(detail)
+    # Explicit user decisions are the highest-quality UI signal — always 0.72.
     _write(
         kind="ui_decision",
         title=f"User decision: {action_type}" + (f" → {entity}" if entity else ""),
         detail=d,
+        signal=0.72,
     )
 
 

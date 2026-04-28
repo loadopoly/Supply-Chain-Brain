@@ -33,9 +33,11 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import socket
 import struct
+import subprocess
 import threading
 import time
 from contextlib import contextmanager
@@ -61,6 +63,18 @@ _LOCAL_NODE_THREAD: threading.Thread | None = None
 # timeouts on every fanout round. address -> (cooldown_until_epoch, reason)
 _PEER_DOWN_LOCK = threading.Lock()
 _PEER_DOWN: dict[str, tuple[float, str]] = {}
+
+# ---------------------------------------------------------------------------
+# Dev Tunnel forward state — one local TCP forward per tunnel_id
+# tunnel_id -> (local_port, proc)
+# ---------------------------------------------------------------------------
+_DT_FORWARD_LOCK = threading.Lock()
+_DT_FORWARDS: dict[str, tuple[int, "subprocess.Popen | None"]] = {}
+_DT_EXE: Path | None = None
+_DT_EXE_LOCK = threading.Lock()
+_DT_EXE_URL = "https://aka.ms/TunnelsCliDownload/win-x64"
+_DT_FORWARD_START_TIMEOUT = 8.0   # seconds to wait for local port to open
+_DT_FORWARD_BASE_PORT   = 18000   # start of ephemeral local port range
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +246,9 @@ class Peer:
     free_vram_gb: float = 0.0
     last_seen:   str = ""
     is_local:    bool = False
+    # Dev Tunnel transport — "tcp" (default) or "devtunnel"
+    transport:   str = "tcp"
+    tunnel_id:   str = ""   # e.g. "scbrain-hideout.use2"
 
     def has_gpu(self) -> bool:
         return bool(self.gpus) and self.free_vram_gb > 0
@@ -333,6 +350,8 @@ def _peer_from_dict(d: dict) -> Peer:
         free_vram_gb=float(d.get("free_vram_gb", 0.0)),
         last_seen=str(d.get("ts", "")),
         is_local=bool(d.get("is_local", False)),
+        transport=str(d.get("transport", "tcp")),
+        tunnel_id=str(d.get("tunnel_id", "")),
     )
 
 
@@ -361,12 +380,16 @@ def discover_peers(force: bool = False) -> list[Peer]:
             d = json.loads(fp.read_text(encoding="utf-8"))
             if not d.get("ts"):
                 continue
-            try:
-                ts_dt = datetime.fromisoformat(d["ts"]).timestamp()
-            except Exception:
-                ts_dt = fp.stat().st_mtime
-            if ts_dt < cutoff:
-                continue
+            # Dev Tunnel peers are exempt from the stale cutoff — the TCP
+            # probe (via the local dt-forward) is the real liveness check.
+            is_tunnel = str(d.get("transport", "tcp")) == "devtunnel"
+            if not is_tunnel:
+                try:
+                    ts_dt = datetime.fromisoformat(d["ts"]).timestamp()
+                except Exception:
+                    ts_dt = fp.stat().st_mtime
+                if ts_dt < cutoff:
+                    continue
             # Self-host detection: if the heartbeat we're reading is OUR own
             # JSON, mark it is_local so submit_job short-circuits to the
             # in-process executor instead of paying TCP overhead.
@@ -398,6 +421,27 @@ def discover_peers(force: bool = False) -> list[Peer]:
             peers[seed.lower()] = Peer(
                 host=seed, address=seed, port=int(cfg.get("listen_port", 8000)),
                 cpu_count=0, cpu_load_1m=0.0, free_ram_gb=0.0,
+            )
+
+    # 3b) Dev Tunnel seeds — external nodes reachable only via VS Code Dev Tunnel.
+    #     These peers are immune to the stale-cutoff: the TCP probe (connect
+    #     attempt) is the real liveness check once the forward is established.
+    for seed in cfg.get("discovery", {}).get("devtunnel_seeds") or []:
+        tid   = str(seed.get("tunnel_id", "")).strip()
+        hname = str(seed.get("host",      tid)).strip()
+        if not tid or not hname:
+            continue
+        key = hname.lower()
+        if key in peers:
+            # Heartbeat already loaded from state_dir (Hideout has OneDrive)
+            peers[key].transport = "devtunnel"
+            peers[key].tunnel_id = tid
+        else:
+            peers[key] = Peer(
+                host=hname, address=None,
+                port=int(cfg.get("listen_port", 8000)),
+                cpu_count=0, cpu_load_1m=0.0, free_ram_gb=0.0,
+                transport="devtunnel", tunnel_id=tid,
             )
 
     # 4) Optional AD scrape (PowerShell Get-ADComputer). Best-effort.
@@ -502,14 +546,25 @@ def submit_job(target: ComputeTarget, payload: dict,
                *, timeout_s: float | None = None) -> dict:
     """Send a job to `target` and return the JSON response. Raises on socket
     failure so the ensemble can choose to retry on the local fallback."""
-    if target.peer.is_local or target.peer.address in (None, "", "127.0.0.1"):
+    if target.peer.is_local or target.peer.address in (None, "", "127.0.0.1") \
+            and target.peer.transport != "devtunnel":
         return _execute_locally(payload)
 
-    addr = target.peer.address
-    port = int(target.peer.port or _cfg().get("listen_port", 8000))
     cfg = _cfg()
     connect_timeout = float(cfg.get("connect_timeout_s", 1.0))
     timeout = float(timeout_s or cfg.get("request_timeout_s", 8.0))
+
+    # Dev Tunnel path — create or reuse a local TCP forward via dt connect
+    if target.peer.transport == "devtunnel" and target.peer.tunnel_id:
+        fwd = _ensure_devtunnel_forward(target.peer.tunnel_id)
+        if fwd is None:
+            raise RuntimeError(
+                f"compute_grid: devtunnel forward for "
+                f"{target.peer.tunnel_id} is unavailable")
+        addr, port = fwd
+    else:
+        addr = target.peer.address
+        port = int(target.peer.port or cfg.get("listen_port", 8000))
 
     # Negative cache: skip peers we just confirmed as down.
     cooldown = float(cfg.get("down_cooldown_s", 30.0))
@@ -562,6 +617,125 @@ def _recv_exact(sock: socket.socket, n: int) -> bytes:
             raise ConnectionError("peer closed connection mid-message")
         buf += chunk
     return bytes(buf)
+
+
+# ---------------------------------------------------------------------------
+# Dev Tunnel helpers — download dt.exe once, manage local port forwards
+# ---------------------------------------------------------------------------
+
+def _ensure_dt_exe() -> "Path | None":
+    """Return the path to dt.exe, downloading it if necessary.
+    Returns None if the download fails or this isn't Windows."""
+    global _DT_EXE
+    if _DT_EXE and _DT_EXE.exists():
+        return _DT_EXE
+    with _DT_EXE_LOCK:
+        if _DT_EXE and _DT_EXE.exists():
+            return _DT_EXE
+        if os.name != "nt":
+            return None
+        dest = _PIPELINE_ROOT / "bridge_state" / ".dt" / "dt.exe"
+        if dest.exists():
+            _DT_EXE = dest
+            return _DT_EXE
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            import urllib.request
+            logging.info("compute_grid: downloading dt.exe from %s", _DT_EXE_URL)
+            urllib.request.urlretrieve(_DT_EXE_URL, dest)
+            logging.info("compute_grid: dt.exe downloaded → %s", dest)
+            _DT_EXE = dest
+            return _DT_EXE
+        except Exception as exc:
+            logging.warning("compute_grid: dt.exe download failed: %s", exc)
+            return None
+
+
+def _free_port(base: int = _DT_FORWARD_BASE_PORT) -> int:
+    """Find a free TCP port starting at base."""
+    for candidate in range(base, base + 100):
+        try:
+            with socket.socket() as s:
+                s.bind(("127.0.0.1", candidate))
+                return candidate
+        except OSError:
+            continue
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def _ensure_devtunnel_forward(tunnel_id: str) -> "tuple[str, int] | None":
+    """Ensure a local TCP forward to *tunnel_id*:8000 is running via dt.exe.
+
+    Returns (\"127.0.0.1\", local_port) on success, None if dt.exe is
+    unavailable or the forward can't be established within the startup
+    timeout.  Reuses an existing forward if the process is still alive and
+    the port is open.
+    """
+    with _DT_FORWARD_LOCK:
+        entry = _DT_FORWARDS.get(tunnel_id)
+        if entry:
+            local_port, proc = entry
+            alive = proc is not None and proc.poll() is None
+            if alive and _port_in_use("127.0.0.1", local_port, timeout=0.3):
+                return ("127.0.0.1", local_port)
+            # Stale — clean up and restart
+            if proc is not None:
+                try:
+                    proc.terminate()
+                except Exception:
+                    pass
+            _DT_FORWARDS.pop(tunnel_id, None)
+
+        dt = _ensure_dt_exe()
+        if dt is None:
+            logging.warning(
+                "compute_grid: dt.exe unavailable — cannot forward %s", tunnel_id)
+            return None
+
+        local_port = _free_port()
+        cmd = [str(dt), "connect", f"{tunnel_id}:8000",
+               "--local-port", str(local_port)]
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=(subprocess.CREATE_NO_WINDOW
+                               if hasattr(subprocess, "CREATE_NO_WINDOW") else 0),
+            )
+        except Exception as exc:
+            logging.warning(
+                "compute_grid: failed to start dt connect for %s: %s", tunnel_id, exc)
+            return None
+
+        # Wait for the local port to open (dt connect takes a moment)
+        deadline = time.time() + _DT_FORWARD_START_TIMEOUT
+        while time.time() < deadline:
+            if _port_in_use("127.0.0.1", local_port, timeout=0.3):
+                _DT_FORWARDS[tunnel_id] = (local_port, proc)
+                logging.info(
+                    "compute_grid: devtunnel forward %s → 127.0.0.1:%d",
+                    tunnel_id, local_port)
+                return ("127.0.0.1", local_port)
+            if proc.poll() is not None:
+                logging.warning(
+                    "compute_grid: dt connect exited early for %s "
+                    "(exit %s) — not logged in?",
+                    tunnel_id, proc.returncode)
+                return None
+            time.sleep(0.25)
+
+        # Timed out — kill the orphaned process
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+        logging.warning(
+            "compute_grid: devtunnel forward %s did not open "
+            "within %.1fs", tunnel_id, _DT_FORWARD_START_TIMEOUT)
+        return None
 
 
 # ---------------------------------------------------------------------------
