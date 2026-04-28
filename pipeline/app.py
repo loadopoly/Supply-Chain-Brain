@@ -71,6 +71,24 @@ div[data-baseweb="popover"] {
 .dbi-container[data-dbi-updated="1"] {
     animation: dbiPulse 0.6s ease-out;
 }
+
+.operator-rail {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: .7rem .75rem;
+    background: #ffffff;
+    margin: .5rem 0 .75rem 0;
+}
+.operator-rail h4 {
+    margin: 0 0 .35rem 0;
+    font-size: .95rem;
+}
+.operator-rail p {
+    margin: .25rem 0;
+    color: #475569;
+    font-size: .82rem;
+    line-height: 1.25;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -161,6 +179,12 @@ def _get_sites_global() -> list[str]:
         pool = _load_sites_disk()
     return [""] + [s for s in pool if s and s.lower() != "unknown"]
 
+def _operator_page_link(page: str, label: str, icon: str, fallback_url: str) -> None:
+    try:
+        st.page_link(page, label=label, icon=icon)
+    except Exception:
+        st.markdown(f"[{icon} {label}]({fallback_url})")
+
 from src.brain.global_filters import render_global_filter_sidebar
 
 with st.sidebar:
@@ -185,10 +209,42 @@ with st.sidebar:
 render_global_filter_sidebar()
 
 with st.sidebar:
+    operator_mode = st.toggle(
+        "Operator Mode",
+        value=st.session_state.get("operator_mode", True),
+        key="operator_mode_toggle",
+        help="Shows the simplest daily workflow and keeps DBI focused on the next move.",
+    )
+    st.session_state["operator_mode"] = operator_mode
+    if operator_mode:
+        _scope_site = st.session_state.get("g_site") or "All plants"
+        _scope_start = st.session_state.get("g_date_start")
+        _scope_end = st.session_state.get("g_date_end")
+        _scope_window = (
+            f"{_scope_start} to {_scope_end}"
+            if _scope_start and _scope_end else "selected timeline"
+        )
+        st.markdown(
+            f"""
+<div class="operator-rail">
+  <h4>Daily Control Path</h4>
+  <p><b>Scope:</b> {_scope_site} · {_scope_window}</p>
+  <p><b>Read DBI first.</b> Work the item marked Action needed before exploring charts.</p>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        _operator_page_link("app.py", "Find part / order / supplier", "🔍", "/")
+        _operator_page_link(str(_P / "1_Supply_Chain_Brain.py"), "Review plant risk map", "🧠", "/Supply_Chain_Brain")
+        _operator_page_link(str(_P / "15_Report_Creator.py"), "Create bi-weekly one-pager", "📊", "/Report_Creator")
+
+with st.sidebar:
     st.caption(f"Supply Chain Brain · v{_BV}")
     st.divider()
     st.markdown("🔵 Azure SQL · `edap-replica-cms-sqldb`")
     st.markdown("🔴 Oracle Fusion · `DEV13`")
+
+st.session_state["_app_shell_rendered"] = True
 
 try:
     from src.brain.ui_action_log import log_page_visit

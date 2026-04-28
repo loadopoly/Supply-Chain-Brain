@@ -123,23 +123,29 @@ with tab_port:
         # KPI strip
         p1, p2, p3 = st.columns(3)
         if "contract_pct" in mix.columns:
-            p1.metric("📝 Avg Contract %", f"{mix['contract_pct'].mean():.0%}")
+            p1.metric("📝 Avg Contract %", f"{mix['contract_pct'].mean():.0f}%")
         if "spot_pct" in mix.columns:
-            p2.metric("⚡ Avg Spot %", f"{mix['spot_pct'].mean():.0%}")
+            p2.metric("⚡ Avg Spot %", f"{mix['spot_pct'].mean():.0f}%")
         p3.metric("🛣️ Lanes", len(mix))
 
         # Portfolio scatter: volatility vs volume
-        if "volatility" in vol.columns and "lane_id" in vol.columns:
-            vol_merge = vol.merge(mix, on="lane_id", how="left") if "lane_id" in mix.columns else vol
+        x_vol_col = "volatility" if "volatility" in vol.columns else ("cv" if "cv" in vol.columns else None)
+        y_vol_col = "load_count" if "load_count" in vol.columns else ("mean_loads" if "mean_loads" in vol.columns else None)
+        if x_vol_col and y_vol_col and "lane_id" in vol.columns:
+            mix_for_merge = mix.drop(
+                columns=[c for c in (x_vol_col, y_vol_col) if c in mix.columns],
+                errors="ignore",
+            )
+            vol_merge = vol.merge(mix_for_merge, on="lane_id", how="left") if "lane_id" in mix.columns else vol
             fig_scatter = px.scatter(
-                vol_merge, x="volatility", y="load_count" if "load_count" in vol_merge.columns else vol_merge.columns[1],
+                vol_merge, x=x_vol_col, y=y_vol_col,
                 color="contract_pct" if "contract_pct" in vol_merge.columns else None,
-                size="load_count" if "load_count" in vol_merge.columns else None,
+                size=y_vol_col,
                 hover_name="lane_id" if "lane_id" in vol_merge.columns else None,
                 color_continuous_scale="RdYlGn",
                 title="Lane Portfolio: Volatility vs Volume",
                 template="plotly",
-                labels={"volatility":"Demand Volatility","load_count":"Load Count"},
+                labels={x_vol_col:"Demand Volatility (CV)", y_vol_col:"Average Monthly Loads"},
             )
             fig_scatter.update_layout(paper_bgcolor="#0f172a",
                                        height=430, coloraxis_showscale=True)
@@ -185,28 +191,40 @@ with tab_gold:
     st.subheader("🐟 Goldfish-Memory Contract Pricing")
     st.caption("Shipper-carrier rate vs reliability gap — recommends contract terms to reduce rejection")
     GOLD_SQL = """-- vw_carrier_rate not available; derive rate-vs-reliability from PO receipts.
-WITH lt AS (
+WITH receipt_rates AS (
     SELECT supplier_key,
-           AVG(CAST(DATEDIFF(day,
+           TRY_CONVERT(float, unit_cost_usd) AS rate,
+           DATEDIFF(day,
                TRY_CONVERT(date, CONVERT(varchar(8), CAST(due_date_key     AS bigint)), 112),
                TRY_CONVERT(date, CONVERT(varchar(8), CAST(receipt_date_key AS bigint)), 112)
-           ) AS float)) AS lead_avg,
-           STDEV(CAST(DATEDIFF(day,
-               TRY_CONVERT(date, CONVERT(varchar(8), CAST(due_date_key     AS bigint)), 112),
-               TRY_CONVERT(date, CONVERT(varchar(8), CAST(receipt_date_key AS bigint)), 112)
-           ) AS float)) AS lead_std,
-           AVG(TRY_CONVERT(float, ISNULL(unit_cost_amount, 0))) AS rate
-    FROM edap_dw_replica.fact_po_receipt
+           ) AS lead_days
+    FROM edap_dw_replica.fact_po_receipt WITH (NOLOCK)
     WHERE receipt_date_key IS NOT NULL
-      AND due_date_key     IS NOT NULL
+      AND due_date_key IS NOT NULL
+      AND TRY_CONVERT(float, unit_cost_usd) IS NOT NULL
+), market AS (
+    SELECT AVG(rate) AS market_rate
+    FROM receipt_rates
+    WHERE lead_days BETWEEN 0 AND 730
+), lt AS (
+    SELECT supplier_key,
+           AVG(rate) AS rate,
+           AVG(CAST(lead_days AS float)) AS lead_avg,
+           STDEV(CAST(lead_days AS float)) AS lead_std,
+           AVG(CASE WHEN lead_days > 30 THEN 1.0 ELSE 0.0 END) AS rejection_rate
+    FROM receipt_rates
+    WHERE lead_days BETWEEN 0 AND 730
     GROUP BY supplier_key
 )
 SELECT TOP 200
        CAST(supplier_key AS varchar(64))   AS carrier_id,
        ISNULL(rate, 0)                     AS rate,
+       ISNULL(market.market_rate, rate)    AS market_rate,
+       ISNULL(rejection_rate, 0.0)         AS rejection_rate,
        1.0 / NULLIF(1.0 + ISNULL(lead_std,0), 0) AS reliability,
        ISNULL(lead_avg, 0)                 AS lead_avg
 FROM lt
+CROSS JOIN market
 WHERE rate IS NOT NULL""".strip()
     with st.expander("🔍 SQL / connector", expanded=False):
         cn2  = st.selectbox("Connector", [c.name for c in connectors], key="g_cn")
@@ -247,7 +265,20 @@ with tab_ghost:
     st.subheader("👻 Ghost Lane Detector")
     st.caption("Up to 70% of contracted lanes go unused — predict inactivation probability (MIT FreightLab)")
     horizon = st.slider("Inactivation horizon (days)", 14, 180, 30, key="ghost_h")
-    GHOST_SQL = "SELECT * FROM edap_dw_replica.fact_po_receipt"
+    _g_sk, _g_ek = date_key_window()
+    GHOST_SQL = f"""
+SELECT TOP 20000
+       supplier_key,
+       business_unit_key,
+       part_key,
+       po_number,
+       receipt_date_key,
+       due_date_key,
+       received_qty,
+       unit_cost_usd
+FROM edap_dw_replica.fact_po_receipt WITH (NOLOCK)
+WHERE receipt_date_key BETWEEN {_g_sk} AND {_g_ek}
+""".strip()
     with st.expander("🔍 SQL / connector", expanded=False):
         cn3  = st.selectbox("Connector", [c.name for c in connectors], key="ghost_cn")
         psql = st.text_area("SQL", value=GHOST_SQL, height=80, key="ghost_sql")

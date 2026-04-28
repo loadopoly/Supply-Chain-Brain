@@ -1,13 +1,106 @@
 import concurrent.futures as _cf
+import html as _html
+import re as _re
 import streamlit as st
 import threading
 import time
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 
+def _plain_text(value: object, limit: int = 320) -> str:
+    text = str(value or "")
+    text = _re.sub(r"\*\*|__|`", "", text)
+    text = _re.sub(r"\s+", " ", text).strip()
+    if len(text) > limit:
+        return text[: limit - 1].rstrip() + "..."
+    return text
+
+
+def _scope_label(context_dict: dict) -> str:
+    site = (
+        context_dict.get("g_site")
+        or context_dict.get("selected_site")
+        or "All plants"
+    )
+    if str(site).strip().upper() in ("", "ALL"):
+        site = "All plants"
+    date_start = str(
+        context_dict.get("g_date_start")
+        or context_dict.get("g_date_start_widget", "")
+    ).split("T")[0]
+    date_end = str(
+        context_dict.get("g_date_end")
+        or context_dict.get("g_date_end_widget", "")
+    ).split("T")[0]
+    window = f"{date_start} to {date_end}" if date_start and date_end else "full timeline"
+    return f"{site} | {window}"
+
+
+def _next_move(page_name: str, insight: object) -> tuple[str, str]:
+    text = _plain_text(insight, limit=2000).lower()
+    page = str(page_name).lower()
+
+    if any(token in text for token in ("failed", "failure", "query failed", "sql error", "odbc", "exception")):
+        return "act", "Fix the red data or connector issue before trusting the chart below."
+    if "graph limits are binding" in text or "increase" in text and "cap" in text:
+        return "watch", "Filter to one plant or raise the graph limits, then rebuild the graph."
+    if "report" in page:
+        return "steady", "Use the default Bi-Weekly 1 Pager unless you need the full deck."
+    if "query" in page:
+        return "steady", "Search one concrete value: part number, order, invoice, supplier, or customer."
+    if "supply chain brain" in page:
+        return "steady", "Click the largest connected node, then use the drill-down tabs to find the owner."
+    if any(token in text for token in ("critical", "urgent")):
+        return "act", "Open the first red or amber row and assign a single owner."
+    if "ghost-lane" in text or "ghost lane" in text:
+        return "act", "Open the ghost-lane table and pick one lane to consolidate or shut down."
+    if "cvar" in text or "risk" in text:
+        return "act", "Open the highest-risk row and assign a buyer or planner owner."
+    if "cox" in text or "hazard" in text or "kaplan" in text:
+        return "act", "Open the worst lead-time lane and contact the supplier before it becomes late."
+    if "late" in text or "otd" in page:
+        return "act", "Start with the late-line worklist and clear the oldest customer promise first."
+    if "missing" in text or "null" in text or "data quality" in page:
+        return "act", "Fix the missing fields with the highest value-of-information score first."
+    if "no anomalies" in text or "within" in text:
+        return "steady", "No immediate fire: scan the top table for the largest dollar or service impact."
+    return "steady", "Open the first ranked table below and work the biggest red or amber item."
+
+
+def _status_style(status: str) -> tuple[str, str, str]:
+    if status == "act":
+        return "Action needed", "#b45309", "#fffbeb"
+    if status == "watch":
+        return "Watch", "#2563eb", "#eff6ff"
+    return "Ready", "#0f766e", "#ecfdf5"
+
+
 class BrainInsightWorker:
     _insights = {}
+    _sources = {}
     _lock = threading.Lock()
+
+    @classmethod
+    def _make_key(cls, page_name: str, context_dict: dict) -> str:
+        try:
+            context_str = ", ".join(
+                f"{k}={str(v)[:120]}"
+                for k, v in sorted((str(k), v) for k, v in context_dict.items())
+            )
+        except Exception:
+            context_str = page_name
+        return f"{page_name}_{hash(context_str)}"
+
+    @classmethod
+    def _store(cls, key: str, text: str, source: str) -> None:
+        cls._insights[key] = text
+        cls._sources[key] = source
+
+    @classmethod
+    def get_source(cls, page_name: str, context_dict: dict) -> str:
+        key = cls._make_key(page_name, context_dict)
+        with cls._lock:
+            return cls._sources.get(key, "🧠 Brain Neural Map")
 
     @classmethod
     def _build_quick_insight(cls, page_name: str, context_dict: dict) -> str:
@@ -19,32 +112,63 @@ class BrainInsightWorker:
         )
         return (
             f"📋 **{page_name}** · {site}. "
-            "Contextual intelligence loading — auto-updates on 2-s tick."
+            "Live filters and page context are active. Start with the next move; "
+            "the card refreshes automatically when deeper model insight returns."
         )
 
     @classmethod
     def get_insight(cls, page_name: str, context_dict: dict) -> str:
         # Build the cache key robustly — guard against mixed-type keys or
         # very large values (DataFrames, bytes) that appear in session_state.
+        key = cls._make_key(page_name, context_dict)
+
+        with cls._lock:
+            if key in cls._insights:
+                return cls._insights[key]
+
+        # Internal operations get the Brain's local neural mapping first and
+        # synchronously when possible, so the visible DBI body and source agree
+        # on the first render. External OpenRouter redirection is only queued
+        # when this local path cannot produce a usable insight.
         try:
-            context_str = ", ".join(
-                f"{k}={str(v)[:120]}"
-                for k, v in sorted((str(k), v) for k, v in context_dict.items())
-            )
+            from .brain_dbi import generate_brain_insight
+            brain_text = generate_brain_insight(page_name, context_dict)
         except Exception:
-            context_str = page_name
-        key = f"{page_name}_{hash(context_str)}"
+            brain_text = None
+
+        if brain_text:
+            with cls._lock:
+                cls._store(key, brain_text, "🧠 Brain Neural Map")
+            return brain_text
 
         with cls._lock:
             if key in cls._insights:
                 return cls._insights[key]
             # Set a quick synchronous template immediately so the rendered
             # card shows data-loading="0" on the very first fragment render.
-            # The background worker will overwrite this with a richer insight.
-            cls._insights[key] = cls._build_quick_insight(page_name, context_dict)
+            # The background worker will overwrite this with redirected or
+            # deterministic fallback insight.
+            cls._store(key, cls._build_quick_insight(page_name, context_dict), "📋 Local Template")
 
         def worker():
-            # ── 1. Try RAG (LLM ensemble via OpenRouter) ──────────────────
+            # ── 1. Brain-first local DBI ──────────────────────────────────
+            # Internal operations should be explained by the Brain's own
+            # neural mapping structures first: body directives, touch pressure,
+            # corpus learnings, graph metrics, and plasticity dials.  Only
+            # redirect to OpenRouter if this local path fails or has no signal.
+            brain_text: str | None = None
+            try:
+                from .brain_dbi import generate_brain_insight
+                brain_text = generate_brain_insight(page_name, context_dict)
+            except Exception:
+                brain_text = None
+
+            if brain_text:
+                with cls._lock:
+                    cls._store(key, brain_text, "🧠 Brain Neural Map")
+                return
+
+            # ── 2. OpenRouter redirection fallback ────────────────────────
             # dbi_rag.generate_insight() retrieves findings + learnings,
             # builds a prompt, and dispatches through llm_ensemble.
             # Returns None when no real LLM caller is configured so we
@@ -73,10 +197,10 @@ class BrainInsightWorker:
 
             if rag_text:
                 with cls._lock:
-                    cls._insights[key] = rag_text
+                    cls._store(key, rag_text, "🤖 OpenRouter Redirect")
                 return
 
-            # ── 2. Template fallback ───────────────────────────────────────
+            # ── 3. Template fallback ───────────────────────────────────────
             # Produces deterministic, data-aware text from session_state
             # values (graph metrics, site, date window) when RAG is offline.
             time.sleep(1)   # ensure thread finishes before the 2 s fragment tick
@@ -275,7 +399,7 @@ class BrainInsightWorker:
                 )
 
             with cls._lock:
-                cls._insights[key] = insight
+                cls._store(key, insight, "📋 Local Template")
 
         t = threading.Thread(target=worker, daemon=True)
         add_script_run_ctx(t)
@@ -322,15 +446,17 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
     # data-testid + data-page + data-digest enable robust E2E assertions.
     # Detect source label early so we can embed it in the card HTML (always
     # visible even with the expander closed — needed for Playwright assertion).
-    _source_label = ""
-    if not loading:
-        _is_rag = len(str(insight)) > 200 and not any(
-            marker in str(insight) for marker in [
-                "Supplier → part → site", "Recursive OTD", "Kaplan-Meier",
-                "Bullwhip amplification", "Procurement 360",
-            ]
-        )
-        _source_label = "🤖 LLM (OpenRouter)" if _is_rag else "📋 Template"
+    _source_label = "" if loading else BrainInsightWorker.get_source(page_name, context_dict)
+
+    _scope = _scope_label(context_dict)
+    _status, _action = _next_move(page_name, insight)
+    _status_label, _status_color, _status_bg = _status_style(_status)
+    _why = _plain_text(body, limit=360)
+    _safe_page = _html.escape(str(page_name))
+    _safe_action = _html.escape(_action)
+    _safe_why = _html.escape(_why)
+    _safe_scope = _html.escape(_scope)
+    _safe_source = _html.escape(_source_label)
 
     st.markdown(
         f"""<div class="dbi-container"
@@ -340,15 +466,35 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
             data-dbi-updated="{updated_flag}"
             data-loading="{'1' if loading else '0'}"
             role="status" aria-live="polite"
-            style="background:#f0f2f6;border-left:4px solid #0068c9;
-            padding:.75rem 1rem;border-radius:.4rem;margin-bottom:.25rem;
-            color:#31333f;font-family:'Source Sans Pro',sans-serif;">
-        🧠 <b>Dynamic Brain Insight ({page_name}):</b>
-        <span data-testid="dbi-stamp" style="float:right;font-size:.7rem;color:#64748b;">
-            {digest} · {ts}
-        </span><br>
-        <span data-testid="dbi-body">{body}</span>
-        {'<br><span data-testid="dbi-source" style="font-size:.7rem;color:#64748b;">Insight source: ' + _source_label + '</span>' if not loading else ''}
+            style="background:#ffffff;border:1px solid #cbd5e1;border-left:5px solid {_status_color};
+            padding:.9rem 1rem;border-radius:.45rem;margin-bottom:.35rem;
+            color:#172033;font-family:'Source Sans Pro',sans-serif;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.55rem;">
+            <div style="font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:#475569;font-weight:700;">
+                DBI Readout · {_safe_page}
+            </div>
+            <span data-testid="dbi-stamp" style="font-size:.72rem;color:#64748b;white-space:nowrap;">
+                {digest} · {ts}
+            </span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,0.95fr) minmax(0,1.55fr);gap:.75rem;align-items:stretch;">
+            <div style="background:{_status_bg};border:1px solid {_status_color}33;border-radius:.4rem;padding:.75rem;">
+                <div style="font-size:.72rem;color:{_status_color};font-weight:800;text-transform:uppercase;margin-bottom:.25rem;">
+                    {_status_label}
+                </div>
+                <div style="font-size:1rem;line-height:1.3;font-weight:700;color:#0f172a;">
+                    {_safe_action}
+                </div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:.4rem;padding:.75rem;">
+                🧠 <b>Dynamic Brain Insight ({_safe_page}):</b><br>
+                <span data-testid="dbi-body" style="line-height:1.35;">{_safe_why}</span>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-top:.55rem;font-size:.76rem;color:#64748b;">
+            <span>Scope: {_safe_scope}</span>
+            {'<span data-testid="dbi-source">Insight source: ' + _safe_source + '</span>' if not loading else ''}
+        </div>
         </div>""",
         unsafe_allow_html=True,
     )
@@ -359,10 +505,10 @@ def render_dynamic_brain_insight(page_name: str, context_dict: dict):
             k: v for k, v in context_dict.items()
             if v is not None and str(v).strip()
         }
-        with st.expander(f"🔍 Parameters · {_source_label}", expanded=False):
+        with st.expander(f"🔍 DBI inputs · {_source_label}", expanded=False):
             st.caption(f"**Insight source:** {_source_label}")
             st.divider()
-            st.markdown("**Relational Parameters Read by Brain:**")
+            st.markdown("**Filters and signals used for this readout:**")
             if params:
                 for k, v in params.items():
                     # Truncate very long values (e.g. full DataFrames) for readability

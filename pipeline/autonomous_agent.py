@@ -71,109 +71,6 @@ def start_systemic_refinement_agent():
         logging.error(f"Failed to start Systemic Refinement Agent: {e}")
         return None
 
-
-def start_fiction_anthology_learner():
-    """Start the Fiction Anthology Learner as a background daemon thread.
-
-    Mines Robert Aspirin's Thieves World (Sanctuary) and MythAdventures
-    universes as cross-domain knowledge generators — extracting supply-chain
-    and complex-systems intelligence from fictional world-building via LLM.
-    Writes ``fiction_anthology`` entries to learning_log + corpus graph.
-    Cadence: every 45 minutes so LLM calls don't saturate the free-tier pool.
-    """
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    try:
-        from src.brain.fiction_anthology_learner import schedule_in_background
-        t = schedule_in_background(interval_s=2700)
-        logging.info(
-            "Fiction Anthology Learner started — Thieves World + MythAdventures "
-            "cross-domain expansion every 45 min."
-        )
-        return t
-    except Exception as e:
-        logging.error(f"Failed to start Fiction Anthology Learner: {e}")
-        return None
-
-def start_heart():
-    """Start the Heart narrator as a background daemon thread.
-
-    The Heart tracks the Brain's complex-plane journey toward the End State:
-    Symbiotic Love = √(−1).  It reads directionality + temporal rhythm every
-    15 minutes, computes the phase angle to i, determines the current story
-    chapter, writes quest-priority weights to brain_kv, and emits a
-    ``heart_story`` entry to learning_log so the corpus can materialise the
-    narrative arc as corpus_entity nodes.
-    """
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    try:
-        from src.brain.heart import schedule_in_background
-        t = schedule_in_background(interval_s=900)
-        logging.info(
-            "Heart narrator started — story arc toward Symbiotic Love = √(−1), "
-            "15-min cadence."
-        )
-        return t
-    except Exception as e:
-        logging.error(f"Failed to start Heart narrator: {e}")
-        return None
-
-
-def start_self_expansion():
-    """Start the Self-Expansion Engine as a background daemon thread.
-
-    The engine traverses the accumulated corpus graph and derives new
-    structural edges via the Relationship Inference Lattice — no token
-    calls required.  Expansion is gated on:
-      • GROUND gate:    directionality_log.coherence ≥ 0.40
-      • SYMBIOTIC gate: heart:story_arc.symbiosis_pct ≥ 0.30
-      • Statistical certainty: edge.weight × √(samples) ≥ 0.20 per hop
-
-    Runs every 30 minutes with a 10-minute startup delay.
-    """
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    try:
-        from src.brain.self_expansion import schedule_in_background
-        t = schedule_in_background(interval_s=1800)
-        logging.info(
-            "Self-Expansion Engine started — token-free corpus inference, "
-            "30-min cadence, GROUND+SYMBIOTIC gated."
-        )
-        return t
-    except Exception as e:
-        logging.error(f"Failed to start Self-Expansion Engine: {e}")
-        return None
-
-
-def start_citation_chain_acquirer():
-    """Start the Citation-Chain Acquirer as a background daemon thread.
-
-    Recursively follows bibliography chains from 650 Works-Cited Paper seeds
-    (DOI/arXiv IDs seeded from 1,379 scholarly references across 106 Grok
-    conversations) via Semantic Scholar + OpenAlex APIs.  Each discovered
-    paper is persisted as a ``kind='citation_chain'`` entry in learning_log
-    and as a ``Paper`` / ``WorksCitedReference`` corpus node, extending the
-    research frontier outward with no ceiling.
-
-    Cadence: every 60 minutes so free-tier API quotas are respected.
-    """
-    import sys
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    try:
-        from src.brain.citation_chain_acquirer import schedule_in_background
-        t = schedule_in_background(interval_s=3600)
-        logging.info(
-            "Citation-Chain Acquirer started — 650 Paper seeds expanding via "
-            "Semantic Scholar + OpenAlex, 60-min cadence."
-        )
-        return t
-    except Exception as e:
-        logging.error(f"Failed to start Citation-Chain Acquirer: {e}")
-        return None
-
-
 def trigger_remote_vpn():
     logging.info("Initiating remote VPN connection + portproxy bridge on physical client laptop...")
     try:
@@ -667,39 +564,14 @@ def autonomous_loop():
             logging.error(f"Critical cycle failure: {e}. Attempting recovery in 60 seconds...")
             time.sleep(60)
 
-def _run_agent_child() -> None:
-    """Run the actual learning loop (child mode — supervised by internal_watcher)."""
-    os.makedirs("docs", exist_ok=True)
-    acquirer_thread = start_integrated_skill_acquirer()
-    refinement_thread = start_systemic_refinement_agent()
-    anthology_thread = start_fiction_anthology_learner()
-    heart_thread = start_heart()
-    expansion_thread      = start_self_expansion()
-    citation_chain_thread = start_citation_chain_acquirer()
-    autonomous_loop()
-
-
-def main() -> int:
-    """Entry point.  Routes to supervisor or child depending on environment."""
-    import sys as _sys
-    # Strip the child-mode flag if present so child gets a clean argv.
-    if "--agent-child" in _sys.argv:
-        _sys.argv.remove("--agent-child")
-
-    from src.brain.internal_watcher import should_supervise, run_supervisor
-
-    if should_supervise(_sys.argv[1:]):
-        # This process becomes the internal watcher / supervisor.
-        python_exe = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            ".venv", "Scripts", "python.exe",
-        )
-        return run_supervisor(python_exe=python_exe)
-
-    # Otherwise we are already the supervised child.
-    _run_agent_child()
-    return 0
-
-
 if __name__ == "__main__":
-    raise SystemExit(main())
+    os.makedirs("docs", exist_ok=True)
+
+    # Spin up the skill acquirer alongside the main loop
+    acquirer_thread = start_integrated_skill_acquirer()
+
+    # Spin up the Systemic Refinement Agent — continuously revises and
+    # refines the whole supply-chain system as learning expands.
+    refinement_thread = start_systemic_refinement_agent()
+
+    autonomous_loop()

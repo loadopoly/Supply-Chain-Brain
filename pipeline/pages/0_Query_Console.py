@@ -18,8 +18,10 @@ from src.connections.oracle_fusion import OracleFusionSession
 from src.brain.db_registry import bootstrap_default_connectors
 from src.brain.findings_index import lookup_findings, record_finding
 from src.brain.dynamic_insight import render_dynamic_brain_insight
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 bootstrap_default_connectors()
+render_operator_sidebar_fallback()
 
 st.markdown("""
 <style>
@@ -249,12 +251,33 @@ ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') a
 render_dynamic_brain_insight('Query Console', ctx)
 st.divider()
 
+if st.session_state.get("operator_mode", True):
+    st.markdown("### Find A Record")
+    lookup_kind = st.radio(
+        "Search target",
+        ["Part", "Order", "Invoice", "Supplier", "Customer"],
+        horizontal=True,
+        key="query_lookup_kind",
+    )
+    _examples = {
+        "Part": ["544-11555-22", "pump", "bearing"],
+        "Order": ["1234567", "SO", "PO"],
+        "Invoice": ["INV-2024-001", "invoice"],
+        "Supplier": ["Acme", "ASTEC"],
+        "Customer": ["ASTEC", "PALMETTO"],
+    }
+    _hint_cols = st.columns(min(3, len(_examples.get(lookup_kind, []))))
+    for _col, _sample in zip(_hint_cols, _examples.get(lookup_kind, [])):
+        if _col.button(_sample, key=f"query_sample_{lookup_kind}_{_sample}", use_container_width=True):
+            st.session_state["query_console_search_term"] = _sample
+
 col_input, col_btn = st.columns([5, 1])
 with col_input:
     search_term = st.text_input(
         label="Search",
-        placeholder="Enter part number, order number, invoice, supplier, or any value … (e.g. 544-11555-22)",
+        placeholder="Part number, order, invoice, supplier, or customer",
         label_visibility="collapsed",
+        key="query_console_search_term",
     )
 with col_btn:
     run = st.button("Search", type="primary", use_container_width=True)
@@ -317,6 +340,16 @@ if (run or search_term) and search_term.strip():
     other_hits = {k: v for k, v in azure_results.items()
                   if k not in upstream and k not in downstream and k not in part_hits}
 
+    if total_azure or total_oracle:
+        if part_df_check is not None and not part_df_check.empty:
+            st.success("Next step: open the Part/Inventory tab first, then drill into PO receipts or sales-order lines.")
+        elif upstream:
+            st.success("Next step: open the Upstream tab and review supplier, contract, and receipt records.")
+        elif downstream:
+            st.success("Next step: open the Downstream tab and review customer/order records.")
+        else:
+            st.success("Next step: open All Azure first, then Oracle Fusion if the live transaction is not in EDAP.")
+
     tab_up, tab_down, tab_part, tab_all, tab_oracle = st.tabs([
         f"⬆ Upstream ({len(upstream)})",
         f"⬇ Downstream ({len(downstream)})",
@@ -336,12 +369,4 @@ if (run or search_term) and search_term.strip():
         render_results(oracle_results, "Oracle Fusion")
 else:
     st.markdown("<br>", unsafe_allow_html=True)
-    st.info("Enter a value above to search both databases simultaneously.")
-    st.markdown("""
-**Examples:**
-- Part number: `544-11555-22`
-- Order number: `1234567`
-- Invoice: `INV-2024-001`
-- Supplier name: `Acme`
-- Customer: `ASTEC`
-    """)
+    st.info("Start with one concrete value. The search joins Azure SQL, Oracle Fusion, inventory, supplier, customer, and invoice records when matches exist.")

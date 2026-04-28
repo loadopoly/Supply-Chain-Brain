@@ -113,6 +113,13 @@ def _label_supplier(k):
 def _label_part(k):
     s = str(k); return part_names.get(s, s)
 
+def _as_date_series(series: pd.Series) -> pd.Series:
+    raw = pd.to_numeric(series, errors="coerce")
+    ymd = raw.where(raw.between(19700101, 20991231)).astype("Int64").astype("string")
+    parsed_ymd = pd.to_datetime(ymd, format="%Y%m%d", errors="coerce")
+    parsed_native = pd.to_datetime(series, errors="coerce")
+    return parsed_ymd.fillna(parsed_native)
+
 # Prefer *_label columns already added by enrich_labels
 _recv_sup_display  = "supplier_key_label"  if "supplier_key_label"  in recv.columns else _recv_sup_col
 _recv_part_display = "part_key_label"       if "part_key_label"       in recv.columns else _recv_part_col
@@ -131,17 +138,20 @@ st.markdown(f"🟢 **Live** · parts:{len(parts):,} · receipts:{len(recv):,} ·
 # ── Build lead time ────────────────────────────────────────────────────────────
 if not recv.empty and _recv_promise_col and _recv_receipt_col:
     recv = recv.copy()
-    recv["lead_time_days"] = (
-        pd.to_datetime(recv[_recv_receipt_col], errors="coerce") -
-        pd.to_datetime(recv[_recv_promise_col], errors="coerce")
+    _lt_days = (
+        _as_date_series(recv[_recv_receipt_col]) -
+        _as_date_series(recv[_recv_promise_col])
     ).dt.days
+    recv["lead_time_days"] = _lt_days.where(_lt_days.between(0, 730))
 elif not recv.empty and _recv_lt_col:
     recv = recv.copy()
-    recv["lead_time_days"] = pd.to_numeric(recv[_recv_lt_col], errors="coerce")
+    _lt_days = pd.to_numeric(recv[_recv_lt_col], errors="coerce")
+    recv["lead_time_days"] = _lt_days.where(_lt_days.between(0, 730))
 
 # ── KPI Strip ───────────────────────────────────────────────────────────────
 _sup_nunique = recv[_recv_sup_col].nunique() if _recv_sup_col in recv.columns else "—"
-_lt_mean = f"{recv['lead_time_days'].mean():.0f}d" if "lead_time_days" in recv.columns else "—"
+_lt_mean_value = recv["lead_time_days"].dropna().mean() if "lead_time_days" in recv.columns else np.nan
+_lt_mean = f"{_lt_mean_value:.0f}d" if pd.notna(_lt_mean_value) else "—"
 k1, k2, k3, k4, k5 = st.columns(5)
 with k1:
     st.metric("📦 Parts", f"{len(parts):,}")
@@ -250,7 +260,9 @@ with tab2:
     st.subheader("📦 Days of Inventory Outstanding (DIO)")
     ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
     render_dynamic_brain_insight("Days of Inventory Outstanding DIO", ctx)
-    if not on_hand.empty and not recv.empty and _oh_part_col in on_hand.columns:
+    if on_hand.empty:
+        st.info("No on-hand inventory rows returned for the selected plant/window. DIO needs a live inventory snapshot plus receipt usage.")
+    elif not recv.empty and _oh_part_col in on_hand.columns:
         avg_oh  = on_hand.groupby(_oh_part_col)[_oh_qty_col].mean().reset_index() \
                   if _oh_qty_col else pd.DataFrame()
         recv_qty_col = _recv_qty_col or (_col_or_none(recv, _rc(recv, "quantity")))
@@ -548,7 +560,7 @@ with tab5:
                 base["unit_cost"] = 1.0
             base["unit_cost"] = base["unit_cost"].fillna(base["unit_cost"].median() or 1.0)
             base["annual_demand"] = pd.to_numeric(base["annual_demand"], errors="coerce").fillna(0)
-            base = base[required.intersection(base.columns).union({"supplier_key"})]
+            base = base[[c for c in ("supplier_key", "unit_cost", "lead_time_mean", "lead_time_std", "disruption_prob", "annual_demand") if c in base.columns]]
             for c in required:
                 if c not in base.columns:
                     base[c] = 0.0

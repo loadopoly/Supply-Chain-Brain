@@ -51,9 +51,11 @@ from src.brain.global_filters import date_key_window, get_global_window
 from src.brain.label_resolver import enrich_labels
 from src.brain.local_store import fetch_otd_owners, upsert_otd_owner
 from src.brain.otd_recursive import run_otd_from_replica, OTDConfig, build_features, recursive_cluster
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 st.session_state["_page"] = "otd_recursive"
 bootstrap_default_connectors()
+render_operator_sidebar_fallback()
 
 _OTD_EXPORT_SHEET = "Export"
 _DAILY_WORKLIST_SHEETS = ["Missed Yesterday", "Shipping today", "Opened Yesterday"]
@@ -170,10 +172,10 @@ def _load_otd_file_from_upload(file_name: str, raw_bytes: bytes) -> tuple[pd.Dat
 
 
 @st.cache_data(ttl=600, show_spinner="Pulling OTD rows from Azure SQL replica + clustering ...")
-def _run_replica(lim: int, wh: str, sk: int, ek: int):
+def _run_replica(lim: int, wh: str, sk: int, ek: int, site: str):
     where = wh if wh else "1=1"
     where += f" AND receipt_date_key BETWEEN {sk} AND {ek}"
-    return run_otd_from_replica(where=where, limit=int(lim))
+    return run_otd_from_replica(where=where, site=site, limit=int(lim))
 
 
 # ── Page header ────────────────────────────────────────────────────────────────
@@ -212,10 +214,14 @@ daily_worklists = {}
 if source_mode == "Live Replica":
     try:
         sk, ek = date_key_window()
+        site_value = st.session_state.get("g_site", "ALL")
+        if site_value is None or pd.isna(site_value) or not str(site_value).strip():
+            site_value = "ALL"
         df, summaries = _run_replica(
             int(st.session_state.get("otd_limit", 5000)),
             st.session_state.get("otd_where", ""),
             sk, ek,
+            str(site_value),
         )
     except Exception as exc:
         st.warning(f"Live OTD pull failed ({exc}) -- falling back to bundled file.")
@@ -856,6 +862,10 @@ with tab_daily:
                 if "Owner" not in edit_df.columns: edit_df["Owner"] = ""
                 if "Review Comment" not in edit_df.columns: edit_df["Review Comment"] = ""
                 if "Needs Review" not in edit_df.columns: edit_df["Needs Review"] = False
+                edit_df["Review"] = edit_df["Review"].fillna(False).astype(bool)
+                edit_df["Owner"] = edit_df["Owner"].fillna("").astype(str)
+                edit_df["Review Comment"] = edit_df["Review Comment"].fillna("").astype(str)
+                edit_df["Needs Review"] = edit_df["Needs Review"].fillna(False).astype(bool)
                 
                 col_config = {
                     "Review": st.column_config.CheckboxColumn("Review", default=False),

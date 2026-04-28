@@ -49,6 +49,8 @@ def goldfish_score(df: pd.DataFrame, *, rate_col: str = "rate", market_col: str 
     if not {rate_col, market_col, rejection_col}.issubset(df.columns):
         return pd.DataFrame()
     out = df.copy()
+    for col in (rate_col, market_col, rejection_col):
+      out[col] = pd.to_numeric(out[col], errors="coerce")
     out["rate_gap_pct"] = 100 * (out[rate_col] - out[market_col]) / out[market_col].replace(0, pd.NA)
     out["rejection_score"] = (out[rejection_col].fillna(0) * np.exp(-out["rate_gap_pct"].fillna(0) / 10))
     out["suggested_rate"] = out[market_col] * 1.02

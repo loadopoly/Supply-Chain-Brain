@@ -1,6 +1,11 @@
-"""DBI RAG engine — Retrieval-Augmented Generation for Dynamic Brain Insight.
+"""DBI OpenRouter redirect engine for Dynamic Brain Insight.
 
-Pipeline per filter-change:
+The primary internal DBI path lives in ``brain_dbi.py`` and synthesizes from
+the Brain's local neural mapping structures. This module is intentionally the
+external redirection fallback used only when that Brain-first path cannot
+produce a usable insight.
+
+Redirect pipeline per filter-change:
   1. RETRIEVE  — pull top scored findings from findings_index.db for this site
                  + recent learnings from knowledge_corpus
   2. AUGMENT   — build a structured system + user prompt with the retrieved

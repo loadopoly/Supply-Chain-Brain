@@ -1,5 +1,6 @@
 import streamlit as st
 from src.brain.dynamic_insight import render_dynamic_brain_insight
+from src.brain.operator_shell import render_operator_sidebar_fallback
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import json
@@ -74,6 +75,8 @@ def strip_pptx_content_to_template(input_bytes, output_path):
 
 _PAGE_DIR = Path(__file__).resolve().parent.parent
 
+render_operator_sidebar_fallback()
+
 
 def _biweekly_task(site: str, demo: bool, tmpl_path: Path, conn_ref: list) -> tuple:
     """Runs in a background thread; returns (findings, out_path, warnings)."""
@@ -106,6 +109,25 @@ def _biweekly_task(site: str, demo: bool, tmpl_path: Path, conn_ref: list) -> tu
 
 st.markdown("## 📊 Presentation & Report Creator")
 st.markdown("Generate comprehensive cross-dataset presentations, upload slide masters/templates, or let the AI match your specific business question to the right analytical module.")
+
+if st.session_state.get("operator_mode", True):
+    _scope_site = st.session_state.get("g_site") or "All plants"
+    _scope_start = st.session_state.get("g_date_start")
+    _scope_end = st.session_state.get("g_date_end")
+    _scope_window = f"{_scope_start} to {_scope_end}" if _scope_start and _scope_end else "selected timeline"
+    _fast1, _fast2, _fast3 = st.columns(3)
+    with _fast1:
+        with st.container(border=True):
+            st.markdown("**Default Output**")
+            st.caption("Bi-Weekly 1 Pager")
+    with _fast2:
+        with st.container(border=True):
+            st.markdown("**Current Scope**")
+            st.caption(f"{_scope_site} · {_scope_window}")
+    with _fast3:
+        with st.container(border=True):
+            st.markdown("**Decision Ready**")
+            st.caption("KPI, DBI, four lenses, and 30-day actions")
 
 tab1, tab2, tab3 = st.tabs(["1. Generate Review Deck", "2. Upload Slide Templates", "3. Quest Console"])
 
@@ -164,6 +186,9 @@ with tab1:
 
     sites = ["ALL"] + [s for s in _all_sites if s != "ALL"]
     default_site = st.session_state.get("g_site", "ALL") or "ALL"
+
+    def _get_sites_for_report() -> list[str]:
+        return sites
 
     # ── Bi-Weekly 1 Pager (default / recommended) ─────────────────────────
     st.markdown(

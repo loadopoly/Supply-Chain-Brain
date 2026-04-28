@@ -129,10 +129,10 @@ eoq:
 # ---------------------------------------------------------------------------
 otd:
   source_table:          'edap_dw_replica.fact_po_receipt'
-  description_col_hint:  'description'
-  site_col_hint:         'site'
-  numeric_col_hints:     ['days_late', 'days_early', 'received_qty', 'unit_price']
-  categorical_col_hints: ['supplier_name', 'buyer', 'commodity']
+  description_col_hint:  'part_description'
+  site_col_hint:         'business_unit_key'
+  numeric_col_hints:     ['days_late', 'days_early', 'received_qty', 'unit_cost_local']
+  categorical_col_hints: ['supplier_key', 'buyer_id', 'business_unit_key']
   max_depth:             4
   max_k:                 8
   random_state:          42

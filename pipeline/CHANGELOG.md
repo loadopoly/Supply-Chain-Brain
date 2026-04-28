@@ -4,6 +4,77 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.4] Operator Mode + Brain-First DBI + OTD Site Key Resolution (2026-04-28)
+
+### Added
+
+- **`pipeline/src/brain/brain_dbi.py`** — Brain-first DBI synthesis (new module)
+  - Synthesises Dynamic Brain Insight from the Brain's local neural mapping structures: body directives, touch pressure field, corpus learnings/graph counts, and neural-plasticity dials
+  - Called synchronously before any OpenRouter redirection attempt; insight appears on first render with zero latency when local signal is available
+  - Source label `🧠 Brain Neural Map` shown in the DBI card header
+
+- **`pipeline/src/brain/operator_shell.py`** — Operator sidebar fallback (new module)
+  - `render_operator_sidebar_fallback()`: renders global filter sidebar + Operator Mode Daily Control Path widget for pages that load before the main `app.py` shell
+  - Reads `sites_cache.json` for cached site list; no extra DB round-trip
+
+- **`pipeline/src/brain/dynamic_insight.py`** — Full DBI card redesign
+  - `_plain_text(value, limit)` — strips Markdown formatting for HTML-safe card copy
+  - `_scope_label(context_dict)` — derives `site | date_start to date_end` label from session state
+  - `_next_move(page_name, insight)` — rule-based triage engine returning `(status, action)` tuple; status is `act` | `watch` | `steady`; rules cover SQL errors, late OTD, CVaR risk, ghost lanes, data quality, and per-page defaults
+  - `_status_style(status)` — returns `(label, border_color, background_color)` for the status pill
+  - `BrainInsightWorker._make_key()` — extracted shared key computation
+  - `BrainInsightWorker._store(key, text, source)` — co-stores insight text and source label atomically
+  - `BrainInsightWorker.get_source()` — returns stored source label for display
+  - Card layout rebuilt as two-column grid: left = coloured status pill with action sentence, right = DBI body text; scope and source line below
+  - Source detection replaced by explicit label tracking (`🧠 Brain Neural Map`, `🔀 OpenRouter Redirect`, `📝 Local Template`)
+  - DBI worker now runs Brain-first path in background thread before OpenRouter fallback
+  - Expander renamed to `DBI inputs`; param label updated to `Filters and signals used for this readout`
+
+- **`pipeline/app.py`** — Operator Mode global toggle
+  - `operator_mode` sidebar toggle (default on) persisted to `session_state["operator_mode"]`
+  - **Daily Control Path** widget rendered in sidebar when Operator Mode is on: shows active scope (site + window), three quick-action page links (Query Console, Supply Chain Brain, Report Creator)
+  - `.operator-rail` CSS class for the sidebar widget
+  - `_operator_page_link()` helper — falls back to markdown link if `st.page_link` raises
+  - `session_state["_app_shell_rendered"] = True` sentinel for child-page detection
+
+### Changed
+
+- **`pipeline/src/brain/otd_recursive.py`**
+  - `_SITE_TEXT_PREDICATE_RE` — regex that matches SQL `WHERE site = 'X'`-style predicates on site/business_unit columns
+  - `_resolve_business_unit_key(connector, site)` — LRU-cached lookup: resolves site text (name, ID, display name) to integer `business_unit_key` via `dim_business_unit`; returns `None` for "ALL"
+  - `_normalize_site_predicates(connector, where)` — rewrites text-based site predicates in a WHERE string to use the integer key; unknown sites become `1 = 0` to prevent cross-site leakage
+  - `run_otd_from_replica()` gains `site` parameter; site text resolved to key and appended as `AND [business_unit_key] = {key}` before the query executes
+
+- **`pipeline/config/brain.yaml`** — OTD column hints corrected to actual replica schema
+  - `description_col_hint`: `description` → `part_description`
+  - `site_col_hint`: `site` → `business_unit_key`
+  - `numeric_col_hints`: `unit_price` → `unit_cost_local`
+  - `categorical_col_hints`: `supplier_name`/`buyer`/`commodity` → `supplier_key`/`buyer_id`/`business_unit_key`
+
+- **`pipeline/src/brain/dbi_rag.py`** — Reframed as OpenRouter redirect fallback (module docstring updated); Brain-first path in `brain_dbi.py` now runs first
+
+- **`pipeline/src/brain/research/freight_portfolio.py`** — `goldfish_score()` now calls `pd.to_numeric(..., errors='coerce')` on `rate_col`, `market_col`, `rejection_col` before arithmetic to prevent dtype errors when columns arrive as strings
+
+- **`pipeline/pages/0_Query_Console.py`** — Operator Mode enhancements
+  - Quick-lookup radio (Part/Order/Invoice/Supplier/Customer) with sample-value buttons under DBI when Operator Mode is on
+  - Next-step success message after search based on which result tab has data
+  - Empty-state simplified to a single info string
+  - `render_operator_sidebar_fallback()` called at page load
+
+- **`pipeline/pages/1_Supply_Chain_Brain.py`** — Operator Mode **Plant Risk Control Room** three-column panel (DBI Next Move → Find The Owner → Leave With A One-Pager); `render_operator_sidebar_fallback()` called at load
+
+- **`pipeline/pages/11_Freight_Portfolio.py`** — Freight Portfolio fixes
+  - Goldfish SQL rewritten: replaces `unit_cost_amount` → `unit_cost_usd`, adds `market` CTE for average rate baseline, adds `rejection_rate` column, removes `STDEV` from CTE to avoid division by zero
+  - Portfolio scatter: column presence checked before merge (`x_vol_col`/`y_vol_col` fallback); duplicate columns dropped from `mix` before merge to avoid suffix collisions
+  - KPI metrics format fixed: `.0%` → `.0f%`
+  - Ghost Lane SQL scoped to date-key window from `date_key_window()` instead of full-table scan
+
+- **`pipeline/pages/15_Report_Creator.py`** — Operator Mode three-column scope panel (Default Output / Current Scope / Decision Ready); `render_operator_sidebar_fallback()` called at load
+
+- **`pipeline/autonomous_agent.py`** — Simplified `if __name__ == "__main__"` path: removed standalone launchers for `fiction_anthology_learner`, `heart`, `self_expansion`, and `citation_chain_acquirer` from the direct-run code path (all still available as importable functions); only `start_integrated_skill_acquirer` + `start_systemic_refinement_agent` + `autonomous_loop()` remain in the direct-run path
+
+---
+
 ## [0.19.3] HuggingFace Corpus Integration (2026-04-27)
 
 ### Added

@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import streamlit as st
 from src.brain.dynamic_insight import render_dynamic_brain_insight
+from src.brain.operator_shell import render_operator_sidebar_fallback
 import pandas as pd
 import numpy as np
 
@@ -16,6 +17,7 @@ from src.brain.findings_index import all_kinds, lookup_findings
 # set_page_config handled by app.py st.navigation()
 st.session_state["_page"] = "supply_chain_brain"
 bootstrap_default_connectors()
+render_operator_sidebar_fallback()
 
 # ── Header ──────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -29,6 +31,32 @@ st.markdown("""
 
 st.markdown("## 🧠 Supply Chain Brain")
 st.caption("Procurement · Logistics · Supply Chain · Customer Service — multi-dimensional graph intelligence")
+
+def _page_link(page: str, label: str, icon: str, fallback_url: str) -> None:
+    try:
+        st.page_link(page, label=label, icon=icon)
+    except Exception:
+        st.markdown(f"[{icon} {label}]({fallback_url})")
+
+if st.session_state.get("operator_mode", True):
+    _site_scope = st.session_state.get("g_site") or "All plants"
+    st.markdown("### Plant Risk Control Room")
+    _op1, _op2, _op3 = st.columns(3)
+    with _op1:
+        with st.container(border=True):
+            st.markdown("**1 · DBI Next Move**")
+            st.caption(f"Scope: {_site_scope}")
+            st.markdown("Work the DBI action before exploring lower-priority charts.")
+    with _op2:
+        with st.container(border=True):
+            st.markdown("**2 · Find The Owner**")
+            st.caption("Click the largest supplier, part, or customer node.")
+            _page_link("app.py", "Search exact record", "🔍", "/")
+    with _op3:
+        with st.container(border=True):
+            st.markdown("**3 · Leave With A One-Pager**")
+            st.caption("Use the default report after the top risk is known.")
+            _page_link("pages/15_Report_Creator.py", "Create report", "📊", "/Report_Creator")
 
 st.divider()
 

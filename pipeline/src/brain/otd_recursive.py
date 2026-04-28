@@ -7,6 +7,7 @@ preserved verbatim so results match the reference script.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Dict, List, Optional, Sequence, Tuple
 import re
 
@@ -30,6 +31,9 @@ from .data_access import fetch_logical, query_df
 
 DEFAULT_STOP_WORDS = set(ENGLISH_STOP_WORDS)
 TOKEN_RE = re.compile(r"[a-zA-Z]{2,}")
+_SITE_TEXT_PREDICATE_RE = re.compile(
+    r"(?i)(?:\[[^\]]+\]\.)?\[?(?:site|business_unit|business_unit_id|business_unit_key)\]?\s*=\s*N?'([^']+)'"
+)
 
 
 def _as_datetime(series: pd.Series) -> pd.Series:
@@ -76,6 +80,53 @@ def _normalize_otd_metrics(df: pd.DataFrame) -> pd.DataFrame:
             out["is_on_time"] = (1.0 - miss.clip(lower=0, upper=1))
 
     return out
+
+
+@lru_cache(maxsize=256)
+def _resolve_business_unit_key(connector: str, site: str) -> Optional[int]:
+    if site is None:
+        site_text = ""
+    else:
+        try:
+            site_text = "" if pd.isna(site) else str(site).strip()
+        except (TypeError, ValueError):
+            site_text = str(site).strip()
+    if not site_text or site_text.upper() in {"ALL", "ALL SITES", "NONE"}:
+        return None
+    if site_text.isdigit():
+        return int(site_text)
+
+    sql = """
+        SELECT TOP 1 business_unit_key
+        FROM [edap_dw_replica].[dim_business_unit] WITH (NOLOCK)
+        WHERE UPPER(business_unit_id) = UPPER(?)
+           OR UPPER(business_unit) = UPPER(?)
+           OR UPPER(display_name) = UPPER(?)
+           OR UPPER(short_display_name) = UPPER(?)
+        ORDER BY business_unit_key
+    """
+    df = query_df(connector, sql, [site_text, site_text, site_text, site_text])
+    if df.empty or "business_unit_key" not in df.columns:
+        return None
+    key = pd.to_numeric(df["business_unit_key"], errors="coerce").dropna()
+    if key.empty:
+        return None
+    return int(key.iloc[0])
+
+
+def _normalize_site_predicates(connector: str, where: str | None) -> str:
+    text = str(where or "").strip()
+    if not text:
+        return ""
+
+    def _replace(match: re.Match[str]) -> str:
+        site_text = match.group(1).strip()
+        key = _resolve_business_unit_key(connector, site_text)
+        if key is None:
+            return "1 = 0"
+        return f"[business_unit_key] = {key}"
+
+    return _SITE_TEXT_PREDICATE_RE.sub(_replace, text)
 
 
 @dataclass
@@ -222,6 +273,7 @@ def recursive_cluster(df: pd.DataFrame, features: np.ndarray, cfg: OTDConfig,
 # ---------------------------------------------------------------------------
 def run_otd_from_replica(connector: str = "azure_sql",
                          where: str | None = None,
+                         site: str | None = None,
                          limit: int = 10_000) -> tuple[pd.DataFrame, list[dict]]:
     """Pull OTD-relevant rows from the Replica, clean, recursively cluster."""
     cfg_yaml = load_config().get("otd", {})
@@ -229,8 +281,15 @@ def run_otd_from_replica(connector: str = "azure_sql",
     schema, table = qualified.split(".")[0], qualified.split(".")[-1]
 
     sql = f"SELECT TOP {int(limit)} * FROM [{schema}].[{table}] WITH (NOLOCK)"
-    if where:
-        sql += f" WHERE {where}"
+    clauses: list[str] = []
+    normalized_where = _normalize_site_predicates(connector, where)
+    if normalized_where:
+        clauses.append(f"({normalized_where})")
+    site_key = _resolve_business_unit_key(connector, site or "")
+    if site_key is not None:
+        clauses.append(f"[business_unit_key] = {site_key}")
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
     df = query_df(connector, sql)
     if df.empty:
         return df, []
