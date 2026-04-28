@@ -9,11 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.brain.db_registry import bootstrap_default_connectors
 from src.brain.data_access import fetch_logical, query_df
 from src.brain.global_filters import date_key_window, get_global_window
+from src.brain.operator_shell import render_operator_sidebar_fallback
 from src.brain.imputation import (missingness_profile, value_of_information, mass_impute,
                                    xgb, lgb, cb, missingpy)
 
 # set_page_config handled by app.py st.navigation()
 st.session_state["_page"] = "data_quality"
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 import plotly.express as px

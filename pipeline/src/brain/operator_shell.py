@@ -11,6 +11,16 @@ from src.brain.global_filters import render_global_filter_sidebar
 
 _PIPELINE_ROOT = Path(__file__).resolve().parents[2]
 _SITES_CACHE_PATH = _PIPELINE_ROOT / "config" / "sites_cache.json"
+_APP_SHELL_ACTIVE = False
+
+
+def mark_app_shell_active(active: bool) -> None:
+    global _APP_SHELL_ACTIVE
+    _APP_SHELL_ACTIVE = bool(active)
+
+
+def is_app_shell_active() -> bool:
+    return _APP_SHELL_ACTIVE
 
 
 def _cached_sites() -> list[str]:
@@ -31,11 +41,8 @@ def _page_link(page: str, label: str, icon: str, fallback_url: str) -> None:
 
 
 def render_operator_sidebar_fallback() -> None:
-    if st.session_state.get("_app_shell_rendered"):
+    if is_app_shell_active():
         return
-    if st.session_state.get("_operator_shell_fallback_rendered"):
-        return
-    st.session_state["_operator_shell_fallback_rendered"] = True
 
     st.markdown(
         """
@@ -55,6 +62,7 @@ def render_operator_sidebar_fallback() -> None:
     )
 
     with st.sidebar:
+        st.markdown("### Global Filters")
         site_options = [""] + [site for site in _cached_sites() if site.lower() != "unknown"]
         current_site = st.session_state.get("g_site", "") or ""
         site_index = site_options.index(current_site) if current_site in site_options else 0

@@ -56,16 +56,13 @@ def filter_df_by_date(df: pd.DataFrame, date_col: str) -> pd.DataFrame:
 def render_global_filter_sidebar():
     """Render the standardized Start/End Date pickers in the sidebar."""
     with st.sidebar:
-        st.markdown("### 📅 Global Timeline")
+        st.markdown("**Timeline**")
         end_default = st.session_state.get("g_date_end", date.today())
         start_default = st.session_state.get(
             "g_date_start", end_default - timedelta(days=DEFAULT_LOOKBACK_DAYS)
         )
-        c1, c2 = st.columns(2)
-        with c1:
-            sd = st.date_input("Start", value=start_default, key="g_date_start_widget")
-        with c2:
-            ed = st.date_input("End", value=end_default, key="g_date_end_widget")
+        sd = st.date_input("Start date", value=start_default, key="g_date_start_widget")
+        ed = st.date_input("End date", value=end_default, key="g_date_end_widget")
         if st.session_state.get("g_date_start") != sd or st.session_state.get("g_date_end") != ed:
             st.session_state["g_date_start"] = sd
             st.session_state["g_date_end"] = ed

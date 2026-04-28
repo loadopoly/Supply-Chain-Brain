@@ -12,8 +12,10 @@ from src.brain.db_registry import bootstrap_default_connectors, list_connectors,
 from src.brain.research.bullwhip import bullwhip_per_echelon, bullwhip_heatmap_frame
 from src.brain.col_resolver import discover_table_columns, resolve
 from src.brain.global_filters import date_key_window
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 # set_page_config handled by app.py st.navigation()
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 import plotly.express as px
@@ -26,6 +28,7 @@ st.caption("Lee-Padmanabhan-Whang variance amplification · per-echelon signal-t
 # Early DBI card — renders before SQL load so Playwright finds it even when DB is offline.
 _early_bw_ctx = {k: v for k, v in st.session_state.items()
                  if not str(k).startswith('_') and not callable(v)}
+_early_bw_ctx.update({"dbi_stage": "loading", "dbi_page_kind": "bullwhip"})
 render_dynamic_brain_insight("Bullwhip", _early_bw_ctx)
 
 connectors = list_connectors()
@@ -160,6 +163,26 @@ series_by_echelon = {ech: sub["qty"] for ech, sub in df.groupby("echelon")}
 table = bullwhip_per_echelon(series_by_echelon, df["demand_signal"])
 
 ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
+ctx.update({
+    "dbi_stage": "computed",
+    "dbi_page_kind": "bullwhip",
+    "dbi_bullwhip_rows": len(df),
+    "dbi_bullwhip_echelons": len(series_by_echelon),
+})
+if "bullwhip_ratio" in table.columns and not table.empty:
+    _bw_col = "bullwhip_ratio"
+    _ech_col = "echelon" if "echelon" in table.columns else table.index.name or "index"
+    _ranked_bw = table.reset_index() if _ech_col == "index" else table.copy()
+    if _ech_col == "index":
+        _ech_col = _ranked_bw.columns[0]
+    _ranked_bw = _ranked_bw.sort_values(_bw_col, ascending=False)
+    _worst = _ranked_bw.iloc[0]
+    ctx.update({
+        "dbi_bullwhip_max_ratio": round(float(table[_bw_col].max()), 3),
+        "dbi_bullwhip_avg_ratio": round(float(table[_bw_col].mean()), 3),
+        "dbi_bullwhip_echelons_over_2": int((table[_bw_col] > 2).sum()),
+        "dbi_bullwhip_worst_echelon": str(_worst.get(_ech_col, "worst echelon")),
+    })
 render_dynamic_brain_insight('Bullwhip', ctx)
 
 # ── KPI strip ────────────────────────────────────────────────────────────────

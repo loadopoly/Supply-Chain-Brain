@@ -11,8 +11,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 from brain._version import __version__, __release__
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 # set_page_config handled by app.py st.navigation()
+render_operator_sidebar_fallback()
 
 import plotly.express as px
 import plotly.graph_objects as go

@@ -4,74 +4,54 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.6] Operator UI + Brain-First DBI Stabilization (2026-04-28)
+
+### Added
+
+- **Global Filters fallback coverage** across direct Streamlit pages so Plant, Timeline, and Operator Mode stay available whether a user enters through `app.py` navigation or a direct page URL.
+- **Heart Story** added to official `st.navigation()` under AI, keeping `/Heart_Story` reachable after restart.
+- **WIP Aging Review** surfaced in Platform navigation, backed by the WIP source package and page-level sidebar fallback.
+- **Page-specific Brain DBI playbooks** for operator-facing pages, replacing repeated neural-map boilerplate with direct next actions.
+- **Bullwhip DBI context** now passes live max ratio, average ratio, count over 2x, and worst echelon into the computed DBI card.
+
+### Changed
+
+- **`app.py`** now renders Global Filters from a disk-first Plant cache, avoiding a live Azure SQL site-list lookup blocking sidebar controls.
+- **`operator_shell.py`** now uses a run-local app-shell active flag instead of persistent `st.session_state` skip flags, preventing filters from disappearing on rerun.
+- **`global_filters.py`** labels the timeline controls as `Start date` and `End date` for a clearer sidebar surface.
+- **DBI routing** remains Brain-first, with OpenRouter kept as a fallback only when local Brain DBI cannot produce usable text.
+
+### Fixed
+
+- Fixed direct-page reruns dropping Global Filters after the main app shell had rendered once.
+- Fixed Heart Story Plotly `colorbar.titlefont` schema error by using the supported `colorbar.title.font` structure.
+- Validated `/`, `/OTD_Recursive`, `/Bullwhip`, `/Heart_Story`, and `/Document_RAG` with exactly one complete Global Filters block and no Streamlit exceptions.
+
+---
+
 ## [0.19.4] Operator Mode + Brain-First DBI + OTD Site Key Resolution (2026-04-28)
 
 ### Added
 
-- **`pipeline/src/brain/brain_dbi.py`** — Brain-first DBI synthesis (new module)
-  - Synthesises Dynamic Brain Insight from the Brain's local neural mapping structures: body directives, touch pressure field, corpus learnings/graph counts, and neural-plasticity dials
-  - Called synchronously before any OpenRouter redirection attempt; insight appears on first render with zero latency when local signal is available
-  - Source label `🧠 Brain Neural Map` shown in the DBI card header
-
-- **`pipeline/src/brain/operator_shell.py`** — Operator sidebar fallback (new module)
-  - `render_operator_sidebar_fallback()`: renders global filter sidebar + Operator Mode Daily Control Path widget for pages that load before the main `app.py` shell
-  - Reads `sites_cache.json` for cached site list; no extra DB round-trip
-
-- **`pipeline/src/brain/dynamic_insight.py`** — Full DBI card redesign
-  - `_plain_text(value, limit)` — strips Markdown formatting for HTML-safe card copy
-  - `_scope_label(context_dict)` — derives `site | date_start to date_end` label from session state
-  - `_next_move(page_name, insight)` — rule-based triage engine returning `(status, action)` tuple; status is `act` | `watch` | `steady`; rules cover SQL errors, late OTD, CVaR risk, ghost lanes, data quality, and per-page defaults
-  - `_status_style(status)` — returns `(label, border_color, background_color)` for the status pill
-  - `BrainInsightWorker._make_key()` — extracted shared key computation
-  - `BrainInsightWorker._store(key, text, source)` — co-stores insight text and source label atomically
-  - `BrainInsightWorker.get_source()` — returns stored source label for display
-  - Card layout rebuilt as two-column grid: left = coloured status pill with action sentence, right = DBI body text; scope and source line below
-  - Source detection replaced by explicit label tracking (`🧠 Brain Neural Map`, `🔀 OpenRouter Redirect`, `📝 Local Template`)
-  - DBI worker now runs Brain-first path in background thread before OpenRouter fallback
-  - Expander renamed to `DBI inputs`; param label updated to `Filters and signals used for this readout`
-
-- **`pipeline/app.py`** — Operator Mode global toggle
-  - `operator_mode` sidebar toggle (default on) persisted to `session_state["operator_mode"]`
-  - **Daily Control Path** widget rendered in sidebar when Operator Mode is on: shows active scope (site + window), three quick-action page links (Query Console, Supply Chain Brain, Report Creator)
-  - `.operator-rail` CSS class for the sidebar widget
-  - `_operator_page_link()` helper — falls back to markdown link if `st.page_link` raises
-  - `session_state["_app_shell_rendered"] = True` sentinel for child-page detection
+- **`pipeline/src/brain/brain_dbi.py`** — Brain-first DBI synthesis module.
+  - Synthesises Dynamic Brain Insight from local Brain structures: body directives, touch pressure, corpus learnings, graph counts, and neural-plasticity dials.
+  - Called before OpenRouter redirection so local signal can appear on first render.
+  - Source label `🧠 Brain Neural Map` shown in DBI cards.
+- **`pipeline/src/brain/operator_shell.py`** — Operator sidebar fallback for direct page loads.
+  - Renders global filters and Operator Mode Daily Control Path when a page loads outside the main `app.py` shell.
+- **`pipeline/src/brain/dynamic_insight.py`** — DBI status/action card redesign.
+  - Adds scope labels, source tracking, next-move triage, status styling, and stable DBI card rendering.
+  - Source labels distinguish `🧠 Brain Neural Map`, `🔀 OpenRouter Redirect`, and `📝 Local Template`.
+- **`pipeline/app.py`** — Operator Mode global toggle and Daily Control Path sidebar widget.
 
 ### Changed
 
-- **`pipeline/src/brain/otd_recursive.py`**
-  - `_SITE_TEXT_PREDICATE_RE` — regex that matches SQL `WHERE site = 'X'`-style predicates on site/business_unit columns
-  - `_resolve_business_unit_key(connector, site)` — LRU-cached lookup: resolves site text (name, ID, display name) to integer `business_unit_key` via `dim_business_unit`; returns `None` for "ALL"
-  - `_normalize_site_predicates(connector, where)` — rewrites text-based site predicates in a WHERE string to use the integer key; unknown sites become `1 = 0` to prevent cross-site leakage
-  - `run_otd_from_replica()` gains `site` parameter; site text resolved to key and appended as `AND [business_unit_key] = {key}` before the query executes
-
-- **`pipeline/config/brain.yaml`** — OTD column hints corrected to actual replica schema
-  - `description_col_hint`: `description` → `part_description`
-  - `site_col_hint`: `site` → `business_unit_key`
-  - `numeric_col_hints`: `unit_price` → `unit_cost_local`
-  - `categorical_col_hints`: `supplier_name`/`buyer`/`commodity` → `supplier_key`/`buyer_id`/`business_unit_key`
-
-- **`pipeline/src/brain/dbi_rag.py`** — Reframed as OpenRouter redirect fallback (module docstring updated); Brain-first path in `brain_dbi.py` now runs first
-
-- **`pipeline/src/brain/research/freight_portfolio.py`** — `goldfish_score()` now calls `pd.to_numeric(..., errors='coerce')` on `rate_col`, `market_col`, `rejection_col` before arithmetic to prevent dtype errors when columns arrive as strings
-
-- **`pipeline/pages/0_Query_Console.py`** — Operator Mode enhancements
-  - Quick-lookup radio (Part/Order/Invoice/Supplier/Customer) with sample-value buttons under DBI when Operator Mode is on
-  - Next-step success message after search based on which result tab has data
-  - Empty-state simplified to a single info string
-  - `render_operator_sidebar_fallback()` called at page load
-
-- **`pipeline/pages/1_Supply_Chain_Brain.py`** — Operator Mode **Plant Risk Control Room** three-column panel (DBI Next Move → Find The Owner → Leave With A One-Pager); `render_operator_sidebar_fallback()` called at load
-
-- **`pipeline/pages/11_Freight_Portfolio.py`** — Freight Portfolio fixes
-  - Goldfish SQL rewritten: replaces `unit_cost_amount` → `unit_cost_usd`, adds `market` CTE for average rate baseline, adds `rejection_rate` column, removes `STDEV` from CTE to avoid division by zero
-  - Portfolio scatter: column presence checked before merge (`x_vol_col`/`y_vol_col` fallback); duplicate columns dropped from `mix` before merge to avoid suffix collisions
-  - KPI metrics format fixed: `.0%` → `.0f%`
-  - Ghost Lane SQL scoped to date-key window from `date_key_window()` instead of full-table scan
-
-- **`pipeline/pages/15_Report_Creator.py`** — Operator Mode three-column scope panel (Default Output / Current Scope / Decision Ready); `render_operator_sidebar_fallback()` called at load
-
-- **`pipeline/autonomous_agent.py`** — Simplified `if __name__ == "__main__"` path: removed standalone launchers for `fiction_anthology_learner`, `heart`, `self_expansion`, and `citation_chain_acquirer` from the direct-run code path (all still available as importable functions); only `start_integrated_skill_acquirer` + `start_systemic_refinement_agent` + `autonomous_loop()` remain in the direct-run path
+- **`pipeline/src/brain/otd_recursive.py`** resolves text site filters to numeric `business_unit_key` values before querying the replica.
+- **`pipeline/config/brain.yaml`** OTD hints corrected to actual replica columns: `part_description`, `business_unit_key`, `unit_cost_local`, `supplier_key`, and `buyer_id`.
+- **`pipeline/src/brain/dbi_rag.py`** reframed as OpenRouter redirect fallback after Brain-first DBI.
+- **`pipeline/src/brain/research/freight_portfolio.py`** coerces goldfish score inputs to numeric values before arithmetic.
+- Query Console, Supply Chain Brain, Freight Portfolio, and Report Creator gained Operator Mode controls and sidebar fallback coverage.
+- **`pipeline/autonomous_agent.py`** direct-run path simplified to the core integrated skill acquirer, systemic refinement agent, and autonomous loop.
 
 ---
 
@@ -79,18 +59,16 @@ truth for the version number is `src/brain/_version.py`.
 
 ### Added
 
-- **`pipeline/src/brain/ml_research.py`** — HuggingFace.co restored as a live research source
-  - `_HF_PAPERS_API`, `_HF_DATASETS_API`, `_HF_MODELS_API`, `_HF_TIMEOUT` — API endpoint constants for HuggingFace Hub
-  - `fetch_hf_daily_papers(limit)` — fetches today's trending papers from `https://huggingface.co/api/daily_papers`; returns paper dicts with `source="hf_daily_papers"`; soft-fails if corporate block is in effect
-  - `discover_hf_datasets(query, limit)` — searches `https://huggingface.co/api/datasets` for datasets sorted by downloads; returns dataset dicts with `source="hf_datasets"`; soft-fails silently on any network error
-  - Both functions use the same `truststore`/`certifi`/stdlib SSL chain as all other sources — compatible with corporate SSL inspection
+- **`pipeline/src/brain/ml_research.py`** restored HuggingFace.co as a live research source.
+  - `fetch_hf_daily_papers(limit)` pulls trending papers from HuggingFace daily papers.
+  - `discover_hf_datasets(query, limit)` searches HuggingFace datasets sorted by downloads.
+  - Both functions share the same SSL handling path as other research sources and soft-fail on network or corporate block errors.
 
 ### Changed
 
-- `research_supply_chain_topics()`:
-  - `if include_trending:` block now calls both `fetch_arxiv_recent()` **and** `fetch_hf_daily_papers()` so every cycle pulls from two independent paper feeds
-  - Per-topic dataset loop now calls both `discover_zenodo_datasets()` **and** `discover_hf_datasets()` in parallel — doubled dataset signal breadth per topic
-- Removed all "Replaces the blocked HuggingFace" language from `fetch_arxiv_recent` and `discover_zenodo_datasets` docstrings; both sources now complementary rather than substitutes
+- `research_supply_chain_topics()` now calls both arXiv and HuggingFace paper feeds when trending research is enabled.
+- Per-topic dataset discovery now calls both Zenodo and HuggingFace datasets.
+- Removed language that framed arXiv/Zenodo as replacements for HuggingFace; they now operate as complementary sources.
 
 ---
 

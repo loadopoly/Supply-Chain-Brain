@@ -8,9 +8,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.brain import load_config
 from src.brain.db_registry import bootstrap_default_connectors, list_connectors, get
 from src.brain import ips_freight
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 # set_page_config handled by app.py st.navigation()
 st.session_state["_page"] = "connectors"
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 st.markdown("## 🔌 Connectors")

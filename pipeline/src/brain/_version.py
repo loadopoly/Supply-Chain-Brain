@@ -1,21 +1,14 @@
 from __future__ import annotations
 
-__version__ = "0.19.5"
+__version__ = "0.19.6"
 __release__ = (
-    "Black Bulls Hideout mesh integration + self-healing agent infrastructure. "
-    "compute_grid: devtunnel transport layer — dt.exe auto-download, "
-    "_ensure_devtunnel_forward() manages dt connect background process with "
-    "local TCP forward; Peer gains transport/tunnel_id fields; submit_job "
-    "routes devtunnel peers through local forward; discover_peers reads "
-    "devtunnel_seeds from brain.yaml (exempt from stale cutoff). "
-    "brain.yaml: devtunnel_seeds section registers scbrain-hideout.use2. "
-    "network_observer: _sustain_mesh probes devtunnel peers via local forward "
-    "instead of direct TCP. heart.py: _maybe_revive_watcher() detects "
-    "stale watcher heartbeat and spawns run_supervisor() as daemon thread "
-    "from Streamlit process — mesh fallback self-healing. "
-    "ui_action_log: signal_strength computed per event type (was hardcoded 0.0); "
-    "OTD Recursive+site=0.40, nav=0.10, query capped at 0.60, decision=0.72. "
-    "hideout_tunnel_bootstrap.ps1: auto-restart loop + compute_node_daemon startup."
+    "Operator-grade UI and Brain-first DBI stabilization. Global Filters now "
+    "render from a disk-first plant cache and direct-page sidebar fallback uses "
+    "a run-local app-shell guard instead of persistent session_state, preventing "
+    "Plant/Timeline controls from disappearing on rerun. DBI text is page-specific "
+    "operator guidance with Bullwhip live-ratio context and OpenRouter as fallback. "
+    "Heart Story is in official navigation and its Plotly 3D colorbar is compatible "
+    "with the current Plotly schema. WIP Aging Review is surfaced in Platform nav."
 )
 __build_date__ = "2026-04-28"
 
@@ -40,4 +33,5 @@ PHASES = {
     "0.16.0": "Symbiotic Dynamic Tunneling + Torus-Touch. symbiotic_tunnel.vision_horizontal_expand mints SYMBIOTIC_TUNNEL edges from closed-loop tcp/udp mesh using Bayesian-Poisson centroids, inverted-ReLU ADAM, dual-floor mirror, and propeller routing. torus_touch runs continuously (30 s) pushing every Endpoint along the n=7 categorical gap gradient on the toroidal manifold, so tunnel weights follow manifold geometry. 29 unit tests in tests/test_symbiotic_torus.py.",
     "0.17.0": "UEQGM + AI Knowledge Expansion Research Tracks. _EXTENDED_RESEARCH_TOPICS (47 queries, 8 clusters) added to ml_research.py from the active Grok 3 thread: quantum dynamics, biohybrid computing, moiré superlattices, astrophysical timing, AI knowledge graph self-reference, ensemble LLM/RAG, archival AI training, organic data structures. Extended sweep runs before SC loop so foundational physics/AI context precedes supply chain systems engineering acquisition each cycle.",
     "0.17.1": "Grounded Tunneling. grounded_tunneling.py: certainty-anchored expansory pathway collapser. Ground nodes (top-quartile Bayesian certainty) open BFS paths toward uncertain (low-certainty, high-torus-gap) frontiers with RESISTANCE_DURATION weight immunity + torus_amplify torsional boost. Expired paths undergo nodal collapse → new permanent GROUNDED_TUNNEL edge. torus_touch.TouchPressure gains step_multipliers for per-endpoint amplification. _vision_worker Step 5 wires ground_and_expand. 8 new unit tests (TestGroundedTunneling), 38 total, all green. Oracle schema map expanded (Demand Priority Rules, B2B Trading Partners, ECN Tracking, General Ledger Journals, Supply Network maintenance). oracle_schema_mapper.py ADF task panel hardened with computed-style section-header detection and fallback link scraping. Corpus diagnostic (_cohesion_report.py), bilateral Vision<->Touch test harness (_test_bilateral.py), ADAM optimiser unit test (_test_adam.py), Oracle Fusion intersection map (build_intersection_map.py) added. brain_body_signals.py gains 2 quest-comprehension generators (_gen_fallback_parse_warning, _gen_scope_underpowered); knowledge_corpus.py gains SCB Grok conversation ingestor (_ingest_scb_docs) and extended vision scan for SCB docs directory.",
+    "0.19.6": "Operator UI stabilization: Global Filters persist across app-shell and direct-page navigation, sidebar fallback is run-local, Plant cache is disk-first, DBI copy is page-specific and Brain-first, Bullwhip DBI uses live ratio context, Heart Story is navigable and Plotly-compatible, WIP Aging Review is in Platform nav.",
 }

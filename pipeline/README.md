@@ -30,7 +30,7 @@ The application gives a single analyst surface to:
 
 | | |
 |---|---|
-| **Version** | see `src/brain/_version.py` |
+| **Version** | 0.19.6 — see `src/brain/_version.py` |
 | **Python**  | 3.10+ (validated on 3.14)   |
 | **Stack**   | Streamlit · pandas · NumPy · SciPy · scikit-learn · NetworkX · plotly |
 | **Optional**| XGBoost / LightGBM / CatBoost · lifelines · scikit-survival · econml · neo4j · gremlinpython |
@@ -88,10 +88,27 @@ python -m bench.bench_brain --rows 20000
 | 12| 🧪 What-If              — snapshot · mutate · replay · diff                   | SC Design + CAVE |
 | 13| 📒 Decision Log         — provenance for every recommendation                  | Digital SC       |
 | 14| ⚡ Benchmarks           — performance dashboard for the analytics core         | —                |
-| 15| 🗺️ Quest Console        — Brain-Driven mission launcher (NL query → living PPTX) | SC Design      |
+| 15| 📊 Report Creator       — Brain-Driven mission launcher (NL query → living PPTX) | SC Design      |
+| 16| 🔄 Cycle Count Accuracy — ABC / floor variance operator workflow              | Operations       |
+| 17| 📄 Document Analysis    — Proxy-Pointer structural RAG over local documents   | AI               |
+| 18| 🔬 ML Research Hub      — arXiv/OpenAlex/CORE/NASA/Zenodo/OCW research sweeps | AI Research      |
+| 19| 🫀 Heart Story          — Brain narrative and complex-plane system state       | Brain telemetry  |
+| 20| 🏗️ WIP Aging Review     — Wilson Rd MAKE/BUY aging workbook automation        | Manufacturing    |
 
 Every research-derived view carries an in-page citation footer back to its
 originating MIT CTL lab.
+
+### Operator sidebar and DBI
+
+Every app-shell page and direct page URL renders one **Global Filters** block in
+the sidebar: Plant, Timeline, Start date, End date, and Operator Mode. Direct
+pages call the shared operator sidebar fallback, while `app.py` marks the main
+shell active only during `pg.run()` to avoid duplicate controls.
+
+Dynamic Brain Insight is Brain-first. Internal Brain DBI generates
+page-specific operator instructions before OpenRouter is considered as a
+fallback, so user-facing readouts should describe the next action rather than
+internal neural-map plumbing.
 
 ---
 

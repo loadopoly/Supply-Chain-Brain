@@ -14,8 +14,10 @@ from src.brain import load_config
 from src.brain.col_resolver import discover_table_columns, resolve
 from src.brain.label_resolver import get_supplier_labels
 from src.brain.global_filters import date_key_window, get_global_window
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 # set_page_config handled by app.py st.navigation()
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 import plotly.express as px

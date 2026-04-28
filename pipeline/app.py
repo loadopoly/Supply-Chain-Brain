@@ -126,10 +126,12 @@ pg = st.navigation({
         st.Page(str(_P / "14_Benchmarks.py"),          title="Benchmarks",         icon="⚡"),
         st.Page(str(_P / "15_Report_Creator.py"),      title="Report Creator",     icon="📊"),
         st.Page(str(_P / "16_Cycle_Count_Accuracy.py"),title="Cycle Count Accuracy", icon="🔄"),
+        st.Page(str(_P / "20_WIP_Aging_Review.py"),    title="WIP Aging Review",   icon="🏗️"),
     ],
     "🤖 AI": [
         st.Page(str(_P / "17_Document_RAG.py"),        title="Document Analysis",  icon="📄"),
         st.Page(str(_P / "18_ML_Research.py"),          title="ML Research Hub",    icon="🔬"),
+        st.Page(str(_P / "19_Heart_Story.py"),          title="Heart Story",        icon="🫀"),
     ],
 })
 
@@ -170,13 +172,13 @@ def _query_sites_live() -> list[str]:
     return []
 
 def _get_sites_global() -> list[str]:
-    """3-tier: live SQL → disk cache → empty. Always returns at least ['']."""
-    live = _query_sites_live()
-    if live:
-        _save_sites_disk(live)
-        pool = live
-    else:
-        pool = _load_sites_disk()
+    """Fast path: disk cache first, live SQL only when cache is empty."""
+    pool = _load_sites_disk()
+    if not pool:
+        live = _query_sites_live()
+        if live:
+            _save_sites_disk(live)
+            pool = live
     return [""] + [s for s in pool if s and s.lower() != "unknown"]
 
 def _operator_page_link(page: str, label: str, icon: str, fallback_url: str) -> None:
@@ -186,8 +188,10 @@ def _operator_page_link(page: str, label: str, icon: str, fallback_url: str) -> 
         st.markdown(f"[{icon} {label}]({fallback_url})")
 
 from src.brain.global_filters import render_global_filter_sidebar
+from src.brain.operator_shell import mark_app_shell_active
 
 with st.sidebar:
+    st.markdown("### Global Filters")
     _site_opts = _get_sites_global()
     _cur_site  = st.session_state.get("g_site", "") or ""
     _site_idx  = _site_opts.index(_cur_site) if _cur_site in _site_opts else 0
@@ -245,6 +249,7 @@ with st.sidebar:
     st.markdown("🔴 Oracle Fusion · `DEV13`")
 
 st.session_state["_app_shell_rendered"] = True
+mark_app_shell_active(True)
 
 try:
     from src.brain.ui_action_log import log_page_visit
@@ -252,4 +257,8 @@ try:
 except Exception:
     pass
 
-pg.run()
+try:
+    pg.run()
+finally:
+    mark_app_shell_active(False)
+    st.session_state["_app_shell_rendered"] = False

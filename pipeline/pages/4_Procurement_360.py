@@ -15,9 +15,11 @@ from src.brain.col_resolver import resolve
 from src.brain.label_resolver import enrich_labels, get_supplier_labels, get_part_labels
 from src.brain.global_filters import date_key_window
 from src.brain.dynamic_insight import render_dynamic_brain_insight
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 # set_page_config handled by app.py st.navigation()
 st.session_state["_page"] = "procurement_360"
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 import plotly.express as px

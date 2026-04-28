@@ -25,6 +25,9 @@ from src.brain.doc_rag import (   # noqa: E402
     is_ready, retrieve_doc_context, index_documents, query_documents,
     _DOCS_DIR, _INDEX_DIR,
 )
+from src.brain.operator_shell import render_operator_sidebar_fallback  # noqa: E402
+
+render_operator_sidebar_fallback()
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
 st.title("📄 Document Analysis")

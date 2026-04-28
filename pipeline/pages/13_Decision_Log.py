@@ -8,9 +8,11 @@ import streamlit as st
 from src.brain.dynamic_insight import render_dynamic_brain_insight
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.brain.operator_shell import render_operator_sidebar_fallback
 from src.brain.findings_index import lookup_decisions, all_kinds
 
 # set_page_config handled by app.py st.navigation()
+render_operator_sidebar_fallback()
 
 import plotly.express as px
 import plotly.graph_objects as go

@@ -50,6 +50,8 @@ def _next_move(page_name: str, insight: object) -> tuple[str, str]:
         return "steady", "Search one concrete value: part number, order, invoice, supplier, or customer."
     if "supply chain brain" in page:
         return "steady", "Click the largest connected node, then use the drill-down tabs to find the owner."
+    if "bullwhip" in page:
+        return "act", "Open Echelon Rankings and fix the highest ratio first."
     if any(token in text for token in ("critical", "urgent")):
         return "act", "Open the first red or amber row and assign a single owner."
     if "ghost-lane" in text or "ghost lane" in text:

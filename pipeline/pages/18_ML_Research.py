@@ -41,8 +41,10 @@ from src.brain.ml_research import (
     _SUPPLY_CHAIN_TOPICS,
     _OCW_TOPICS,
 )
+from src.brain.operator_shell import render_operator_sidebar_fallback
 
 st.set_page_config(page_title="ML Research Hub", page_icon="🔬", layout="wide")
+render_operator_sidebar_fallback()
 st.title("🔬 ML Research Hub")
 st.caption(
     "Brain-native research discovery — **arXiv**, **OpenAlex**, **CrossRef**, **CORE**, "

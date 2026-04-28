@@ -12,6 +12,7 @@ from src.brain.dynamic_insight import render_dynamic_brain_insight
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.brain.operator_shell import render_operator_sidebar_fallback
 from src.brain.db_registry import bootstrap_default_connectors, read_sql
 from src.brain.col_resolver import (
     discover_all_key_tables,
@@ -23,6 +24,7 @@ from src.brain.col_resolver import (
 )
 
 st.session_state["_page"] = "schema_discovery"
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 st.markdown("## 🔬 Schema Discovery & Column Mapping")

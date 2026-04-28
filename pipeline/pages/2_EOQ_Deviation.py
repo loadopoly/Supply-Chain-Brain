@@ -10,12 +10,14 @@ from src.brain.db_registry import bootstrap_default_connectors, read_sql
 from src.brain.data_access import fetch_logical, query_df
 from src.brain.global_filters import date_key_window, get_global_window
 from src.brain.dynamic_insight import render_dynamic_brain_insight
+from src.brain.operator_shell import render_operator_sidebar_fallback
 from src.brain.eoq import EOQInputs, deviation_table, LinUCBRanker
 from src.brain.findings_index import record_findings_bulk, record_finding
 from src.brain.label_resolver import enrich_labels, get_part_labels
 
 # set_page_config handled by app.py st.navigation()
 st.session_state["_page"] = "eoq_deviation"
+render_operator_sidebar_fallback()
 bootstrap_default_connectors()
 
 import plotly.express as px

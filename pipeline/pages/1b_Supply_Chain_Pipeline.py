@@ -20,6 +20,9 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.brain.actions import actions_for_pipeline, actions_to_dataframe
 from src.brain.dynamic_insight import render_dynamic_brain_insight
+from src.brain.operator_shell import render_operator_sidebar_fallback
+
+render_operator_sidebar_fallback()
 
 st.title("🧠 Supply Chain Pipeline — Master Workstream")
 ctx = {k: v for k, v in st.session_state.items() if not str(k).startswith('_') and not callable(v)}
