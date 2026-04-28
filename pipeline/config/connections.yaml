@@ -8,6 +8,7 @@ azure_sql:
   encrypt: "yes"
   trust_server_certificate: "no"
   connection_timeout: 30
+  query_timeout: 120  # seconds; 0 = no limit; PFEP multi-CTE queries can take 60-90 s on large sites
 
 # ---------------------------------------------------------------------------
 # Epicor 9 sites (SQL Server backend — domain Kerberos preferred)

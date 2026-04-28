@@ -1,9 +1,9 @@
 {
   "host": "ROADD-5WD1NH3",
-  "ts": "2026-04-23T17:10:40.232937+00:00",
+  "ts": "2026-04-28T14:47:12.383102+00:00",
   "cpu_count": 20,
-  "cpu_load_1m": 0.124,
-  "free_ram_gb": 39.63,
+  "cpu_load_1m": 0.0,
+  "free_ram_gb": 0.0,
   "gpus": [
     {
       "vendor": "amd",

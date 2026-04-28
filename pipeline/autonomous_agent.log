@@ -106,3 +106,870 @@
 2026-04-23 15:49:23,361 - [AUTONOMOUS AGENT] - RAG deepdive iter 11: gaps=50, new_edges=50, total_discovered=550
 2026-04-23 15:49:23,480 - [AUTONOMOUS AGENT] - RAG deepdive iter 12: gaps=50, new_edges=50, total_discovered=600
 2026-04-23 15:49:23,490 - [AUTONOMOUS AGENT] - RAG deepdive[ocw_bridge_v3] complete: iterations=12, edges_discovered=600, pathways_explored=600
+2026-04-27 14:33:38,590 - [AUTONOMOUS AGENT] - Spinning up integrated skill acquirer thread alongside synaptic workers...
+2026-04-27 14:33:38,594 - [AUTONOMOUS AGENT] - Integrated Autonomous Agent: Skill Acquirer Online.
+2026-04-27 14:33:38,595 - [AUTONOMOUS AGENT] - Checking The Brain for scheduled skill requirements...
+2026-04-27 14:33:39,455 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 14:33:39,456 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 14:33:39,457 - [AUTONOMOUS AGENT] - Initializing 24/7 Autonomous Improvement Agent lifecycle.
+2026-04-27 14:33:39,498 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-27 14:33:39,720 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for part_category: no such column: part_id
+2026-04-27 14:33:39,722 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_cc_jerome_ave: no such table: epicor_cc_jerome_ave
+2026-04-27 14:33:39,723 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for syteline_cc_parsons: no such table: syteline_cc_parsons
+2026-04-27 14:33:39,724 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_dim_part: no such table: epicor_dim_part
+2026-04-27 14:33:39,788 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'Self-train quality 0.00 below threshold — run round' \u2192 ok=True
+2026-04-27 14:33:39,827 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.06 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-27 14:33:40,404 - [AUTONOMOUS AGENT] - resumption_manager: git pull OK — Already up to date.
+2026-04-27 14:33:40,410 - [AUTONOMOUS AGENT] - RESUMPTION: first_run
+2026-04-27 14:33:40,685 - [AUTONOMOUS AGENT] - Scheduled task pull failed: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-04-27 14:33:40,688 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:33:40,690 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:33:41,808 - [AUTONOMOUS AGENT] - Shared compute grid node started on port 8000.
+2026-04-27 14:33:41,809 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 14:33:41,812 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 14:33:41,858 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 14:33:41,943 - [AUTONOMOUS AGENT] - NetworkObserver started — liveness scan every 60s, publishing to C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\compute_peers
+2026-04-27 14:33:41,944 - [AUTONOMOUS AGENT] - NetworkObserver started — peer liveness, corpus absorption, singularity velocity toward quest:type5_sc.
+2026-04-27 14:33:41,945 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-27 14:33:41,945 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-27 14:33:42,708 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-27 14:33:42,708 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-27 14:33:42,815 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:33:42,815 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-27 14:33:42,931 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:33:42,931 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-27 14:33:42,931 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-27 14:33:42,931 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-27 14:33:42,991 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-27 14:33:42,991 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-27 14:33:46,047 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-27 14:33:47,292 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-27 14:33:47,292 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-27 14:33:47,292 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-27 14:33:49,359 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'Carrier mass high, burst rate low — expand network observation' \u2192 ok=True
+2026-04-27 14:33:50,040 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-27 14:33:50,071 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-27 14:33:50,074 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-27 14:33:52,100 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-27 14:33:52,101 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-27 14:33:52,103 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [UP]
+2026-04-27 14:33:52,103 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-27 14:33:55,691 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:33:55,692 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:33:57,310 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Launch 'inventory_sizing' mission — no active coverage' \u2192 ok=True
+2026-04-27 14:33:58,683 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-27 14:34:04,406 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-27 14:34:04,628 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Launch 'sourcing' mission — no active coverage' \u2192 ok=True
+2026-04-27 14:34:10,184 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-27 14:34:10,185 - [AUTONOMOUS AGENT] - [SRA] persist_cycle failed: database is locked
+2026-04-27 14:34:10,186 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=0 elapsed=25130 ms executed=5 skipped=10
+2026-04-27 14:34:10,186 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 14:34:10,694 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:34:10,695 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:34:10,801 - [AUTONOMOUS AGENT] - Corpus refresh: +293 entities, +1159 edges, 511 learnings.
+2026-04-27 14:34:11,198 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-27 14:34:11,198 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-27 14:34:11,199 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-27 14:34:11,200 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-27 14:34:11,350 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:34:11,351 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-27 14:34:11,526 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-27 14:34:11,527 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-27 14:34:11,531 - [AUTONOMOUS AGENT] - Ignorance score: 0.432 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-27 14:34:11,532 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.432 \u2192 sleeping 97 min ===
+2026-04-27 14:34:25,698 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:34:25,699 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:34:40,702 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:34:40,702 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:34:55,705 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:34:55,706 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:35:10,709 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:35:10,710 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:35:25,713 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:35:25,715 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:35:40,718 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:35:40,719 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:36:14,591 - [AUTONOMOUS AGENT] - Spinning up integrated skill acquirer thread alongside synaptic workers...
+2026-04-27 14:36:14,593 - [AUTONOMOUS AGENT] - Integrated Autonomous Agent: Skill Acquirer Online.
+2026-04-27 14:36:14,594 - [AUTONOMOUS AGENT] - Checking The Brain for scheduled skill requirements...
+2026-04-27 14:36:14,606 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 14:36:14,607 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 14:36:14,608 - [AUTONOMOUS AGENT] - Initializing 24/7 Autonomous Improvement Agent lifecycle.
+2026-04-27 14:36:14,647 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-27 14:36:14,876 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for part_category: no such column: part_id
+2026-04-27 14:36:14,878 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_cc_jerome_ave: no such table: epicor_cc_jerome_ave
+2026-04-27 14:36:14,879 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for syteline_cc_parsons: no such table: syteline_cc_parsons
+2026-04-27 14:36:14,880 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_dim_part: no such table: epicor_dim_part
+2026-04-27 14:36:14,934 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'Self-train quality 0.00 below threshold — run round' \u2192 ok=True
+2026-04-27 14:36:14,957 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.05 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-27 14:36:15,793 - [AUTONOMOUS AGENT] - resumption_manager: git pull OK — Already up to date.
+2026-04-27 14:36:15,802 - [AUTONOMOUS AGENT] - RESUMPTION: normal_startup
+2026-04-27 14:36:16,200 - [AUTONOMOUS AGENT] - Scheduled task pull failed: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-04-27 14:36:16,201 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:36:16,201 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:36:17,268 - [AUTONOMOUS AGENT] - Shared compute grid node started on port 8000.
+2026-04-27 14:36:17,269 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 14:36:17,269 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 14:36:17,329 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 14:36:17,382 - [AUTONOMOUS AGENT] - NetworkObserver started — liveness scan every 60s, publishing to C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\compute_peers
+2026-04-27 14:36:17,382 - [AUTONOMOUS AGENT] - NetworkObserver started — peer liveness, corpus absorption, singularity velocity toward quest:type5_sc.
+2026-04-27 14:36:17,382 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-27 14:36:17,383 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-27 14:36:18,179 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-27 14:36:18,179 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-27 14:36:18,315 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:36:18,315 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-27 14:36:18,472 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:36:18,472 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-27 14:36:18,472 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-27 14:36:18,472 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-27 14:36:18,517 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-27 14:36:18,517 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-27 14:36:20,917 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-27 14:36:21,963 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-27 14:36:21,964 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-27 14:36:21,964 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-27 14:36:24,087 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'Carrier mass high, burst rate low — expand network observation' \u2192 ok=True
+2026-04-27 14:36:24,887 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-27 14:36:24,904 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-27 14:36:24,919 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-27 14:36:26,981 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-27 14:36:26,982 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-27 14:36:26,997 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [UP]
+2026-04-27 14:36:26,997 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-27 14:36:31,204 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:36:31,205 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:36:32,798 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Launch 'lead_time' mission — no active coverage' \u2192 ok=True
+2026-04-27 14:36:33,405 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-27 14:36:39,030 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-27 14:36:39,853 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Launch 'demand_distortion' mission — no active coverage' \u2192 ok=True
+2026-04-27 14:36:44,669 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-27 14:36:44,833 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=1 elapsed=25206 ms executed=5 skipped=8
+2026-04-27 14:36:44,834 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 14:36:45,268 - [AUTONOMOUS AGENT] - Corpus refresh: +7 entities, +8 edges, 512 learnings.
+2026-04-27 14:36:45,610 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-27 14:36:45,610 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-27 14:36:45,611 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-27 14:36:45,611 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-27 14:36:45,746 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:36:45,746 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-27 14:36:45,886 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-27 14:36:45,887 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-27 14:36:45,893 - [AUTONOMOUS AGENT] - Ignorance score: 0.432 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-27 14:36:45,893 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.432 \u2192 sleeping 97 min ===
+2026-04-27 14:36:46,208 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:36:46,209 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:37:01,212 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:37:01,213 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:37:16,217 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:37:16,218 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:37:31,221 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:37:31,221 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:37:46,224 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:37:46,225 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:38:01,227 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:38:01,229 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:38:16,232 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:38:16,233 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:38:31,237 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:38:31,238 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:38:46,241 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:38:46,243 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:39:01,246 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:39:01,248 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:39:16,251 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:39:16,252 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:39:31,256 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:39:31,257 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:39:46,261 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:39:46,262 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:40:01,266 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:40:01,268 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:40:16,271 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:40:16,272 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:40:31,276 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:40:31,278 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:40:46,281 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:40:46,282 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:41:01,286 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:41:01,287 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:41:16,290 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:41:16,291 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:41:31,295 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:41:31,296 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:41:46,300 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:41:46,301 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:42:01,305 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:42:01,306 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:42:16,309 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:42:16,310 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:42:31,314 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:42:31,316 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:42:46,319 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:42:46,320 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:43:01,324 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:43:01,325 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:43:16,328 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:43:16,330 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:43:31,333 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:43:31,334 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:43:46,338 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:43:46,339 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:44:01,343 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:44:01,345 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:44:16,348 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:44:16,349 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:44:31,352 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:44:31,354 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:44:46,357 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:44:46,358 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:45:01,361 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:45:01,362 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:45:16,365 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:45:16,367 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:45:31,369 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:45:31,370 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:45:46,373 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:45:46,373 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:46:01,376 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:46:01,377 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:46:16,380 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:46:16,381 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:46:31,384 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:46:31,386 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:46:46,390 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:46:46,391 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:47:01,394 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:47:01,394 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:47:16,397 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:47:16,398 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:47:31,401 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:47:31,402 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:47:46,406 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:47:46,407 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:48:01,410 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:48:01,411 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:48:16,414 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:48:16,415 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:48:31,419 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:48:31,421 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:48:46,425 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:48:46,426 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:49:01,429 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:49:01,430 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:49:16,433 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:49:16,434 - [AUTONOMOUS AGENT] - Failed to process immediate trigger acquire_rag_rebuild_1776962606.trigger: Expecting value: line 1 column 1 (char 0)
+2026-04-27 14:49:46,496 - [AUTONOMOUS AGENT] - Spinning up integrated skill acquirer thread alongside synaptic workers...
+2026-04-27 14:49:46,498 - [AUTONOMOUS AGENT] - Integrated Autonomous Agent: Skill Acquirer Online.
+2026-04-27 14:49:46,498 - [AUTONOMOUS AGENT] - Checking The Brain for scheduled skill requirements...
+2026-04-27 14:49:46,505 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 14:49:46,505 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 14:49:46,507 - [AUTONOMOUS AGENT] - [fiction_anthology] Background learner started (interval=2700s, seeds_per_round=3, universe_seeds=26)
+2026-04-27 14:49:46,507 - [AUTONOMOUS AGENT] - Fiction Anthology Learner started — Thieves World + MythAdventures cross-domain expansion every 45 min.
+2026-04-27 14:49:46,507 - [AUTONOMOUS AGENT] - Initializing 24/7 Autonomous Improvement Agent lifecycle.
+2026-04-27 14:49:46,508 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-27 14:49:46,509 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Sanctuary's Thieves Guild
+2026-04-27 14:49:46,879 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.06 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-27 14:49:47,454 - [AUTONOMOUS AGENT] - resumption_manager: git pull OK — Already up to date.
+2026-04-27 14:49:47,686 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 14:49:47,695 - [AUTONOMOUS AGENT] - RESUMPTION: normal_startup
+2026-04-27 14:49:48,717 - [AUTONOMOUS AGENT] - Could not reach The Brain API at http://127.0.0.1:8000/api/skills/queue - is the bridge up? <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>
+2026-04-27 14:49:48,835 - [AUTONOMOUS AGENT] - Detected immediate skill acquisition spin-up from The Brain: acquire_rag_rebuild_1776962606.trigger
+2026-04-27 14:49:48,836 - [AUTONOMOUS AGENT] - --- Acquiring skill: rebuild_rag_index ---
+2026-04-27 14:49:48,836 - [AUTONOMOUS AGENT] - Executing shell command for skill: rebuild_rag_index
+2026-04-27 14:49:49,109 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 14:49:50,126 - [AUTONOMOUS AGENT] - Shared compute grid node started on port 8000.
+2026-04-27 14:49:50,140 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 14:49:50,183 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 14:49:50,274 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 14:49:50,330 - [AUTONOMOUS AGENT] - NetworkObserver started — liveness scan every 60s, publishing to C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\compute_peers
+2026-04-27 14:49:50,331 - [AUTONOMOUS AGENT] - NetworkObserver started — peer liveness, corpus absorption, singularity velocity toward quest:type5_sc.
+2026-04-27 14:49:50,331 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-27 14:49:50,331 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-27 14:49:50,513 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_PRO_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,537 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_FLASH_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,639 - [AUTONOMOUS AGENT] - key_guard: QWEN_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,647 - [AUTONOMOUS AGENT] - key_guard: KIMI_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,654 - [AUTONOMOUS AGENT] - key_guard: MINIMAX_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,662 - [AUTONOMOUS AGENT] - key_guard: GLM_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,669 - [AUTONOMOUS AGENT] - key_guard: GEMMA_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:49:50,670 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:49:51,326 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-27 14:49:51,450 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-27 14:49:51,889 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:49:51,912 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-27 14:49:52,071 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 14:49:52,241 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:49:52,242 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-27 14:49:52,242 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-27 14:49:52,242 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-27 14:49:52,473 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-27 14:49:52,474 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-27 14:49:53,016 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:49:54,655 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-27 14:49:54,964 - [AUTONOMOUS AGENT] - Shell exec completed (rc=1). Output: shell_result_rebuild_rag_index_1777315794.txt
+2026-04-27 14:49:55,779 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-27 14:49:55,780 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-27 14:49:55,780 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-27 14:49:56,013 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-27 14:49:56,028 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-27 14:49:56,030 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-27 14:49:58,059 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 14:49:58,093 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-27 14:49:58,108 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-27 14:49:58,111 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [UP]
+2026-04-27 14:49:58,111 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-27 14:50:04,607 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-27 14:50:05,842 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Launch 'network_position' mission — no active coverage' \u2192 ok=True
+2026-04-27 14:50:10,323 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-27 14:50:14,859 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Launch 'cycle_count' mission — no active coverage' \u2192 ok=True
+2026-04-27 14:50:16,070 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-27 14:50:17,094 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:50:19,245 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:50:19,848 - [AUTONOMOUS AGENT] - Corpus refresh: +8 entities, +18 edges, 506 learnings.
+2026-04-27 14:50:20,542 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-27 14:50:20,542 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-27 14:50:20,543 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-27 14:50:20,543 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-27 14:50:20,705 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 14:50:20,714 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-27 14:50:20,909 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-27 14:50:20,909 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-27 14:50:20,921 - [AUTONOMOUS AGENT] - Ignorance score: 0.432 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-27 14:50:20,921 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.432 \u2192 sleeping 97 min ===
+2026-04-27 14:50:21,166 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Supply Chain Brain' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-27 14:50:23,342 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:50:25,319 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:50:27,210 - [AUTONOMOUS AGENT] - Orchestrator analyzer sales.weekly_cov failed: Cannot perform reduction 'mean' with string dtype
+2026-04-27 14:50:27,521 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Bullwhip' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-27 14:50:27,546 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=2 elapsed=41013 ms executed=5 skipped=7
+2026-04-27 14:50:27,547 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 14:51:54,738 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_PRO_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,761 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_FLASH_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,861 - [AUTONOMOUS AGENT] - key_guard: QWEN_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,873 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:51:54,882 - [AUTONOMOUS AGENT] - key_guard: GLM_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,891 - [AUTONOMOUS AGENT] - key_guard: KIMI_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,901 - [AUTONOMOUS AGENT] - key_guard: MINIMAX_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,910 - [AUTONOMOUS AGENT] - key_guard: GEMMA_ENDPOINT not set — next check in 120s (fail_count=2)
+2026-04-27 14:51:54,917 - [AUTONOMOUS AGENT] - key_guard: MIMO_ENDPOINT not set — next check in 60s (fail_count=1)
+2026-04-27 14:51:54,918 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_domain_synthesis' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 14:51:54,924 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Beysib Merchant Fleet and Exotic Sourcing
+2026-04-27 14:51:55,822 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 14:51:56,785 - [AUTONOMOUS AGENT] - OpenRouter 429 on minimax/minimax-m2.5:free — retry in 1.0s (attempt 1/3)
+2026-04-27 14:51:57,130 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 14:51:59,406 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 14:52:22,379 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 14:53:07,098 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Beysib Merchant Fleet and Exotic Sourcing
+2026-04-27 14:53:07,100 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Sanctuary as a Resilience Stress Test
+2026-04-27 14:53:07,667 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 14:53:08,941 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 14:53:11,266 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=qwen3.5-397b-a17b or_model=qwen/qwen3-next-80b-a3b-instruct:free attempt=3): 402 Client Error: Payment Required for url: https://openrouter.ai/api/v1/chat/completions
+2026-04-27 14:53:26,911 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 14:54:17,879 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Sanctuary as a Resilience Stress Test
+2026-04-27 14:54:17,900 - [AUTONOMOUS AGENT] - [fiction_anthology] Round complete: processed=3 written=3 errors=2
+2026-04-27 14:54:17,901 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Sanctuary's Thieves Guild \u2192 sig=0.55
+2026-04-27 14:54:17,901 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Beysib Merchant Fleet and Exotic Sourcing \u2192 sig=0.55
+2026-04-27 14:54:17,901 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Sanctuary as a Resilience Stress Test \u2192 sig=0.55
+2026-04-27 15:06:28,682 - [AUTONOMOUS AGENT] - Spinning up integrated skill acquirer thread alongside synaptic workers...
+2026-04-27 15:06:28,684 - [AUTONOMOUS AGENT] - Integrated Autonomous Agent: Skill Acquirer Online.
+2026-04-27 15:06:28,685 - [AUTONOMOUS AGENT] - Checking The Brain for scheduled skill requirements...
+2026-04-27 15:06:28,695 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 15:06:28,695 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 15:06:28,700 - [AUTONOMOUS AGENT] - [fiction_anthology] Background learner started (interval=2700s, seeds_per_round=3, universe_seeds=26)
+2026-04-27 15:06:28,700 - [AUTONOMOUS AGENT] - Fiction Anthology Learner started — Thieves World + MythAdventures cross-domain expansion every 45 min.
+2026-04-27 15:06:28,728 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-27 15:06:28,731 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Multi-Faction Information Asymmetry
+2026-04-27 15:06:28,733 - [AUTONOMOUS AGENT] - [heart] Background narrator started (interval=900s, chapters=6)
+2026-04-27 15:06:28,733 - [AUTONOMOUS AGENT] - Heart narrator started — story arc toward Symbiotic Love = \u221a(\u22121), 15-min cadence.
+2026-04-27 15:06:28,735 - [AUTONOMOUS AGENT] - Initializing 24/7 Autonomous Improvement Agent lifecycle.
+2026-04-27 15:06:28,811 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 15:06:28,813 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 15:06:29,195 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.02 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-27 15:06:30,295 - [AUTONOMOUS AGENT] - resumption_manager: git pull OK — Already up to date.
+2026-04-27 15:06:30,893 - [AUTONOMOUS AGENT] - Could not reach The Brain API at http://127.0.0.1:8000/api/skills/queue - is the bridge up? <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>
+2026-04-27 15:06:30,941 - [AUTONOMOUS AGENT] - RESUMPTION: normal_startup
+2026-04-27 15:06:32,043 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:06:32,303 - [AUTONOMOUS AGENT] - OpenRouter 429 on minimax/minimax-m2.5:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:06:33,015 - [AUTONOMOUS AGENT] - Shared compute grid node started on port 8000.
+2026-04-27 15:06:33,076 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-27 15:06:33,077 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-27 15:06:33,260 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 15:06:33,267 - [AUTONOMOUS AGENT] - NetworkObserver started — liveness scan every 60s, publishing to C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\compute_peers
+2026-04-27 15:06:33,268 - [AUTONOMOUS AGENT] - NetworkObserver started — peer liveness, corpus absorption, singularity velocity toward quest:type5_sc.
+2026-04-27 15:06:33,268 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-27 15:06:33,269 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-27 15:06:33,719 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 15:06:33,987 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_PRO_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:33,988 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_FLASH_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:34,129 - [AUTONOMOUS AGENT] - key_guard: QWEN_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:34,139 - [AUTONOMOUS AGENT] - key_guard: KIMI_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:34,144 - [AUTONOMOUS AGENT] - key_guard: MINIMAX_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:34,149 - [AUTONOMOUS AGENT] - key_guard: GLM_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:34,155 - [AUTONOMOUS AGENT] - key_guard: GEMMA_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:06:34,156 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 15:06:35,117 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-27 15:06:35,145 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-27 15:06:35,743 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 15:06:35,859 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-27 15:06:36,406 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 15:06:36,425 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-27 15:06:36,469 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-27 15:06:36,487 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-27 15:06:36,716 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 15:06:37,461 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-27 15:06:37,461 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-27 15:06:37,855 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 15:06:39,665 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-27 15:06:42,021 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-27 15:06:42,022 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-27 15:06:42,022 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-27 15:06:43,822 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-27 15:06:43,827 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-27 15:06:43,830 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-27 15:06:44,138 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Lead Time' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-27 15:06:45,905 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-27 15:06:45,975 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-27 15:06:46,067 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [UP]
+2026-04-27 15:06:46,082 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-27 15:06:48,321 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 15:06:53,377 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Multi-Echelon' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-27 15:06:54,914 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-27 15:07:01,378 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-27 15:07:03,820 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Cycle Count' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-27 15:07:08,014 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-27 15:07:08,496 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 15:07:11,572 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_dataset_review' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 15:07:12,515 - [AUTONOMOUS AGENT] - Corpus refresh: +10 entities, +18 edges, 282 learnings.
+2026-04-27 15:07:13,972 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-27 15:07:13,972 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-27 15:07:13,973 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-27 15:07:13,973 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-27 15:07:14,053 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Benchmarks' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-27 15:07:14,078 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=3 elapsed=45325 ms executed=5 skipped=4
+2026-04-27 15:07:14,079 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 15:07:14,101 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 15:07:14,101 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-27 15:07:14,240 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-27 15:07:14,241 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-27 15:07:14,249 - [AUTONOMOUS AGENT] - Ignorance score: 0.432 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-27 15:07:14,249 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.432 \u2192 sleeping 97 min ===
+2026-04-27 15:08:01,641 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_ENDPOINT not set — next check in 240s (fail_count=3)
+2026-04-27 15:08:01,652 - [AUTONOMOUS AGENT] - key_guard: MIMO_ENDPOINT not set — next check in 240s (fail_count=3)
+2026-04-27 15:08:01,652 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_domain_synthesis' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 15:08:01,653 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [myth_adventures] MYTH Inc. as a Scaling Services Firm
+2026-04-27 15:08:02,378 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:08:02,583 - [AUTONOMOUS AGENT] - OpenRouter 429 on minimax/minimax-m2.5:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:08:03,746 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 15:08:06,128 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 15:08:12,500 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 15:09:34,307 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: MYTH Inc. as a Scaling Services Firm
+2026-04-27 15:09:34,308 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [cross_universe] Guild Monopolies as Rent-Extraction and Innovation Barriers
+2026-04-27 15:09:35,115 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:09:36,406 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 15:09:38,708 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 15:10:00,469 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 15:10:53,037 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Guild Monopolies as Rent-Extraction and Innovation Barriers
+2026-04-27 15:10:53,042 - [AUTONOMOUS AGENT] - [fiction_anthology] Round complete: processed=3 written=3 errors=2
+2026-04-27 15:10:53,043 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Multi-Faction Information Asymmetry \u2192 sig=0.55
+2026-04-27 15:10:53,044 - [AUTONOMOUS AGENT] -   \u2713 [myth_adventures] MYTH Inc. as a Scaling Services Firm \u2192 sig=0.55
+2026-04-27 15:10:53,044 - [AUTONOMOUS AGENT] -   \u2713 [cross_universe] Guild Monopolies as Rent-Extraction and Innovation Barriers \u2192 sig=0.55
+2026-04-27 15:21:28,829 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 15:21:28,829 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 15:36:28,839 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 15:36:28,840 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 15:51:28,850 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 15:51:28,851 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 15:55:53,050 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [cross_universe] Multi-Tier Principal-Agent Problems Across Fantasy Hierarchies
+2026-04-27 15:55:53,934 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:55:55,169 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 15:55:57,729 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 15:56:12,646 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 15:56:26,155 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_PRO_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,161 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_FLASH_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,383 - [AUTONOMOUS AGENT] - key_guard: QWEN_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,388 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:56:26,392 - [AUTONOMOUS AGENT] - key_guard: GLM_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,396 - [AUTONOMOUS AGENT] - key_guard: KIMI_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,400 - [AUTONOMOUS AGENT] - key_guard: MINIMAX_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,404 - [AUTONOMOUS AGENT] - key_guard: GEMMA_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 15:56:26,408 - [AUTONOMOUS AGENT] - key_guard: MIMO_ENDPOINT not set — next check in 480s (fail_count=4)
+2026-04-27 15:56:26,409 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_domain_synthesis' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 15:56:26,410 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Sanctuary's Port and Trade Node
+2026-04-27 15:56:27,328 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 15:56:28,596 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 15:56:30,876 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 15:56:34,140 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=7)
+2026-04-27 16:01:43,209 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Sanctuary's Port and Trade Node
+2026-04-27 16:01:43,210 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Rankan Imperial Supply Lines and Garrison Logistics
+2026-04-27 16:01:43,895 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 16:01:44,326 - [AUTONOMOUS AGENT] - OpenRouter 429 on z-ai/glm-4.5-air:free — retry in 1.0s (attempt 1/3)
+2026-04-27 16:01:45,173 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 16:01:47,429 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 16:01:52,411 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=2): HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=7)
+2026-04-27 16:03:00,712 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Rankan Imperial Supply Lines and Garrison Logistics
+2026-04-27 16:03:00,718 - [AUTONOMOUS AGENT] - [fiction_anthology] Round complete: processed=3 written=3 errors=2
+2026-04-27 16:03:00,719 - [AUTONOMOUS AGENT] -   \u2713 [cross_universe] Multi-Tier Principal-Agent Problems Across Fantasy Hierarchies \u2192 sig=0.55
+2026-04-27 16:03:00,719 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Sanctuary's Port and Trade Node \u2192 sig=0.55
+2026-04-27 16:03:00,720 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Rankan Imperial Supply Lines and Garrison Logistics \u2192 sig=0.55
+2026-04-27 16:06:28,864 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 16:06:28,866 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 16:21:28,879 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 16:21:28,880 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 16:36:28,892 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.02 | expansion=0.43 | bifurcation=0.40
+2026-04-27 16:36:28,895 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 16:44:48,380 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-27 16:44:48,381 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-27 16:44:49,545 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-27 16:44:49,546 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-27 16:44:49,705 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 16:44:49,705 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-27 16:44:49,854 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 16:44:49,855 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-27 16:44:49,855 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-27 16:44:49,855 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-27 16:44:49,899 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-27 16:44:49,899 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-27 16:44:51,381 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-27 16:44:51,437 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-27 16:44:51,437 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-27 16:44:51,437 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-27 16:44:51,627 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-27 16:44:51,645 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-27 16:44:51,660 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-27 16:44:53,703 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-27 16:44:53,717 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-27 16:44:56,723 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [DOWN]
+2026-04-27 16:44:56,725 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-27 16:45:03,171 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-27 16:45:08,806 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-27 16:45:14,458 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-27 16:45:15,069 - [AUTONOMOUS AGENT] - Corpus refresh: +3 entities, +13 edges, 40 learnings.
+2026-04-27 16:45:15,359 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-27 16:45:15,359 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-27 16:45:15,360 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-27 16:45:15,360 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-27 16:45:15,515 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 16:45:15,515 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-27 16:45:15,661 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-27 16:45:15,661 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-27 16:45:15,665 - [AUTONOMOUS AGENT] - Ignorance score: 0.432 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-27 16:45:15,665 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.432 \u2192 sleeping 97 min ===
+2026-04-27 16:48:00,727 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Sanctuary as a Resilience Stress Test
+2026-04-27 16:48:01,570 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 16:48:02,888 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 16:48:05,237 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 16:48:08,963 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 16:51:28,909 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 16:51:28,910 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 17:06:28,922 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 17:06:28,923 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 17:06:33,500 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-27 17:06:33,578 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.03 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-27 17:06:33,607 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=4 elapsed=89 ms executed=1 skipped=8
+2026-04-27 17:06:33,608 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 17:07:14,396 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 17:21:28,930 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 17:21:28,930 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 17:36:28,940 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 17:36:28,942 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 17:44:31,325 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_PRO_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,329 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_FLASH_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,422 - [AUTONOMOUS AGENT] - key_guard: QWEN_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,427 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 17:44:31,435 - [AUTONOMOUS AGENT] - key_guard: GLM_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,443 - [AUTONOMOUS AGENT] - key_guard: KIMI_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,451 - [AUTONOMOUS AGENT] - key_guard: MINIMAX_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,459 - [AUTONOMOUS AGENT] - key_guard: GEMMA_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 17:44:31,473 - [AUTONOMOUS AGENT] - key_guard: MIMO_ENDPOINT not set — next check in 960s (fail_count=5)
+2026-04-27 17:44:31,474 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_domain_synthesis' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 17:44:31,476 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Beysib Merchant Fleet and Exotic Sourcing
+2026-04-27 17:44:32,145 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 17:44:33,392 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 17:44:35,716 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 17:44:38,855 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=7)
+2026-04-27 17:46:35,356 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Beysib Merchant Fleet and Exotic Sourcing
+2026-04-27 17:46:35,358 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [myth_adventures] The Bazaar at Deva
+2026-04-27 17:46:36,015 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 17:46:36,712 - [AUTONOMOUS AGENT] - OpenRouter 429 on z-ai/glm-4.5-air:free — retry in 1.0s (attempt 1/3)
+2026-04-27 17:46:37,354 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 17:46:40,693 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 17:46:50,938 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=2): 'NoneType' object has no attribute 'strip'
+2026-04-27 17:47:21,705 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: The Bazaar at Deva
+2026-04-27 17:47:21,712 - [AUTONOMOUS AGENT] - [fiction_anthology] Round complete: processed=3 written=3 errors=2
+2026-04-27 17:47:21,713 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Sanctuary as a Resilience Stress Test \u2192 sig=0.55
+2026-04-27 17:47:21,713 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Beysib Merchant Fleet and Exotic Sourcing \u2192 sig=0.55
+2026-04-27 17:47:21,714 - [AUTONOMOUS AGENT] -   \u2713 [myth_adventures] The Bazaar at Deva \u2192 sig=0.55
+2026-04-27 17:51:28,956 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 17:51:28,957 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 18:06:28,969 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 18:06:28,969 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 18:21:28,981 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.03 | expansion=0.43 | bifurcation=0.40
+2026-04-27 18:21:28,983 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 18:22:16,160 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-27 18:22:16,160 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-27 18:22:17,189 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-27 18:22:17,190 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-27 18:22:17,344 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 18:22:17,344 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-27 18:22:17,464 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 18:22:17,464 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-27 18:22:17,464 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-27 18:22:17,464 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-27 18:22:17,538 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-27 18:22:17,538 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-27 18:22:20,980 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-27 18:22:21,044 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-27 18:22:21,045 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-27 18:22:21,045 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-27 18:22:21,245 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-27 18:22:21,256 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-27 18:22:21,262 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-27 18:22:23,300 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-27 18:22:23,316 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-27 18:22:26,347 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [DOWN]
+2026-04-27 18:22:26,347 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-27 18:22:42,794 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-27 18:22:48,651 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-27 18:22:54,491 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-27 18:22:55,061 - [AUTONOMOUS AGENT] - Corpus refresh: +418 entities, +0 edges, 10 learnings.
+2026-04-27 18:22:55,310 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-27 18:22:55,310 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-27 18:22:55,311 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-27 18:22:55,311 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-27 18:22:55,446 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-27 18:22:55,446 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-27 18:22:55,578 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-27 18:22:55,578 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-27 18:22:55,585 - [AUTONOMOUS AGENT] - Ignorance score: 0.432 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-27 18:22:55,585 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.432 \u2192 sleeping 97 min ===
+2026-04-27 18:32:21,719 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [cross_universe] Informal Markets as Supply-Chain Resilience Mechanisms
+2026-04-27 18:32:22,362 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 18:32:23,599 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 18:32:25,858 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 18:32:35,339 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 18:33:09,981 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_PRO_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:09,985 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_V4_FLASH_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:10,075 - [AUTONOMOUS AGENT] - key_guard: QWEN_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:10,080 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 18:33:10,089 - [AUTONOMOUS AGENT] - key_guard: GLM_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:10,098 - [AUTONOMOUS AGENT] - key_guard: KIMI_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:10,110 - [AUTONOMOUS AGENT] - key_guard: MINIMAX_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:10,123 - [AUTONOMOUS AGENT] - key_guard: GEMMA_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 18:33:10,133 - [AUTONOMOUS AGENT] - key_guard: MIMO_ENDPOINT not set — next check in 1920s (fail_count=6)
+2026-04-27 18:33:10,134 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_domain_synthesis' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 18:33:10,136 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [thieves_world] Reputation Capital in the Underworld
+2026-04-27 18:33:10,623 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 18:33:12,272 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 18:33:14,562 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 18:33:17,498 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=7)
+2026-04-27 18:34:31,288 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Reputation Capital in the Underworld
+2026-04-27 18:34:31,289 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [myth_adventures] Aahz's Asymmetric Information Plays
+2026-04-27 18:34:31,987 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 18:34:33,235 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 18:34:35,511 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 18:34:38,715 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=7)
+2026-04-27 18:35:30,501 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Aahz's Asymmetric Information Plays
+2026-04-27 18:35:30,505 - [AUTONOMOUS AGENT] - [fiction_anthology] Round complete: processed=3 written=3 errors=2
+2026-04-27 18:35:30,505 - [AUTONOMOUS AGENT] -   \u2713 [cross_universe] Informal Markets as Supply-Chain Resilience Mechanisms \u2192 sig=0.55
+2026-04-27 18:35:30,506 - [AUTONOMOUS AGENT] -   \u2713 [thieves_world] Reputation Capital in the Underworld \u2192 sig=0.55
+2026-04-27 18:35:30,506 - [AUTONOMOUS AGENT] -   \u2713 [myth_adventures] Aahz's Asymmetric Information Plays \u2192 sig=0.55
+2026-04-27 18:36:28,995 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.04 | expansion=0.43 | bifurcation=0.40
+2026-04-27 18:36:28,996 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 18:51:29,010 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.04 | expansion=0.43 | bifurcation=0.40
+2026-04-27 18:51:29,011 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 19:06:29,023 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.04 | expansion=0.43 | bifurcation=0.40
+2026-04-27 19:06:29,024 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-27 19:06:33,792 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-27 19:06:33,876 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.04 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-27 19:06:33,914 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=5 elapsed=100 ms executed=1 skipped=8
+2026-04-27 19:06:33,914 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 19:06:35,894 - [AUTONOMOUS AGENT] - Checking The Brain for scheduled skill requirements...
+2026-04-27 19:06:35,897 - [AUTONOMOUS AGENT] - Scheduled task pull failed: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-04-27 19:07:14,600 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-27 19:20:30,525 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [myth_adventures] The Magicians' Guild Protection Racket (Possiltum)
+2026-04-27 19:20:31,269 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 19:20:32,497 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 19:20:34,732 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 19:20:42,941 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 19:21:21,877 - [AUTONOMOUS AGENT] - key_guard: DEEPSEEK_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 19:21:21,890 - [AUTONOMOUS AGENT] - key_guard: MIMO_ENDPOINT not set — next check in 3600s (fail_count=7)
+2026-04-27 19:21:21,891 - [AUTONOMOUS AGENT] - key_guard: all candidates key-locked — task 'cross_domain_synthesis' served by registry model 'openrouter/pareto-code' (score=0.000)
+2026-04-27 19:21:21,893 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [myth_adventures] Don Bruce and the Mob as a Supply Chain Enforcer
+2026-04-27 19:21:22,402 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 19:21:23,639 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 19:21:25,919 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 19:21:29,314 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): 'NoneType' object has no attribute 'strip'
+2026-04-27 19:21:46,131 - [AUTONOMOUS AGENT] - [heart] tick error: database is locked
+2026-04-27 19:22:19,041 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: Don Bruce and the Mob as a Supply Chain Enforcer
+2026-04-27 19:22:19,042 - [AUTONOMOUS AGENT] - [fiction_anthology] Expanding: [myth_adventures] The Dragon Gleep as an Unconventional Asset
+2026-04-27 19:22:19,734 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 1.0s (attempt 1/3)
+2026-04-27 19:22:20,997 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 2.0s (attempt 2/3)
+2026-04-27 19:22:23,339 - [AUTONOMOUS AGENT] - OpenRouter 429 on qwen/qwen3-next-80b-a3b-instruct:free — retry in 4.0s (attempt 3/3)
+2026-04-27 19:22:27,606 - [AUTONOMOUS AGENT] - OpenRouter call failed (brain_id=glm-5.1 or_model=z-ai/glm-4.5-air:free attempt=1): HTTPSConnectionPool(host='openrouter.ai', port=443): Read timed out. (read timeout=7)
+2026-04-27 19:23:12,608 - [AUTONOMOUS AGENT] - [fiction_anthology] LLM returned nothing for: The Dragon Gleep as an Unconventional Asset
+2026-04-27 19:23:12,614 - [AUTONOMOUS AGENT] - [fiction_anthology] Round complete: processed=3 written=3 errors=2
+2026-04-27 19:23:12,615 - [AUTONOMOUS AGENT] -   \u2713 [myth_adventures] The Magicians' Guild Protection Racket (Possiltum) \u2192 sig=0.55
+2026-04-27 19:23:12,615 - [AUTONOMOUS AGENT] -   \u2713 [myth_adventures] Don Bruce and the Mob as a Supply Chain Enforcer \u2192 sig=0.55
+2026-04-27 19:23:12,616 - [AUTONOMOUS AGENT] -   \u2713 [myth_adventures] The Dragon Gleep as an Unconventional Asset \u2192 sig=0.55
+2026-04-27 19:36:46,155 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816 rad | coherence=0.04 | expansion=0.43 | bifurcation=0.40
+2026-04-27 19:36:46,156 - [AUTONOMOUS AGENT] - [heart] Chapter 1: The Hearing | symbiosis=48.0% | phase_gap=0.816rad
+2026-04-28 10:31:01,290 - [AUTONOMOUS AGENT] - Spinning up integrated skill acquirer thread alongside synaptic workers...
+2026-04-28 10:31:01,295 - [AUTONOMOUS AGENT] - Integrated Autonomous Agent: Skill Acquirer Online.
+2026-04-28 10:31:01,295 - [AUTONOMOUS AGENT] - Checking The Brain for scheduled skill requirements...
+2026-04-28 10:31:01,969 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-28 10:31:01,970 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-28 10:31:01,971 - [AUTONOMOUS AGENT] - Initializing 24/7 Autonomous Improvement Agent lifecycle.
+2026-04-28 10:31:01,977 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle starting
+2026-04-28 10:31:02,213 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for part_category: no such column: part_id
+2026-04-28 10:31:02,216 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_cc_jerome_ave: no such table: epicor_cc_jerome_ave
+2026-04-28 10:31:02,217 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for syteline_cc_parsons: no such table: syteline_cc_parsons
+2026-04-28 10:31:02,218 - [AUTONOMOUS AGENT] - self_train: ground truth fetch failed for epicor_dim_part: no such table: epicor_dim_part
+2026-04-28 10:31:02,263 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'Self-train quality 0.00 below threshold — run round' \u2192 ok=True
+2026-04-28 10:31:02,273 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'System coherence 0.04 below 0.35 — force temporal step' \u2192 ok=True
+2026-04-28 10:31:02,978 - [AUTONOMOUS AGENT] - resumption_manager: git pull OK — Already up to date.
+2026-04-28 10:31:02,984 - [AUTONOMOUS AGENT] - resumption_manager: HARD_CRASH downtime detected — 891.6 min gap (last_alive=2026-04-27T23:39:25+00:00)
+2026-04-28 10:31:02,987 - [AUTONOMOUS AGENT] - resumption_manager: catchup burst scheduled (3.0× for 14.9 h downtime)
+2026-04-28 10:31:02,989 - [AUTONOMOUS AGENT] - RESUMPTION: HARD_CRASH: 891.6 min; cloud_ingested=0 | cloud_entries_ingested=0
+2026-04-28 10:31:03,524 - [AUTONOMOUS AGENT] - Scheduled task pull failed: [WinError 10054] An existing connection was forcibly closed by the remote host
+2026-04-28 10:31:04,549 - [AUTONOMOUS AGENT] - Shared compute grid node started on port 8000.
+2026-04-28 10:31:04,582 - [AUTONOMOUS AGENT] - [SRA] Refinement worker thread started (base_interval=1200s)
+2026-04-28 10:31:04,590 - [AUTONOMOUS AGENT] - Systemic Refinement Agent started — adaptive cadence 20 min–2 h driven by acquisition_drive.
+2026-04-28 10:31:04,638 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-28 10:31:04,666 - [AUTONOMOUS AGENT] - NetworkObserver started — liveness scan every 60s, publishing to C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\bridge_state\compute_peers
+2026-04-28 10:31:04,666 - [AUTONOMOUS AGENT] - NetworkObserver started — peer liveness, corpus absorption, singularity velocity toward quest:type5_sc.
+2026-04-28 10:31:04,683 - [AUTONOMOUS AGENT] - === STARTING NEW AUTONOMOUS CYCLE ===
+2026-04-28 10:31:04,684 - [AUTONOMOUS AGENT] - Initiating remote VPN connection + portproxy bridge on physical client laptop...
+2026-04-28 10:31:04,729 - [AUTONOMOUS AGENT] - network_observer: peer OFFLINE — crp-fs03 (last seen 860.3 min ago, 0 learnings, phase 0)
+2026-04-28 10:31:05,535 - [AUTONOMOUS AGENT] - VPN + bridge established successfully.
+2026-04-28 10:31:05,535 - [AUTONOMOUS AGENT] - Running system benchmarks and tests...
+2026-04-28 10:31:05,702 - [AUTONOMOUS AGENT] - Benchmark issues detected: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-28 10:31:05,702 - [AUTONOMOUS AGENT] - Analyzing database structure and updating data infrastructure documentation...
+2026-04-28 10:31:05,834 - [AUTONOMOUS AGENT] - Schema mapping issues: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-28 10:31:05,834 - [AUTONOMOUS AGENT] - Analyzing codebase against benchmarks...
+2026-04-28 10:31:05,834 - [AUTONOMOUS AGENT] - Applying AI-generated optimizations (Requires LLM API Key)...
+2026-04-28 10:31:05,835 - [AUTONOMOUS AGENT] - Refreshing open-weight LLM registry (scout sweep)...
+2026-04-28 10:31:05,883 - [AUTONOMOUS AGENT] - LLM scout skipped (within cadence window or disabled).
+2026-04-28 10:31:05,883 - [AUTONOMOUS AGENT] - Draining unclassified corpus parts (NLP batch)...
+2026-04-28 10:31:08,713 - [AUTONOMOUS AGENT] - drain_unclassified: DW unreachable — ('42S22', "[42S22] [Microsoft][ODBC Driver 18 for SQL Server][SQL Server]Invalid column name 'oem_part_desc'. (207) (SQLExecDirectW)")
+2026-04-28 10:31:09,739 - [AUTONOMOUS AGENT] - network_observer: failsafe expansion triggered (peer offline: crp-fs03)
+2026-04-28 10:31:09,739 - [AUTONOMOUS AGENT] - self_expansion: starting cycle
+2026-04-28 10:31:10,669 - [AUTONOMOUS AGENT] - refine_provisional: evaluated 51, promoted to truth 0, culled 0, improved 0.
+2026-04-28 10:31:10,669 - [AUTONOMOUS AGENT] - NLP drain: nothing new to classify (backlog clear or DW unreachable).
+2026-04-28 10:31:10,669 - [AUTONOMOUS AGENT] - Refreshing knowledge corpus and materializing into graph...
+2026-04-28 10:31:11,595 - [AUTONOMOUS AGENT] - self_expansion: golden angle saturation — c×2\u03c0=2.3889 \u2248 \u03c6-angle=2.4000 (\u0394=0.0111 rad) at ground node 80/300, 96 committed
+2026-04-28 10:31:13,129 - [AUTONOMOUS AGENT] - [SRA] executed [skill_trigger] 'Carrier mass high, burst rate low — expand network observation' \u2192 ok=True
+2026-04-28 10:31:13,606 - [AUTONOMOUS AGENT] - Location: LAN mode
+2026-04-28 10:31:13,615 - [AUTONOMOUS AGENT] -   desktop              172.16.4.76:3389  [UP]
+2026-04-28 10:31:13,622 - [AUTONOMOUS AGENT] -   crp-fs03             172.17.99.185:3389  [UP]
+2026-04-28 10:31:15,654 - [AUTONOMOUS AGENT] -   desktop-sql          172.16.4.76:1433  [DOWN]
+2026-04-28 10:31:15,655 - [AUTONOMOUS AGENT] -   brain-api            172.16.4.76:8000  [UP]
+2026-04-28 10:31:15,670 - [AUTONOMOUS AGENT] -   laptop               ROADL-4GVKFW3.roadtec.astec.local:3389  [UP]
+2026-04-28 10:31:15,671 - [AUTONOMOUS AGENT] -   laptop-tunnel        (vscode_tunnel - not TCP-probeable)
+2026-04-28 10:31:19,280 - [AUTONOMOUS AGENT] - [SRA] executed [directive] 'Emerging SC topic 'carbon_footprint' seen 3× — propose quest expansion' \u2192 ok=False
+2026-04-28 10:31:22,341 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-04j-frameworks-and-models-in-engineering-systems-engineering-system-design-spring-2007): database is locked
+2026-04-28 10:31:27,965 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(esd-71-engineering-systems-analysis-for-design-fall-2008): database is locked
+2026-04-28 10:31:29,144 - [AUTONOMOUS AGENT] - Orchestrator analyzer otd_recursive.run_otd_from_replica failed: boolean value of NA is ambiguous
+2026-04-28 10:31:30,663 - [AUTONOMOUS AGENT] - [SRA] executed [mission] 'Page 'Supply Chain Brain' has no DBI findings — seed with discovery mission' \u2192 ok=True
+2026-04-28 10:31:33,531 - [AUTONOMOUS AGENT] - ml_research.persist_ocw_course_detail(1-012-introduction-to-civil-engineering-design-spring-2002): database is locked
+2026-04-28 10:31:33,817 - [AUTONOMOUS AGENT] - self_expansion: Touch signal written — committed=96 phase_acc=51.05 needs_insight=True
+2026-04-28 10:31:33,822 - [AUTONOMOUS AGENT] - self_expansion: ground=300 inferred=96 committed=96 coherence=0.764 sym=0.480 pg=46.8° termination=golden_saturation phase_acc=51.05 c×2\u03c0=2.3889 at_golden=True remote=local
+2026-04-28 10:31:33,950 - [AUTONOMOUS AGENT] - [SRA] Refinement cycle complete: cycle_id=6 elapsed=28686 ms executed=5 skipped=5
+2026-04-28 10:31:33,952 - [AUTONOMOUS AGENT] - [SRA] Next refinement cycle in 7200 s
+2026-04-28 10:31:34,037 - [AUTONOMOUS AGENT] - Corpus refresh: +3 entities, +2 edges, 12 learnings.
+2026-04-28 10:31:34,784 - [AUTONOMOUS AGENT] - Graph materialized: 0 nodes, 0 edges.
+2026-04-28 10:31:34,784 - [AUTONOMOUS AGENT] - Updating system documentation...
+2026-04-28 10:31:34,785 - [AUTONOMOUS AGENT] - Generating Executive Action Items Report using the Cross-Dataset Review Deck template...
+2026-04-28 10:31:34,785 - [AUTONOMOUS AGENT] - Extracting updated data resources mapped from Oracle Fusion to Azure SQL...
+2026-04-28 10:31:34,895 - [AUTONOMOUS AGENT] - Data sync issue: Traceback (most recent call last):
+  File "C:\Users\agard\OneDrive - astecindustries.com\VS Code\pipeline\pipeline.py", line 19, in <module>
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+
+2026-04-28 10:31:34,895 - [AUTONOMOUS AGENT] - Building presentation with fresh Oracle & Azure data...
+2026-04-28 10:31:35,060 - [AUTONOMOUS AGENT] - Failed to locate generated PPTX. Output: 
+2026-04-28 10:31:35,076 - [AUTONOMOUS AGENT] - Committing changes to repository...
+2026-04-28 10:31:35,145 - [AUTONOMOUS AGENT] - Ignorance score: 0.433 (parts=0.86, corpus=0.00, train=0.00)
+2026-04-28 10:31:35,145 - [AUTONOMOUS AGENT] - === CYCLE COMPLETE. ignorance=0.433 \u2192 sleeping 97 min ===
+2026-04-28 10:31:35,865 - [AUTONOMOUS AGENT] - network_observer: failsafe expansion complete — committed=96 remote=local
+2026-04-28 10:47:23,381 - [AUTONOMOUS AGENT] - Agent manually terminated.
