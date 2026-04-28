@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-__version__ = "0.19.6"
+__version__ = "0.19.7"
 __release__ = (
-    "Operator-grade UI and Brain-first DBI stabilization. Global Filters now "
-    "render from a disk-first plant cache and direct-page sidebar fallback uses "
-    "a run-local app-shell guard instead of persistent session_state, preventing "
-    "Plant/Timeline controls from disappearing on rerun. DBI text is page-specific "
-    "operator guidance with Bullwhip live-ratio context and OpenRouter as fallback. "
-    "Heart Story is in official navigation and its Plotly 3D colorbar is compatible "
-    "with the current Plotly schema. WIP Aging Review is surfaced in Platform nav."
+    "External knowledge acquisition fully wired. Two previously-built-but-never-"
+    "called daemons are now started at agent boot: the ML research sweep "
+    "(research_supply_chain_topics — 56 OCW topics + arXiv/OpenAlex/CrossRef/Zenodo "
+    "on a 60-min rotating cursor) and the citation-chain acquirer (Semantic Scholar + "
+    "OpenAlex recursive citation follower, depth 3, 60-min cadence). "
+    "OCW lateral expansion added to _ocw_expansion_outreach so related-course slugs "
+    "harvested from course detail pages are now promoted back into the discovery queue, "
+    "allowing the course graph to grow outward from already-deepened courses without "
+    "additional network calls."
 )
 __build_date__ = "2026-04-28"
 

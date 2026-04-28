@@ -4,6 +4,21 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.7] External Knowledge Acquisition Fully Wired (2026-04-28)
+
+### Fixed
+
+- **OCW 0-new-rows root cause resolved.** `research_supply_chain_topics()` was fully implemented (56-topic cursor rotation, arXiv/OpenAlex/CrossRef/Zenodo + MIT OCW sweep) but was never called from `autonomous_agent.py`. Added `start_ml_research_daemon()` — a daemon thread that runs the sweep every 60 minutes on its own cadence, feeding fresh `kind='ocw_course'` and `kind='ml_research'` rows into `learning_log` so every corpus round has new material to ingest.
+- **Citation chain never ran.** `citation_chain_acquirer.schedule_in_background()` existed but was never wired into the agent startup. Added `start_citation_chain_daemon()` which starts the Semantic Scholar + OpenAlex recursive citation follower (depth 3, 60-min cadence).
+- **OCW lateral expansion gap.** `_ocw_expansion_outreach` harvested `related_courses` links from deepened course pages and wrote them as `kind='ocw_resource'` rows, but those child slugs were never promoted back to `kind='ocw_course'` entries. Added a lateral expansion block at the end of the function that seeds all unseen related-course slugs into `learning_log` so the course graph grows outward from already-indexed courses without additional network calls.
+
+### Changed
+
+- `autonomous_agent.py` `__main__` block now starts four daemons: `integrated_skill_acquirer`, `systemic_refinement_agent`, `ml_research_daemon` (new), `citation_chain_daemon` (new).
+- `knowledge_corpus.py` `_ocw_expansion_outreach` now always runs the lateral expansion pass regardless of whether any courses were deep-fetched this round.
+
+---
+
 ## [0.19.6] Operator UI + Brain-First DBI Stabilization (2026-04-28)
 
 ### Added
