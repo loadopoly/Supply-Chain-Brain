@@ -133,6 +133,12 @@ _SESSION_PULL_INTERVAL_S = 1800  # 30 min — pull ALIVE peer blobs
 _last_session_push: float = 0.0
 _last_session_pull: float = 0.0
 
+# Mesh-sustain: how often we drop a compute trigger to keep peer listeners alive
+# without any user input.  bridge_watcher.ps1 on each workstation picks this up
+# within 5 s and (re)spawns the compute_node_daemon if it died.
+_MESH_SUSTAIN_INTERVAL_S = 120   # every 2 minutes
+_last_mesh_sustain: float = 0.0
+
 
 # ---------------------------------------------------------------------------
 # Main loop
@@ -143,6 +149,7 @@ def _observer_loop(interval_s: int = _OBSERVE_INTERVAL_S) -> None:
     _LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
     last_publish = 0.0
+    global _last_mesh_sustain
 
     while True:
         try:
@@ -168,10 +175,85 @@ def _observer_loop(interval_s: int = _OBSERVE_INTERVAL_S) -> None:
             # 6. Session-store cloud sync — children's session knowledge
             _sync_session_stores(current, now)
 
+            # 7. Mesh sustain — drop compute triggers + probe ports so peer
+            #    compute_node daemons stay alive autonomously with no user input.
+            if now - _last_mesh_sustain >= _MESH_SUSTAIN_INTERVAL_S:
+                _sustain_mesh(current, now)
+                _last_mesh_sustain = now
+
         except Exception as exc:
             logging.warning(f"network_observer: cycle error: {exc}")
 
         time.sleep(interval_s)
+
+
+# ---------------------------------------------------------------------------
+# Step 7 — Mesh sustain: keep all peer compute_node daemons alive autonomously
+# ---------------------------------------------------------------------------
+
+def _sustain_mesh(current: dict[str, "_PeerState"], now: float) -> None:
+    """Drop a compute_*.trigger file so bridge_watcher.ps1 on every peer
+    (re)spawns the compute_node daemon if it exited.  Also probes each known
+    peer's port 8000 to detect silent failures early and log them.
+
+    This is the mechanism that makes the channel-lock mesh viable without any
+    human interaction: as long as OneDrive is syncing (which it does
+    automatically), every workstation with bridge_watcher.ps1 installed will
+    self-heal its compute node within 5–15 seconds of the trigger landing.
+    """
+    import socket as _sock
+
+    # 1. Drop a trigger — bridge_watcher on all peers picks it up within 5 s.
+    try:
+        from .compute_grid import _trigger_dir
+        trigger_dir = _trigger_dir()
+        tf = trigger_dir / f"compute_{int(now)}.trigger"
+        tf.write_text(
+            json.dumps({
+                "action":       "compute_heartbeat",
+                "requested_by": _sock.gethostname(),
+                "port":         8000,
+                "reason":       "mesh_sustain",
+            }),
+            encoding="utf-8",
+        )
+        logging.debug("network_observer: mesh_sustain trigger dropped → %s", tf.name)
+    except Exception as exc:
+        logging.debug("network_observer: mesh_sustain trigger write failed: %s", exc)
+
+    # 2. Probe each ALIVE/COOLING peer's port 8000.  If closed, log a warning
+    #    so the operator knows to check the bridge_watcher Scheduled Task on
+    #    that workstation.  The trigger above will auto-restart it within the
+    #    next bridge_watcher poll cycle.
+    for ps in current.values():
+        if ps.status not in ("ALIVE", "COOLING"):
+            continue
+        # Peer JSON may not carry 'address'; try host lookup.
+        peer_fp = _STATE_DIR / f"{ps.host}.json"
+        addr: str | None = None
+        port: int = 8000
+        try:
+            if peer_fp.exists():
+                d = json.loads(peer_fp.read_text(encoding="utf-8"))
+                addr = d.get("address") or ps.host
+                port = int(d.get("port", 8000))
+        except Exception:
+            addr = ps.host
+
+        if not addr:
+            continue
+
+        try:
+            with _sock.create_connection((addr, port), timeout=1.5):
+                pass   # port open — daemon is alive
+        except OSError:
+            logging.warning(
+                "network_observer: peer %s (%s:%d) port CLOSED — "
+                "mesh_sustain trigger dispatched; bridge_watcher will restart daemon",
+                ps.host, addr, port,
+            )
+        except Exception:
+            pass  # network blip — next cycle will retry
 
 
 # ---------------------------------------------------------------------------

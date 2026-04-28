@@ -33,26 +33,67 @@ function Set-PortProxy($desktopIp) {
 function Start-ComputeNode() {
     # Spawned on every domain workstation when a `compute_*.trigger` lands.
     # Reuses the same OneDrive-synced piggyback fabric — no new transport.
-    $marker = "$StateDir\compute_node.pid"
+    # Fully autonomous — no user input required after one-time bridge bootstrap.
+    $marker   = "$StateDir\compute_node.pid"
+    $pipeline = "$env:USERPROFILE\OneDrive - astecindustries.com\VS Code\pipeline"
+
+    # Guard: if a tracked PID is still alive, skip.
     if (Test-Path $marker) {
         try {
             $pidVal = [int](Get-Content $marker -Raw).Trim()
             if (Get-Process -Id $pidVal -ErrorAction SilentlyContinue) {
-                return  # already running
+                # Refresh our capacity JSON so the originating node sees a
+                # fresh heartbeat even if the process is already running.
+                try {
+                    $venvPy = Join-Path $pipeline ".venv\Scripts\python.exe"
+                    $py2 = if (Test-Path $venvPy) { $venvPy } else { (Get-Command python -ErrorAction SilentlyContinue).Source }
+                    if ($py2) {
+                        Start-Process -FilePath $py2 `
+                            -ArgumentList @("-c", "import sys; sys.path.insert(0, r'$pipeline'); from src.brain.compute_grid import publish_local_capacity; publish_local_capacity()") `
+                            -WindowStyle Hidden -WorkingDirectory $pipeline | Out-Null
+                    }
+                } catch {}
+                return  # daemon already running
             }
         } catch {}
+        Remove-Item $marker -Force -ErrorAction SilentlyContinue
     }
-    $pipeline = "$env:USERPROFILE\OneDrive - astecindustries.com\VS Code\pipeline"
-    $py = (Get-Command python -ErrorAction SilentlyContinue).Source
-    if (-not $py) { Write-Log "compute_node: python not on PATH"; return }
-    $procArgs = @(
-        "-c",
-        "import sys; sys.path.insert(0, r'$pipeline'); from src.brain.compute_grid import serve_compute_node; serve_compute_node()"
-    )
-    $proc = Start-Process -FilePath $py -ArgumentList $procArgs `
-        -WindowStyle Hidden -PassThru -WorkingDirectory $pipeline
+
+    # Prefer venv python so all dependencies are available without system install.
+    # Falls back to: system python3, then python, then silently aborts.
+    $venvPy = Join-Path $pipeline ".venv\Scripts\python.exe"
+    $py = if (Test-Path $venvPy) {
+        $venvPy
+    } else {
+        @("python3", "python") |
+            ForEach-Object { (Get-Command $_ -ErrorAction SilentlyContinue)?.Source } |
+            Where-Object { $_ } |
+            Select-Object -First 1
+    }
+    if (-not $py) {
+        Write-Log "compute_node: no python interpreter found — skipping"
+        return
+    }
+
+    # Use compute_node_daemon.py (full entry point) so the process has a
+    # proper name, structured logging, and graceful SIGTERM shutdown.
+    $daemonScript = Join-Path $pipeline "compute_node_daemon.py"
+    if (-not (Test-Path $daemonScript)) {
+        # Fallback to inline bootstrap if the daemon script hasn't synced yet.
+        $daemonScript = $null
+    }
+
+    if ($daemonScript) {
+        $proc = Start-Process -FilePath $py -ArgumentList @($daemonScript) `
+            -WindowStyle Hidden -PassThru -WorkingDirectory $pipeline
+    } else {
+        $inline = "import sys; sys.path.insert(0, r'$pipeline'); from src.brain.compute_grid import serve_compute_node; serve_compute_node()"
+        $proc = Start-Process -FilePath $py -ArgumentList @("-c", $inline) `
+            -WindowStyle Hidden -PassThru -WorkingDirectory $pipeline
+    }
+
     $proc.Id | Out-File $marker -Encoding ascii -Force
-    Write-Log "compute_node spawned (pid $($proc.Id)) on port 8000"
+    Write-Log "compute_node spawned (pid $($proc.Id), py=$py) on port 8000"
 }
 
 function Publish-WifiIp() {

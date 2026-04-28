@@ -525,7 +525,7 @@ llms:
       methods:         [piggyback, ad, seed]
       ad_filter:       'OperatingSystem -like "Windows*"'
       ad_max_hosts:    64
-      seeds:           []                 # e.g. ['172.16.4.76']
+      seeds:           ['172.17.99.185']  # CRP-FS03 — local wireless PC (symbiotic peer)
       probe_timeout_s: 1.5
       cache_ttl_s:     300
     selection:

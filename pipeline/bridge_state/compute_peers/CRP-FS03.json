@@ -1,0 +1,13 @@
+{
+  "host": "CRP-FS03",
+  "ts": "2026-04-28T00:10:44.865269+00:00",
+  "cpu_count": 8,
+  "cpu_load_1m": 0.0,
+  "free_ram_gb": 8.0,
+  "gpus": [],
+  "free_vram_gb": 0.0,
+  "port": 8000,
+  "address": "172.17.99.185",
+  "is_local": false,
+  "note": "Bootstrap entry \u2014 overwritten by CRP-FS03 heartbeat once daemon is running"
+}
