@@ -916,7 +916,7 @@ def persist_ocw_courses(courses: list[dict], topic: str) -> int:
     written = 0
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             _ensure_learning_log(cn)
             for course in courses:
                 course_id = course.get("course_id", "")
@@ -1199,7 +1199,7 @@ def persist_ocw_course_detail(slug: str, detail: dict) -> int:
     written = 0
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             _ensure_learning_log(cn)
             now = datetime.now(timezone.utc).isoformat()
 
@@ -1301,6 +1301,31 @@ def _get_db_path() -> Path:
     return _db_path()
 
 
+_WAL_ENABLED: bool = False  # module-level flag; WAL is set once per process
+
+
+def _connect(db) -> sqlite3.Connection:
+    """Open the Brain SQLite database with WAL mode and a generous timeout.
+
+    WAL (Write-Ahead Logging) allows concurrent reads (Streamlit) and writes
+    (daemon threads) without "database is locked" errors.  The timeout=30
+    gives other writers 30 s to finish before raising an error, compared to
+    the default 5 s which expires under normal Streamlit load.
+
+    WAL mode persists on disk once set, so subsequent calls skip the PRAGMA.
+    """
+    global _WAL_ENABLED
+    cn = sqlite3.connect(str(db), timeout=30, check_same_thread=False)
+    if not _WAL_ENABLED:
+        try:
+            cn.execute("PRAGMA journal_mode=WAL")
+            cn.execute("PRAGMA synchronous=NORMAL")  # safe with WAL
+            _WAL_ENABLED = True
+        except Exception:
+            pass
+    return cn
+
+
 def _ensure_learning_log(cn: sqlite3.Connection) -> None:
     """Create learning_log if it doesn't exist (idempotent)."""
     cn.execute(
@@ -1359,7 +1384,7 @@ def persist_research_findings(
     written = 0
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             _ensure_learning_log(cn)
             _ensure_citation_chain_state(cn)
             now = datetime.now(timezone.utc).isoformat()
@@ -1520,7 +1545,7 @@ def run_ml_intern_query(prompt: str, max_iterations: int = 30, timeout: int = 30
         written = 0
         try:
             db = _get_db_path()
-            with sqlite3.connect(db) as cn:
+            with _connect(db) as cn:
                 _ensure_learning_log(cn)
                 existing = cn.execute(
                     "SELECT id FROM learning_log WHERE kind='ml_research' AND title LIKE ?",
@@ -1587,7 +1612,7 @@ def research_supply_chain_topics(
     if topics is None:
         try:
             db = _get_db_path()
-            with sqlite3.connect(db) as cn:
+            with _connect(db) as cn:
                 row = cn.execute(
                     "SELECT value FROM brain_kv WHERE key='ml_research_topic_cursor'",
                 ).fetchone()
@@ -1600,7 +1625,7 @@ def research_supply_chain_topics(
         new_cursor = (cursor + topics_per_cycle) % n
         try:
             db = _get_db_path()
-            with sqlite3.connect(db) as cn:
+            with _connect(db) as cn:
                 cn.execute(
                     """INSERT INTO brain_kv(key, value) VALUES(?,?)
                        ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
@@ -1636,7 +1661,7 @@ def research_supply_chain_topics(
     # -----------------------------------------------------------------------
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             row = cn.execute(
                 "SELECT value FROM brain_kv WHERE key='extended_topic_cursor'",
             ).fetchone()
@@ -1671,7 +1696,7 @@ def research_supply_chain_topics(
 
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             cn.execute(
                 """INSERT INTO brain_kv(key, value) VALUES(?,?)
                    ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
@@ -1723,7 +1748,7 @@ def research_supply_chain_topics(
     if include_ocw:
         try:
             db = _get_db_path()
-            with sqlite3.connect(db) as cn:
+            with _connect(db) as cn:
                 row = cn.execute(
                     "SELECT value FROM brain_kv WHERE key='ocw_topic_cursor'",
                 ).fetchone()
@@ -1768,7 +1793,7 @@ def research_supply_chain_topics(
 
         try:
             db = _get_db_path()
-            with sqlite3.connect(db) as cn:
+            with _connect(db) as cn:
                 cn.execute(
                     """INSERT INTO brain_kv(key, value) VALUES(?,?)
                        ON CONFLICT(key) DO UPDATE SET value=excluded.value""",
@@ -1806,7 +1831,7 @@ def recent_ml_learnings(limit: int = 20) -> list[dict]:
     """
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             cn.row_factory = sqlite3.Row
             rows = cn.execute(
                 """SELECT id, logged_at, title, detail, signal_strength
@@ -1943,7 +1968,7 @@ def auto_deepen_undiscovered(max_courses: int = 5) -> int:
     deepened = 0
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             # Courses discovered but not yet detailed
             rows = cn.execute(
                 """SELECT title FROM learning_log
@@ -1988,7 +2013,7 @@ def recent_ocw_details(limit: int = 50) -> list[dict]:
     """
     try:
         db = _get_db_path()
-        with sqlite3.connect(db) as cn:
+        with _connect(db) as cn:
             cn.row_factory = sqlite3.Row
             rows = cn.execute(
                 """SELECT id, logged_at, kind, title, detail, signal_strength
