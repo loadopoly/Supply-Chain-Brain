@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-__version__ = "0.19.8"
+__version__ = "0.19.9"
 __release__ = (
-    "Directed Toroidal Knowledge Expansion. Every paper discovered by the ML "
-    "research sweep (arXiv, OpenAlex, CrossRef — 56 SC topics + 45 Grok extended "
-    "topics: UEQGM, biohybrid quantum, astrophysics, AI knowledge graphs) now "
-    "donates its full bibliography inline: referenced_works is captured in the same "
-    "OpenAlex API call and written directly into citation_chain_state, so the "
-    "citation-chain expander follows the entire reference tree in its next cycle "
+    "Daemon Resilience. Two-layer automatic resurrection: a thread-level watchdog "
+    "inside autonomous_agent.py revives any crashed background worker within 60 s; "
+    "a process-level Streamlit monitor respawns the whole agent process if the "
+    "heartbeat goes stale for >15 min. SQLite WAL mode enabled across all "
+    "ml_research.py connections — eliminates database-is-locked failures when "
+    "Streamlit holds a concurrent read connection. All four daemons (skill_acquirer, "
+    "systemic_refinement, ml_research, citation_chain) are now self-healing."
     "without a round-trip through the corpus. CITES edges are also materialised "
     "into the knowledge graph, making stub MLPaper nodes for each cited work so "
     "supply-chain, quantum-systems, and cross-domain papers become mutually "

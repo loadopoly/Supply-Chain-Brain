@@ -4,6 +4,25 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.9] Daemon Resilience (2026-04-28)
+
+### Fixed
+
+- **SQLite `database is locked` — ml_research daemon silently dropping all writes.** Every `sqlite3.connect(db)` call in `ml_research.py` used Python's default timeout, which expires almost immediately when Streamlit holds a persistent read connection. All 14 connection sites are now routed through a new `_connect(db)` helper that sets `timeout=30` and, on first use per process, enables **WAL journal mode** (`PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL`). WAL allows unlimited concurrent readers alongside the daemon writer — no lock contention. The presence of `local_brain.sqlite-wal` on disk confirms the mode is active. This was the root cause of zero new `ml_research` rows since 2026-04-23.
+
+### Added
+
+- **Thread-level daemon watchdog.** `_DAEMON_REGISTRY` (name → `(start_fn, thread)`) and `_register_daemon()` replace the four bare `start_*()` calls in `autonomous_agent.py`'s `__main__` block. A new `_daemon_watchdog()` thread polls `is_alive()` every 60 s and calls the original `start_fn` to revive any background worker that has exited with an unhandled exception. The four monitored daemons are: `integrated_skill_acquirer`, `systemic_refinement_agent`, `ml_research_daemon`, `citation_chain_daemon`.
+
+- **Process-level agent resurrection via Streamlit.** `_start_agent_resurrection_monitor()` in `app.py` (decorated `@st.cache_resource` — runs exactly once per Streamlit server process) spawns a background thread that checks `logs/agent_heartbeat.txt` every 2 minutes. If the file is absent or its mtime exceeds 15 minutes, the thread calls `subprocess.Popen` with `DETACHED_PROCESS | CREATE_NO_WINDOW` flags to silently respawn `autonomous_agent.py` in the background. A 10-minute cooldown prevents rapid re-spawn loops when the agent crashes on startup. Because Streamlit is always running, this gives the agent an external guardian that survives manual kills, OS restarts of the Streamlit process, and crash loops.
+
+### Changed
+
+- `autonomous_agent.py` now imports `threading` at the module level (was imported inline inside individual `start_*` functions).
+- `_version.py` bumped to `0.19.9`; `__build_date__` updated to `2026-04-28`.
+
+---
+
 ## [0.19.8] Directed Toroidal Knowledge Expansion (2026-04-29)
 
 ### Added
