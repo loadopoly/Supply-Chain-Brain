@@ -36,6 +36,7 @@ from src.brain.ml_research import (
     deepen_ocw_course,
     cascade_deepen_ocw,
     adaptive_cascade_ocw,
+    world_r1_explore,
     fetch_ocw_course_detail,
     _SUPPLY_CHAIN_TOPICS,
     _OCW_TOPICS,
@@ -280,19 +281,24 @@ with tab_ocw:
 
     st.divider()
 
-    # ----- Cascade BFS deep-fetch (standard + adaptive modes) -----
+    # ----- Cascade BFS deep-fetch (standard / adaptive / world-r1) -----
     st.markdown("#### 🕸️ Cascade Graph Expansion")
     st.caption(
         "Start from any course slug and BFS-traverse the OCW knowledge graph. "
-        "**Adaptive mode** adds semantic edge ranking, Adam inflection detection, "
-        "and endpoint tunnel bias to extend traversal through relevance valleys."
+        "**Adaptive mode** adds Adam phase-shift + tunnel bias. "
+        "**World-R1 mode** adds multi-axis reward shaping, GRPO advantage normalisation, "
+        "softmax sampling, periodic dynamic-only regularization, and curiosity-driven novelty."
     )
 
-    _adapt_mode = st.toggle(
-        "⚙️ Adaptive mode — semantic edge potentials + Adam phase-shift + tunnel bias",
-        value=False,
-        key="cascade_adaptive_toggle",
+    _mode = st.radio(
+        "Traversal policy",
+        options=["Standard BFS", "Adaptive (Adam + tunnel)", "World-R1 (multi-axis + curiosity)"],
+        index=0,
+        horizontal=True,
+        key="cascade_mode",
     )
+    _adapt_mode = _mode.startswith("Adaptive")
+    _w1_mode    = _mode.startswith("World-R1")
 
     c1, c2, c3 = st.columns([3, 1, 1])
     cascade_slug = c1.text_input(
@@ -300,8 +306,12 @@ with tab_ocw:
         placeholder="e.g. 15-762j-supply-chain-planning-spring-2011",
         key="cascade_slug",
     )
-    cascade_hops = c2.number_input("Hops", min_value=1, max_value=4, value=2, key="cascade_hops")
-    cascade_fan  = c3.number_input("Fan-out", min_value=2, max_value=10, value=5, key="cascade_fan")
+    if _w1_mode:
+        cascade_iters = c2.number_input("Iterations",   min_value=2, max_value=30, value=10, key="w1_iters")
+        cascade_breadth = c3.number_input("Sample breadth", min_value=1, max_value=10, value=5, key="w1_breadth")
+    else:
+        cascade_hops = c2.number_input("Hops",     min_value=1, max_value=4, value=2, key="cascade_hops")
+        cascade_fan  = c3.number_input("Fan-out",  min_value=2, max_value=10, value=5, key="cascade_fan")
 
     if _adapt_mode:
         with st.expander("🔬 Adaptive tuning parameters", expanded=False):
@@ -321,6 +331,30 @@ with tab_ocw:
             height=100,
             key="cascade_endpoints",
         )
+    elif _w1_mode:
+        with st.expander("🌌 World-R1 reward shaping (multi-axis + curiosity)", expanded=False):
+            wc1, wc2, wc3, wc4, wc5 = st.columns(5)
+            w_cov  = wc1.number_input("Coverage w",     min_value=0.0, max_value=3.0, value=1.0, step=0.1, key="w1_cov")
+            w_con  = wc2.number_input("Consistency w",  min_value=0.0, max_value=3.0, value=0.7, step=0.1, key="w1_con")
+            w_traj = wc3.number_input("Trajectory w",   min_value=0.0, max_value=3.0, value=1.2, step=0.1, key="w1_traj")
+            w_qual = wc4.number_input("Quality w",      min_value=0.0, max_value=3.0, value=0.8, step=0.1, key="w1_qual")
+            w_cur  = wc5.number_input("Curiosity w",    min_value=0.0, max_value=3.0, value=0.6, step=0.1, key="w1_cur")
+            wp1, wp2, wp3 = st.columns(3)
+            w_dyn  = wp1.number_input("Dynamic-only period", min_value=2, max_value=10, value=4, key="w1_dyn",
+                                     help="Every Nth iteration zero out constraint rewards — pure curiosity (the unsupervised child).")
+            w_temp = wp2.number_input("Softmax temperature", min_value=0.1, max_value=3.0, value=0.8, step=0.1, key="w1_temp")
+            w_seed = wp3.number_input("PRNG seed (0=random)", min_value=0, max_value=99999, value=0, key="w1_seed")
+        endpoint_input = st.text_area(
+            "TheOther — endpoint concept cluster (one per line)",
+            value=(
+                "supply chain optimization machine learning\n"
+                "inventory management deep learning reinforcement\n"
+                "logistics network optimization operations research\n"
+                "demand forecasting neural network probabilistic"
+            ),
+            height=100,
+            key="w1_endpoints",
+        )
     else:
         decay_lambda = 2.5
         tunnel_coeff = 0.35
@@ -328,9 +362,38 @@ with tab_ocw:
         adam_beta2   = 0.999
         endpoint_input = ""
 
-    _btn_label = "🚀 Launch Adaptive Cascade" if _adapt_mode else "🚀 Launch Cascade Deepen"
+    if _adapt_mode:
+        _btn_label = "🚀 Launch Adaptive Cascade"
+    elif _w1_mode:
+        _btn_label = "🌌 Launch World-R1 Exploration"
+    else:
+        _btn_label = "🚀 Launch Cascade Deepen"
+
     if st.button(_btn_label, key="cascade_btn", disabled=not cascade_slug):
-        if _adapt_mode:
+        if _w1_mode:
+            endpoint_concepts = [
+                ln.strip() for ln in endpoint_input.splitlines() if ln.strip()
+            ] or None
+            with st.spinner(
+                f"World-R1 exploration from '{cascade_slug}' — "
+                f"{cascade_iters} iterations × {cascade_breadth} sampled per step · "
+                f"dynamic-only every {w_dyn} steps…"
+            ):
+                cascade_result = world_r1_explore(
+                    cascade_slug.strip(),
+                    max_iterations      = int(cascade_iters),
+                    sample_breadth      = int(cascade_breadth),
+                    endpoint_concepts   = endpoint_concepts,
+                    coverage_weight     = float(w_cov),
+                    consistency_weight  = float(w_con),
+                    trajectory_weight   = float(w_traj),
+                    quality_weight      = float(w_qual),
+                    curiosity_weight    = float(w_cur),
+                    dynamic_only_period = int(w_dyn),
+                    temperature         = float(w_temp),
+                    seed                = int(w_seed) or None,
+                )
+        elif _adapt_mode:
             endpoint_concepts = [
                 ln.strip() for ln in endpoint_input.splitlines() if ln.strip()
             ] or None
@@ -360,6 +423,7 @@ with tab_ocw:
                 )
         st.session_state["_cascade_result"] = cascade_result
         st.session_state["_cascade_adaptive"] = _adapt_mode
+        st.session_state["_cascade_w1"]       = _w1_mode
 
     cr = st.session_state.get("_cascade_result")
     if cr:
@@ -372,8 +436,57 @@ with tab_ocw:
             f"**{cr.get('external', 0)}** external links"
         )
 
+        # World-R1 mode extras
+        if st.session_state.get("_cascade_w1"):
+            iter_logs = cr.get("iteration_logs", [])
+            axis_w    = cr.get("axis_weights", {})
+            cur_w     = cr.get("curiosity_weight", 0.0)
+            dyn_p     = cr.get("dynamic_only_period", "?")
+            vocab_n   = cr.get("vocab_size_final", 0)
+
+            wm1, wm2, wm3, wm4 = st.columns(4)
+            wm1.metric("Iterations", len(iter_logs))
+            wm2.metric("Vocab observed", vocab_n)
+            wm3.metric("Dyn-only period", f"every {dyn_p}")
+            wm4.metric("Total candidates",
+                       sum(l.get("candidates_seen", 0) for l in iter_logs))
+
+            st.markdown("##### 🎛️ Active reward weights")
+            wcols = st.columns(len(axis_w) + 1)
+            for i, (name, w) in enumerate(axis_w.items()):
+                wcols[i].metric(name.title(), f"{w:.2f}")
+            wcols[-1].metric("Curiosity", f"{cur_w:.2f}")
+
+            st.markdown("##### 📈 Iteration trajectory through TheOther")
+            for log_ in iter_logs:
+                mode_icon = "🧒" if log_["mode"] == "dynamic_only" else "🎯"
+                mode_label = "DYNAMIC-ONLY (curiosity)" if log_["mode"] == "dynamic_only" else "constraint"
+                with st.expander(
+                    f"{mode_icon} Iter {log_['iteration']}: `{log_['expanded_slug']}` "
+                    f"— {mode_label} · "
+                    f"composite μ={log_['composite_mean']} · "
+                    f"curiosity={log_['curiosity_bonus']} · "
+                    f"+{len(log_['new_visits'])} sampled",
+                    expanded=False,
+                ):
+                    rb = log_["reward_breakdown"]
+                    if rb:
+                        rb_cols = st.columns(len(rb))
+                        for i, (axis_name, val) in enumerate(rb.items()):
+                            rb_cols[i].metric(axis_name, f"{val:.3f}")
+                    st.markdown(
+                        f"**Candidates seen:** {log_['candidates_seen']} · "
+                        f"**Sampled:** {log_['candidates_taken']} · "
+                        f"**Adv max:** `{log_['advantage_max']}` · "
+                        f"**Rows written:** {log_['rows_written']}"
+                    )
+                    if log_["new_visits"]:
+                        st.markdown("**New frontier additions:**")
+                        for nv in log_["new_visits"]:
+                            st.markdown(f"  - [{nv}](https://ocw.mit.edu/courses/{nv}/)")
+
         # Adaptive-mode extras
-        if st.session_state.get("_cascade_adaptive"):
+        elif st.session_state.get("_cascade_adaptive"):
             phase_shifts = cr.get("phase_shifts", [])
             adam_rep     = cr.get("adam_report", {})
             hop_sigs     = cr.get("hop_signals", {})

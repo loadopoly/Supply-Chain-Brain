@@ -1988,3 +1988,54 @@ def adaptive_cascade_ocw(
     except Exception as exc:
         log.warning(f"adaptive_cascade_ocw: falling back to standard cascade: {exc}")
         return cascade_deepen_ocw(seed_slug, hops=max_hops, fan_out=fan_out)
+
+
+def world_r1_explore(
+    seed_slug: str,
+    max_iterations: int = 10,
+    sample_breadth: int = 5,
+    endpoint_concepts: list[str] | None = None,
+    coverage_weight: float = 1.0,
+    consistency_weight: float = 0.7,
+    trajectory_weight: float = 1.2,
+    quality_weight: float = 0.8,
+    curiosity_weight: float = 0.6,
+    dynamic_only_period: int = 4,
+    temperature: float = 0.8,
+    seed: int | None = None,
+) -> dict:
+    """World-R1-shaped curiosity exploration of the OCW knowledge surface.
+
+    Multi-axis constraint reward (coverage / consistency / trajectory /
+    quality) + GRPO advantage normalisation + softmax sampling + periodic
+    dynamic-only regularization phase + curiosity bonus from inverse
+    log-frequency of token novelty.
+
+    Delegates to :mod:`src.brain.world_r1_explorer.world_r1_explore`.
+    """
+    try:
+        from src.brain.world_r1_explorer import (
+            world_r1_explore as _w1,
+        )
+        return _w1(
+            seed_slug           = seed_slug,
+            max_iterations      = max_iterations,
+            sample_breadth      = sample_breadth,
+            endpoint_concepts   = endpoint_concepts,
+            coverage_weight     = coverage_weight,
+            consistency_weight  = consistency_weight,
+            trajectory_weight   = trajectory_weight,
+            quality_weight      = quality_weight,
+            curiosity_weight    = curiosity_weight,
+            dynamic_only_period = dynamic_only_period,
+            temperature         = temperature,
+            seed                = seed,
+        )
+    except Exception as exc:
+        log.warning(f"world_r1_explore: falling back to adaptive cascade: {exc}")
+        return adaptive_cascade_ocw(
+            seed_slug,
+            max_hops=max(2, max_iterations // 3),
+            fan_out=sample_breadth,
+            endpoint_concepts=endpoint_concepts,
+        )
