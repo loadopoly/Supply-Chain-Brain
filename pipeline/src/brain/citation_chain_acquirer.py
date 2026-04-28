@@ -532,7 +532,13 @@ def seed_from_learning_log(cn: sqlite3.Connection, limit: int = 100) -> list[str
     """Extract canonical paper IDs from existing ``learning_log`` entries.
 
     Looks at entries with ``kind IN ('ml_research', 'citation_chain')`` and
-    extracts DOIs and arXiv IDs from their JSON ``detail`` blobs.
+    extracts DOIs, arXiv IDs, and OpenAlex IDs from their JSON ``detail`` blobs.
+
+    ID priority per paper: DOI → arXiv → OpenAlex (``oa:`` prefix).
+    The ``oa:`` form is understood by ``fetch_references_openalex`` so
+    OpenAlex-sourced papers (supply-chain + extended Grok topics) are
+    included in the citation-expansion frontier even when no arXiv/DOI is
+    available.
 
     Returns a deduplicated list of canonical IDs in priority order
     (most-cited / highest signal first).
@@ -555,14 +561,27 @@ def seed_from_learning_log(cn: sqlite3.Connection, limit: int = 100) -> list[str
             paper = blob.get("paper") or blob.get("ref_paper") or {}
             doi = (paper.get("doi") or "").lower().strip()
             arxiv = (paper.get("arxiv_id") or "").strip()
+            oa_id = (paper.get("openalex_id") or "").strip()
+
             if doi and not doi.startswith(("openalex:", "core:", "ntrs:")):
                 key = f"doi:{doi}"
                 if key not in seen:
                     seen.add(key)
                     ids.append(key)
                     continue
-            if arxiv and not arxiv.startswith(("openalex:", "core:", "ntrs:")):
+
+            if arxiv and not arxiv.startswith(("openalex:", "core:", "ntrs:", "W")):
                 key = f"arxiv:{arxiv}"
+                if key not in seen:
+                    seen.add(key)
+                    ids.append(key)
+                    continue
+
+            # OpenAlex ID — either stored in openalex_id or in arxiv_id when
+            # the paper had no arXiv URL (legacy behaviour before this fix)
+            oa_candidate = oa_id or (arxiv if (arxiv or "").startswith("W") else "")
+            if oa_candidate:
+                key = f"oa:{oa_candidate}"
                 if key not in seen:
                     seen.add(key)
                     ids.append(key)

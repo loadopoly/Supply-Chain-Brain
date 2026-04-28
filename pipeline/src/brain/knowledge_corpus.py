@@ -436,6 +436,7 @@ def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
             props = {
                 "arxiv_id": arxiv_id,
                 "doi": paper.get("doi", ""),
+                "openalex_id": paper.get("openalex_id", ""),
                 "url": paper.get("url", ""),
                 "upvotes": paper.get("upvotes", 0),
                 "citations": paper.get("citations", 0),
@@ -458,6 +459,27 @@ def _ingest_ml_research(cn, stats: _Stats, since_id: int) -> int:
                                      src_id=entity_id, src_type="MLPaper",
                                      dst_id=t, dst_type="ResearchTopic",
                                      rel="RESEARCHED_FOR", weight=signal)
+
+            # ── Toroidal CITES edges ──────────────────────────────────────
+            # For every referenced OA ID in the paper's bibliography, upsert
+            # a stub MLPaper node and a CITES edge.  This wires the bibliography
+            # directly into the knowledge graph, forming the toroidal structure
+            # where supply-chain, quantum, and cross-domain papers become
+            # mutually reachable via citation paths.
+            for ref_oa in (paper.get("openalex_ref_ids") or [])[:40]:
+                if not ref_oa:
+                    continue
+                ref_entity_id = f"oa:{ref_oa}"
+                # Upsert a minimal stub — will be enriched by citation_chain_acquirer
+                _upsert_entity(cn, stats,
+                               entity_id=ref_entity_id,
+                               entity_type="MLPaper",
+                               label=ref_entity_id,
+                               props={"openalex_id": ref_oa, "stub": True})
+                _upsert_edge(cn, stats,
+                             src_id=entity_id, src_type="MLPaper",
+                             dst_id=ref_entity_id, dst_type="MLPaper",
+                             rel="CITES", weight=0.5)
 
             # Keyword cross-link to Task entities already in corpus
             kw_tokens = set()

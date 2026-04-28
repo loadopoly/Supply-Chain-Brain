@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-__version__ = "0.19.7"
+__version__ = "0.19.8"
 __release__ = (
-    "External knowledge acquisition fully wired. Two previously-built-but-never-"
-    "called daemons are now started at agent boot: the ML research sweep "
-    "(research_supply_chain_topics — 56 OCW topics + arXiv/OpenAlex/CrossRef/Zenodo "
-    "on a 60-min rotating cursor) and the citation-chain acquirer (Semantic Scholar + "
-    "OpenAlex recursive citation follower, depth 3, 60-min cadence). "
-    "OCW lateral expansion added to _ocw_expansion_outreach so related-course slugs "
-    "harvested from course detail pages are now promoted back into the discovery queue, "
-    "allowing the course graph to grow outward from already-deepened courses without "
-    "additional network calls."
+    "Directed Toroidal Knowledge Expansion. Every paper discovered by the ML "
+    "research sweep (arXiv, OpenAlex, CrossRef — 56 SC topics + 45 Grok extended "
+    "topics: UEQGM, biohybrid quantum, astrophysics, AI knowledge graphs) now "
+    "donates its full bibliography inline: referenced_works is captured in the same "
+    "OpenAlex API call and written directly into citation_chain_state, so the "
+    "citation-chain expander follows the entire reference tree in its next cycle "
+    "without a round-trip through the corpus. CITES edges are also materialised "
+    "into the knowledge graph, making stub MLPaper nodes for each cited work so "
+    "supply-chain, quantum-systems, and cross-domain papers become mutually "
+    "reachable via citation paths. seed_from_learning_log now also extracts "
+    "OpenAlex IDs (oa: prefix) from papers previously stored with openalex_id or "
+    "with an OA W-ID in the arxiv_id field, closing the dead-end loop for papers "
+    "without arXiv/DOI identifiers."
 )
-__build_date__ = "2026-04-28"
+__build_date__ = "2026-04-29"
 
 PHASES = {
     "0.1.0": "Phase 1 - core (EOQ Bayesian-Poisson, OTD recursive, Procurement 360, Data Quality, Connectors)",

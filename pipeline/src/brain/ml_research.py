@@ -436,7 +436,9 @@ def search_papers_openalex(query: str, limit: int = _PAPERS_PER_TOPIC) -> list[d
         params={
             "search": query,
             "per-page": limit,
-            "select": "id,title,doi,publication_year,cited_by_count,concepts,primary_location",
+            # referenced_works gives us the paper's bibliography as OA IDs — no
+            # extra request; they become immediate citation_chain seeds
+            "select": "id,title,doi,publication_year,cited_by_count,concepts,primary_location,referenced_works",
             "mailto": "brain@supplychainbrain.local",  # polite-pool header
         },
         timeout=_OPENALEX_TIMEOUT,
@@ -457,13 +459,20 @@ def search_papers_openalex(query: str, limit: int = _PAPERS_PER_TOPIC) -> list[d
         loc = w.get("primary_location") or {}
         url = loc.get("landing_page_url", "") or (f"https://doi.org/{doi}" if doi else "")
         # Extract arXiv ID from URL if available
-        arxiv_id = openalex_id
+        arxiv_id = ""
         if url and "arxiv.org/abs/" in url:
             arxiv_id = url.split("/abs/")[-1].split("v")[0]
         elif doi and "arxiv" in doi.lower():
             arxiv_id = doi.split("/")[-1]
+        # Capture bibliography as OA IDs — strip URL prefix to bare W-IDs
+        ref_oa_ids = [
+            r.replace("https://openalex.org/", "").strip()
+            for r in (w.get("referenced_works") or [])
+            if r
+        ]
         results.append({
             "arxiv_id": arxiv_id,
+            "openalex_id": openalex_id,
             "title": (w.get("title") or "").strip(),
             "summary": summary[:400],
             "citations": w.get("cited_by_count", 0),
@@ -474,6 +483,7 @@ def search_papers_openalex(query: str, limit: int = _PAPERS_PER_TOPIC) -> list[d
             "url": url,
             "source": "openalex",
             "query": query,
+            "openalex_ref_ids": ref_oa_ids[:50],  # bibliography — first 50
         })
     return results
 
@@ -1307,6 +1317,26 @@ def _ensure_learning_log(cn: sqlite3.Connection) -> None:
     )
 
 
+def _ensure_citation_chain_state(cn: sqlite3.Connection) -> None:
+    """Create citation_chain_state if it doesn't exist (idempotent).
+
+    Matches the schema created by citation_chain_acquirer so rows seeded
+    here are immediately visible to the expander daemon without migration.
+    """
+    cn.execute(
+        """CREATE TABLE IF NOT EXISTS citation_chain_state (
+               paper_id            TEXT PRIMARY KEY,
+               depth               INTEGER NOT NULL DEFAULT 0,
+               parent_id           TEXT,
+               source_api          TEXT,
+               ref_count           INTEGER DEFAULT 0,
+               sc_relevance_score  REAL    DEFAULT 0.0,
+               logged_at           TEXT,
+               fetched_at          TEXT
+           )"""
+    )
+
+
 def persist_research_findings(
     papers: list[dict],
     datasets: list[dict],
@@ -1317,6 +1347,13 @@ def persist_research_findings(
     Papers are de-duplicated by ``arxiv_id`` + ``kind="ml_research"``.
     Datasets are de-duplicated by ``dataset_id``.
 
+    For each OpenAlex paper that carries ``openalex_ref_ids`` (its bibliography),
+    the referenced OA IDs are immediately seeded into ``citation_chain_state``
+    at depth=1 so the citation-chain expander picks them up in its next cycle
+    without waiting for a full corpus round.  This is the entry point for
+    directed toroidal knowledge growth — every newly discovered paper donates
+    its entire bibliography to the expansion frontier.
+
     Returns the number of new rows written.
     """
     written = 0
@@ -1324,10 +1361,17 @@ def persist_research_findings(
         db = _get_db_path()
         with sqlite3.connect(db) as cn:
             _ensure_learning_log(cn)
+            _ensure_citation_chain_state(cn)
+            now = datetime.now(timezone.utc).isoformat()
 
             for paper in papers:
                 arxiv_id = paper.get("arxiv_id", "")
-                title_key = f"[ml_research] {arxiv_id}" if arxiv_id else f"[ml_research] {paper.get('title','')[:80]}"
+                oa_id    = paper.get("openalex_id", "")
+                doi      = (paper.get("doi") or "").strip()
+                title_key = (
+                    f"[ml_research] {arxiv_id}" if arxiv_id
+                    else f"[ml_research] {paper.get('title','')[:80]}"
+                )
                 if not title_key.strip():
                     continue
 
@@ -1335,26 +1379,55 @@ def persist_research_findings(
                     "SELECT id FROM learning_log WHERE kind='ml_research' AND title=?",
                     (title_key,),
                 ).fetchone()
-                if existing:
-                    continue
+                if not existing:
+                    signal = min(1.0, (paper.get("upvotes", 0) + paper.get("citations", 0) * 0.1) / 50.0)
+                    cn.execute(
+                        """INSERT INTO learning_log(logged_at, kind, title, detail, signal_strength)
+                           VALUES(?,?,?,?,?)""",
+                        (
+                            now,
+                            "ml_research",
+                            title_key,
+                            json.dumps({
+                                "paper": paper,
+                                "topic": topic,
+                                "type": "paper",
+                            }, default=str),
+                            signal,
+                        ),
+                    )
+                    written += 1
 
-                signal = min(1.0, (paper.get("upvotes", 0) + paper.get("citations", 0) * 0.1) / 50.0)
-                cn.execute(
-                    """INSERT INTO learning_log(logged_at, kind, title, detail, signal_strength)
-                       VALUES(?,?,?,?,?)""",
-                    (
-                        datetime.now(timezone.utc).isoformat(),
-                        "ml_research",
-                        title_key,
-                        json.dumps({
-                            "paper": paper,
-                            "topic": topic,
-                            "type": "paper",
-                        }, default=str),
-                        signal,
-                    ),
-                )
-                written += 1
+                # ── Toroidal bibliography seeding ────────────────────────────
+                # For every OA-sourced paper that carries referenced_works,
+                # seed each referenced OA ID into citation_chain_state so the
+                # citation-chain expander follows the full bibliography tree.
+                # This is depth-1 seeding — the parent is the canonical ID of
+                # the paper we just wrote.
+                ref_oa_ids = paper.get("openalex_ref_ids") or []
+                if ref_oa_ids:
+                    # Build canonical parent ID for the edge
+                    if doi and not doi.startswith(("openalex:", "core:", "ntrs:")):
+                        parent_id = f"doi:{doi}"
+                    elif arxiv_id:
+                        parent_id = f"arxiv:{arxiv_id}"
+                    elif oa_id:
+                        parent_id = f"oa:{oa_id}"
+                    else:
+                        parent_id = None
+
+                    if parent_id:
+                        for ref_oa in ref_oa_ids[:40]:
+                            if not ref_oa:
+                                continue
+                            ref_key = f"oa:{ref_oa}"
+                            cn.execute(
+                                """INSERT OR IGNORE INTO citation_chain_state
+                                       (paper_id, depth, parent_id, source_api,
+                                        ref_count, sc_relevance_score, logged_at)
+                                   VALUES(?,1,?,'openalex_bibliography',0,0.3,?)""",
+                                (ref_key, parent_id, now),
+                            )
 
             for ds in datasets:
                 ds_id = ds.get("dataset_id", "")

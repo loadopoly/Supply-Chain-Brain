@@ -4,6 +4,27 @@ All notable changes to **Supply Chain Brain** are documented here. Versions
 follow [Semantic Versioning](https://semver.org). The single source of
 truth for the version number is `src/brain/_version.py`.
 
+## [0.19.8] Directed Toroidal Knowledge Expansion (2026-04-29)
+
+### Added
+
+- **Bibliography seeding — directed toroidal growth.** `search_papers_openalex()` now includes `referenced_works` in its `select` parameter so every paper returned by the ML research sweep carries its full bibliography (up to 50 OA IDs) in a single API call at no extra cost. Those IDs are written directly into `citation_chain_state` as depth-1 seeds so the citation-chain expander daemon follows the entire reference tree in its next 60-minute cycle — without waiting for a corpus round.
+- **CITES edges in knowledge graph.** `_ingest_ml_research()` in `knowledge_corpus.py` now materialises `CITES` edges for every referenced OA ID, creating stub `MLPaper` nodes for cited works. Supply-chain, quantum-systems (UEQGM), biohybrid, astrophysics, and AI knowledge-graph papers become mutually reachable via citation paths — the toroid closes.
+- **OpenAlex ID extraction in `seed_from_learning_log`.** Previously, papers fetched via OpenAlex that had no arXiv URL stored their OpenAlex ID in the `arxiv_id` field (e.g. `W2963403689`). The seed extractor now detects W-prefixed IDs and emits `oa:{id}` seeds understood by `fetch_references_openalex`, closing the dead-end loop for OA-primary papers.
+- **`_ensure_citation_chain_state` helper in `ml_research.py`** — idempotent DDL so `persist_research_findings` can safely write bibliography seeds without depending on the acquirer module.
+
+### Changed
+
+- `search_papers_openalex()` response dict now includes `openalex_id` (bare W-ID) and `openalex_ref_ids` (list of up to 50 cited-work W-IDs) in addition to existing fields.
+- `persist_research_findings()` extracts canonical parent ID (DOI → arXiv → OA) and bulk-inserts `INSERT OR IGNORE` rows into `citation_chain_state` for each bibliography entry.
+- `seed_from_learning_log()` priority: DOI → arXiv (only if not W-prefixed) → OpenAlex `oa:` ID (from either `openalex_id` or legacy `arxiv_id` field).
+
+### Scope
+
+Applies to **all 56 supply-chain topics AND all 45+ Grok extended topics** (UEQGM, biohybrid quantum computing, FRBs, pulsars, AI knowledge graphs, quipu data structures, topological phase transitions, etc.) — any paper the ML research sweep discovers now seeds its bibliography, regardless of the originating topic.
+
+---
+
 ## [0.19.7] External Knowledge Acquisition Fully Wired (2026-04-28)
 
 ### Fixed
